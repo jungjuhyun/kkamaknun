@@ -1,0 +1,21 @@
+kitsunekko.net — 회차별 일본어 자막 창고 실측 (2026-08-19)
+
+규모: 일본어 자막 폴더 2,602작품
+입구: kitsunekko.net/dirlist.php?dir=subtitles/japanese/   (검색은 로마자 제목)
+
+메이저작 확인:
+주술회전 Jujutsu Kaisen (본편·0·2기 3폴더) / 귀멸 Kimetsu no Yaiba (3) / 원피스 One Piece
+진격의 거인 Shingeki no Kyojin / 하이큐 Haikyuu!! (4) / 스파이패밀리 SPYFAMILY (5)
+체인소맨 Chainsaw Man / 블리치 Bleach (4) / 나루토 Naruto / 은혼 Gintama
+짱구 Crayon Shin-chan / 도라에몽 Doraemon / 명탐정 코난 Detective Conan
+아따맘마 Atashin'chi / 사자에상 Sazae-san / 마루코 Chibi Maruko-chan
+프리렌 Sousou no Frieren / 최애의 아이 Oshi no Ko / 블루록 Blue Lock / 도쿄리벤저스 (4)
+없는 것: 단다단
+
+다운로드 확인:
+Jujutsu.Kaisen.S01E01.WEBRip.Netflix.ja[cc].srt — 33KB · 대사 572줄 · UTF-8
+넷플릭스 자막이라 한자에 읽는 법이 붙어 있다: 五条(ごじょう), 虎杖(いたどり)
+
+용도: 문장 검색 창고(Nadeshiko·ImmersionKit)에 없는 작품에서 표현을 찾을 때.
+자막은 텍스트만이다 — 클립·영상은 별도 확보 필요.
+도구: python 도구/자막받기.py "Jujutsu Kaisen"
