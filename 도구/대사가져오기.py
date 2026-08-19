@@ -3,13 +3,24 @@
 
   python 도구/대사가져오기.py おはよう [개수]
 """
-import json, os, sys, urllib.parse, urllib.request
+import json, os, re, sys, urllib.parse, urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from 작품군 import 메이저, 미디어폴더
 
 UA = {"User-Agent": "curl/8.0.1"}
 미디어 = "https://us-southeast-1.linodeobjects.com/immersionkit/media/anime/%s/media/%s"
+
+
+def 위치(sound):
+    """음성 파일명에 화수·타임코드가 박혀 있다. 사람이 읽게 푼다."""
+    m = re.match(r"^(.*)_(\d+)\.(\d+)\.(\d+)\.(\d+)-(\d+)\.(\d+)\.(\d+)\.(\d+)\.mp3$", sound or "")
+    if not m:
+        return ""
+    이름 = m.group(1).replace("_", " ").strip()
+    s0 = "%d:%02d:%02d" % (int(m.group(2)), int(m.group(3)), int(m.group(4)))
+    e0 = "%d:%02d:%02d" % (int(m.group(6)), int(m.group(7)), int(m.group(8)))
+    return "%s · %s ~ %s" % (이름, s0, e0)
 
 
 def main(q, n):
@@ -24,6 +35,9 @@ def main(q, n):
         폴더 = 미디어폴더.get(deck)
         print("[%s] %s" % (메이저[deck], (e.get("sentence") or "").strip()))
         print("     %s" % (e.get("translation") or "").strip())
+        loc = 위치(e.get("sound"))
+        if loc:
+            print("     위치  : %s" % loc)
         if 폴더:
             f = urllib.parse.quote(폴더)
             print("     이미지: " + 미디어 % (f, urllib.parse.quote(e.get("image") or "")))
