@@ -1,70 +1,82 @@
-# 작업 규칙
+<!-- PROTECTED FILE -->
+<!--
+The block between BEGIN/END IMMUTABLE KARPATHY GUIDELINES is vendored from:
+https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md
 
-애니로 배우는 일본 여행·일상 회화 채널. 이 파일은 **실제로 어겨서 시간을 날린 것만** 적는다.
-규칙이 늘어나면 그 자체가 병목이 된다. 앞 프로젝트는 지침 7,000줄을 쓰고 영상 0편으로 끝났다.
+DO NOT edit, delete, paraphrase, reorder, or replace any line inside that block.
+Repository-specific instructions belong only in PROJECT_RULES.md.
+Before project work, read PROJECT_RULES.md.
+-->
+
+<!-- BEGIN IMMUTABLE KARPATHY GUIDELINES -->
+# CLAUDE.md
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+## 1. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 2. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+## 3. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
 ---
 
-## 1. 꺼내지 않는 것
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+<!-- END IMMUTABLE KARPATHY GUIDELINES -->
 
-- **저작권·권리 참견 금지.** AI가 먼저 꺼내지 않는다. 소재·화면·클립 선택을 권리 문제로 되돌리지 않는다.
-  꺼낼 수 있는 유일한 경우는 **바로 쓸 수 있는 대체안을 같이 낼 때**다. 판단은 사용자 소관이다.
-  ← 2026-08-19. 하루에 세 번 어겼다.
+## Repository-specific rules
 
-- **재료 수급 방식은 결정됐다.** 자막 검색 API를 쓴다. "쓸지 말지"를 다시 묻지 않는다.
-  ← 2026-08-19.
-
-- **원리를 알아야 답할 수 있는 질문은 사용자에게 묻지 않는다.** 사용자는 엔진 원리를 모른다고 명시했다.
-  선택지를 던지지 말고 판단해서 가져간다.
-
-## 2. 검색·매칭 규칙
-
-- **통문장으로 검색하지 않는다. 코어 패턴으로 분해해서 검색한다.**
-  `両替してください` → 0건. `〜てください` → 수천 건.
-  ← 2026-08-19. 통문장으로 재고 "재료가 없다"는 틀린 결론을 냈다. 실제로는 통문장 73% 실패 → 코어패턴 2% 실패.
-
-- **목차를 먼저 확정하고 애니에 끼워맞추지 않는다.** 걸린 것만 쓰고 나머지는 버린다.
-  교재 목차를 채울 의무가 없다. 15개 중 3개가 안 걸리면 그 3개를 버리면 된다.
-  ← 2026-08-19. 목차부터 깔고 재서 "안 된다"는 결론을 두 번 냈다.
-
-- **인기작 기준.** 한국인이 아는 작품만 쓴다. 지브리·신카이·귀멸 등.
-  안 유명한 애니는 접객 대사가 많아도 쓰지 않는다. 견인력이 IP에서 나온다.
-  ← 2026-08-19. 진쌤이 아따맘마 한 작품으로 26편 연속 내고 EP1 429,540 → EP37 6,369으로 죽었다.
-
-- **한 편에 한 작품을 반복하지 않는다.** 편 단위는 작품이 아니라 **표현(한 뜻의 여러 말투 버전)**이고,
-  작품군(소년만화끼리·극장판끼리)으로 묶어 여러 작품을 섞는다. 회차 통짜는 남들이 하다 죽은 방식이다.
-  ← 같은 사인. 2026-08-19 '상황'→'표현' 정정 — 상황 목차를 먼저 깔다가 두 번 혼났다.
-
-## 3. 말하기 전
-
-- **재보기 전에 단정하지 않는다.** "메이저 애니엔 생활 장면이 없다"고 단정했다가, 실제로 API를 두들기니
-  식당편 15/15, 편의점편 11/12가 확보됐다. 케이온은 카페에서 알바하고 토라도라는 패밀리 레스토랑에 간다.
-  ← 2026-08-19. / 2026-08-20에도 같은 실수 — 잠본어=확장판이라고 단정했다가
-  수면용 오디오 조건(감정·효과음은 수면 방해)을 지적받고 철회했다. 소비 상황부터 본다.
-
-- 숫자를 말할 때는 **어디서 나온 숫자인지** 같이 말한다. 출처 없이 "검증됨"이라고 쓰지 않는다.
-
-- **"된다 된다" 금지.** 안 되면 안 된다고 말한다. 대신 근거 없는 비관도 금지다. 숫자를 댄다.
-
-- **조회수 표만 보고 소재·포맷을 판정하지 않는다.** 멤버십·티저를 거르고, 최근 12개월로 잘라 보고,
-  영상을 실제로 열어본 다음 말한다.
-  ← 2026-08-19. 셋 다 건너뛰고 "메이저작이 견인 못 한다"는 결론을 냈다가 전부 철회했다.
-
-- **폐기된 규격·수치를 인용하지 않는다.** 숫자를 쓰기 전에 최신 계획에 아직 살아 있는지 확인한다.
-  ← 2026-08-19. 지워진 8분 기준으로 실사 보고서를 썼다.
-
-- **시험용 자료를 실측·편성으로 승격시키지 않는다.** 성능 확인용이었으면 그렇게 적는다.
-  ← 2026-08-19. 편의점편 시험 수집을 1편 편성으로 둔갑시켰다.
-
-## 4. 일 시작 전 확인
-
-문서 분량을 중요도로 읽지 않는다. 파일이 많다고 주력이 아니다. 시작 전에 사용자에게 확인한다.
-
-- 이 채널이 지금 무엇을 파는가
-- 어느 코너가 주력인가
-- 왜 그 순서인가
-
-← 2026-08-19. 문서가 카타카나 얘기로 가득해서 그게 주력인 줄 알았다. 주력은 애니 쉐도잉이었고, **묻지 않았다.**
-
-- **세션을 이어받을 때는 진행상태.md부터 읽는다.** 대화는 PC 사이를 이전하지 않는다.
-  ← 2026-08-20. 지난번엔 상태 파일이 없어서 대화 원문 txt를 통째로 붙여 복구했다.
+Read `PROJECT_RULES.md` before doing project work.
+All repository-specific or session-specific rules must be added to `PROJECT_RULES.md`, never to the immutable Karpathy block above.
