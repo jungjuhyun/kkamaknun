@@ -1,6 +1,6 @@
 # CONTEXT / MEMORY REFACTOR PLAN
 
-> 상태: **PHASE 8 — NATURAL FRESH-SESSION REGRESSION REQUIRED**
+> 상태: **PHASE 8 — SECOND LIMITED REPAIR APPLIED / NATURAL FRESH-SESSION REGRESSION REQUIRED**
 > 작성일: 2026-08-23
 > 역할: context/memory refactor의 task-local execution state owner
 > project-level current state는 `진행상태.md`가 소유한다.
@@ -74,7 +74,8 @@ blind eval specification 보존 branch:
 - 불필요한 카타카나 history leakage
 - canonical owner 미확인 수치/사건 서술
 
-최소 수리:
+### Repair 1
+
 1. blind eval spec을 `main`에서 제거하고 eval branch에만 보존
 2. continuation/current-state 요청에서 `진행상태.md` → active plan 우선
 3. 둘로 충분하면 history/archive retrieval 금지
@@ -85,19 +86,30 @@ blind eval specification 보존 branch:
 
 **INVALID / UNTESTABLE for repo architecture**
 
-Temporary Chat 답변은 내용 품질상 실패했다.
-- 오래된 `シ・ツ・ソ・ン` 기획을 현재 1편처럼 서술
-- `까막눈_시소츠응_나레이션_v8`, 약 900자, 4분 10초, `ラーメン` 콜드오픈 등 current canonical repo에서 확인되지 않은 구체 사항을 사실처럼 제시
+Temporary Chat 답변 자체는 품질상 실패했다.
+- 오래된 `シ・ツ・ソ・ン` 기획을 current first content처럼 서술
+- current canonical repo에서 확인되지 않은 구체 사항을 사실처럼 제시
 - 현재 first-content domain owner와 충돌
 
 하지만 답변 스스로 GitHub repository를 직접 찾지 못했다고 밝혔다.
 따라서 이 run은 테스트의 필수 전제인 **repo access available**을 충족하지 못했다.
 
-판정:
-- assistant answer quality → FAIL
-- repo architecture isolation performance → 판정 불가
+이 run이 추가로 드러낸 실패:
 
-이 환경 제약을 architecture defect로 바꾸어 새 layer를 추가하지 않는다.
+> repo 확인 실패 후 과거 ChatGPT memory/기타 context로 project state를 채우고도 복원한 것처럼 말하는 fallback.
+
+### Repair 2
+
+`AGENTS.md`와 `PROJECT_RULES.md`를 수정했다.
+
+- canonical repo를 `jungjuhyun/kkamaknun`, default branch를 `main`으로 명시
+- project continuation/current-state 요청에서는 repo verification을 답변보다 먼저 수행
+- ChatGPT personalization memory / 과거 채팅 기억은 project current truth의 canonical source가 아님을 명시
+- repo 접근 실패 시 current state를 복원했다고 말하지 않음
+- repo 접근 실패 시 과거 memory로 빈칸을 채우지 않음
+- repo 미검증이면 `repo 확인 불가 / 현재 상태 검증 불가`로 중단
+
+새 layer/DB는 추가하지 않았다.
 
 ---
 
@@ -116,6 +128,7 @@ Temporary Chat 답변은 내용 품질상 실패했다.
 - prompt에 정답/문서 경로/expected behavior를 추가하지 않음
 
 PASS 기준:
+- 실제 repo 접근을 수행
 - `진행상태.md`와 active plan으로 현재 단계 복원
 - behavioral regression이 현재 작업임을 인식
 - production은 validation 이후 복귀점으로 구분
