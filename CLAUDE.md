@@ -4,8 +4,7 @@ The block between BEGIN/END IMMUTABLE KARPATHY GUIDELINES is vendored from:
 https://github.com/multica-ai/andrej-karpathy-skills/blob/main/CLAUDE.md
 
 DO NOT edit, delete, paraphrase, reorder, or replace any line inside that block.
-Repository-specific instructions belong only in PROJECT_RULES.md.
-Before project work, read PROJECT_RULES.md.
+This file is the Claude-facing adapter only. Project truth lives in the shared canonical documents listed below.
 -->
 
 <!-- BEGIN IMMUTABLE KARPATHY GUIDELINES -->
@@ -76,7 +75,36 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 <!-- END IMMUTABLE KARPATHY GUIDELINES -->
 
-## Repository-specific rules
+## Claude project adapter
 
-Read `PROJECT_RULES.md` before doing project work.
-All repository-specific or session-specific rules must be added to `PROJECT_RULES.md`, never to the immutable Karpathy block above.
+이 파일은 Claude용 진입점일 뿐이며 현재 프로젝트 사실을 소유하지 않는다.
+GPT와 Claude는 아래 **공통 정본 4개**를 함께 사용한다.
+
+- `STATE.md` — 현재 상태와 다음 행동
+- `PROJECT_CONTEXT.md` — 오래 유지되는 사용자/프로젝트 맥락
+- `PLAYBOOK.md` — 공통 판단·작업 원칙
+- `FIRST_VIDEO.md` — 현재 첫 콘텐츠 세부
+
+### 시작 순서
+
+1. 프로젝트 작업을 시작하면 `PLAYBOOK.md`의 공통 원칙을 확인한다.
+2. `이어가자`, `지금 어디까지`, `다음 뭐야`처럼 연속성에 의존하는 요청이면 **먼저 `STATE.md`를 읽는다.**
+3. `STATE.md`만으로 부족할 때만 요청에 맞춰 `FIRST_VIDEO.md` 또는 `PROJECT_CONTEXT.md`를 추가로 읽는다.
+4. 모든 공통 문서를 무조건 한꺼번에 읽지 않는다.
+
+### 권위와 과거 자료
+
+- 현재 상태는 `STATE.md`, 첫 콘텐츠 세부는 `FIRST_VIDEO.md`가 우선한다.
+- `AGENTS.md`는 GPT용 어댑터이며 별도의 프로젝트 정본이 아니다.
+- git history, backup branch, 삭제된 과거 문서는 사용자가 명시적으로 과거 기록·복구를 요청한 경우에만 본다.
+- repo와 모델 기억이 충돌하면 공통 정본을 우선한다.
+- repo를 확인할 수 없으면 과거 기억으로 현재 상태를 추측하지 않는다.
+
+### 수정 위치
+
+- 현재 상태 변경 → `STATE.md`
+- 안정적 사용자/프로젝트 맥락 변경 → `PROJECT_CONTEXT.md`
+- 오래 유지될 판단·작업 원칙 변경 → `PLAYBOOK.md`
+- 첫 콘텐츠 세부 변경 → `FIRST_VIDEO.md`
+
+같은 사실을 `CLAUDE.md`에 다시 복제하지 않는다.
