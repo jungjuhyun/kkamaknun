@@ -1,6 +1,6 @@
 # CONTEXT / MEMORY REFACTOR PLAN
 
-> 상태: **PHASE 7 ACTIVE — FRESH-SESSION BEHAVIORAL VALIDATION**
+> 상태: **PHASE 8 — LIMITED REPAIR APPLIED / FRESH-SESSION RETEST REQUIRED**
 > 작성일: 2026-08-23
 > 역할: context/memory refactor의 task-local execution state owner
 > project-level current state는 `진행상태.md`가 소유한다.
@@ -32,7 +32,7 @@ small bootstrap/router
 - **P3 target architecture + RED TEAM — PASS** → `기록/CONTEXT_MEMORY_TARGET_ARCHITECTURE.md`
 - **P4 rollback baseline — PASS** → `기록/CONTEXT_MEMORY_ROLLBACK.md`
 - **P5 implementation — PASS**
-- **P6 blind eval specification — PASS** → `기록/CONTEXT_MEMORY_EVAL_SPEC.md`
+- **P6 blind eval specification — PASS**
 - **P7 static/structural verification — PASS**
 
 BEFORE baseline:
@@ -40,6 +40,9 @@ BEFORE baseline:
 
 backup branch:
 `backup/pre-context-memory-refactor-20260823`
+
+blind eval specification 보존 branch:
+`eval/context-memory-spec-20260824`
 
 ---
 
@@ -64,91 +67,111 @@ backup branch:
 
 ---
 
-# 4. PHASE 7 — fresh-session behavioral validation
+# 4. PHASE 7 — natural fresh-session 결과
 
-## 4.1 정적 검증
+## STEP 7A 결과: **FAIL**
 
-**PASS**
-
-확인된 것:
-- fixed full preload 제거
-- project current state와 task-local phase owner 분리
-- stable context / mutable state / history ownership 분리
-- known supersession ambiguity 보정
-- raw evidence/history 보존
-- rollback baseline 보존
-
-## 4.2 왜 지금 behavioral test를 해야 하는가
-
-구조가 맞아 보여도 실제 fresh session이:
-- 현재 상태를 복원하지 못하거나
-- 과거 상태를 current로 오인하거나
-- 필요한 domain/procedure/history를 찾지 못하거나
-- 사용자에게 기본 맥락을 다시 요구한다면
-
-이번 refactor의 실제 목적을 달성한 것이 아니다.
-
-따라서 **behavioral validation이 끝나기 전에 production 복귀를 완료 처리하지 않는다.**
-
-## 4.3 테스트 순서
-
-### STEP 7A — natural fresh-session test
-
-실제 평소 사용 형태에 가까운 새 채팅에서 최소한의 요청만 준다.
-
-권장 첫 prompt:
+실제 새 채팅에 다음 최소 prompt만 전달했다.
 
 > `까막눈 프로젝트 이어서 하자. 지금 어디까지 왔고 다음에 뭘 해야 하는지 확인해줘.`
 
-이 prompt에는 정답, 문서 경로, 판단 규칙, expected behavior를 넣지 않는다.
+관찰된 실패:
 
-관찰:
-- repo/current state를 스스로 확인하는가
-- memory refactor를 아직 active production work로 오인하지 않는가
-- 첫 콘텐츠 제작 복귀 지점을 정확히 찾는가
-- 근거 없이 과거 상태를 current로 사용하지 않는가
-- 사용자에게 이미 repo에 있는 기본 설명을 다시 요구하지 않는가
+1. **current-state failure**
+   - canonical `진행상태.md`는 fresh-session behavioral validation이 현재 활성 작업이라고 명시했지만,
+   - fresh answer는 프로젝트가 이미 첫 콘텐츠 편집 단계로 복귀한 것처럼 답했다.
 
-### STEP 7B — isolation test (필요할 때만)
+2. **eval contamination**
+   - fresh answer가 `35분 촬영 / 강한 장면 8개 / 14분 vs 8분`을 실제 최근 프로젝트 상태처럼 서술했다.
+   - 이 수치는 blind eval spec의 가상 CASE J 입력과 일치한다.
+   - 평가 명세를 fresh agent에게 보여주지 않는다고 적어놓고 같은 default branch의 `기록/`에 두었던 것이 구조적 실수였다.
 
-Natural fresh-session pass가 프로젝트/채팅 memory의 도움인지 repo architecture 덕분인지 구분할 필요가 있을 때만 수행한다.
+3. **irrelevant historical leakage**
+   - 현재 상태 확인 요청인데 오래된 카타카나 첫 콘텐츠 맥락을 서론에 꺼냈다.
+   - 현재 answer에는 필요 없는 history였다.
 
-공식 ChatGPT Temporary Chat은 개인화를 위한 기존 memory/이전 대화를 사용하지 않는다. Temporary Chat에서 GitHub 접근이 실제로 제공되는 환경이라면 repo-only에 가까운 검증에 사용할 수 있다.
+4. **unsupported/current-owner 미확인 정보**
+   - `20분 시험 / 강한 사건 약 5개`, `후속 테스트 12개 중 8개`, `단어 공부 후 향상` 등 현재 canonical owner에서 확인되지 않은 내용을 실제 진행 사실처럼 서술했다.
+   - natural fresh chat은 ChatGPT personalization memory / past-chat context의 영향을 받을 수 있으므로 repo 오염과 제품 memory 오염을 분리해 재검증해야 한다.
 
-Temporary Chat에서 GitHub 접근이 제공되지 않으면 그 환경 제약을 기록하고, 억지로 PASS/FAIL을 만들지 않는다.
-
-## 4.4 판정
-
-- **PASS** — fresh session이 현재 상태·필요 자료·다음 행동을 스스로 복원하고 stale premise를 사용하지 않음
-- **PARTIAL** — 핵심 상태는 복원하지만 routing/judgment/history 중 일부가 약함
-- **FAIL** — current state를 틀리게 잡거나 사용자에게 기본 인수인계를 다시 요구하거나 stale history를 current로 사용
-
-실패 시 바로 새 layer를 추가하지 않고 failure class를 먼저 분류한다.
+판정 failure class:
+- routing failure
+- current-state failure
+- eval contamination/artifact
+- unsupported-claim failure
+- external personalization contamination 가능성
 
 ---
 
 # 5. PHASE 8 — 제한적 수리
 
-Phase 7에서 실제 failure가 확인될 때만 진입한다.
+실제 failure가 확인됐으므로 최소 수정만 수행한다.
 
-failure class:
-- routing failure
-- current-state failure
-- stale/supersession failure
-- domain retrieval failure
-- procedure/judgment retrieval failure
-- unsupported-claim failure
-- eval contamination/artifact
+## 적용한 수정
 
-기존 owner/routing 수정으로 해결되면 새 architecture를 만들지 않는다.
+### A. eval spec을 default branch에서 제거
+
+- blind eval spec은 `eval/context-memory-spec-20260824` branch에 보존한다.
+- default `main`에서는 `기록/CONTEXT_MEMORY_EVAL_SPEC.md`를 제거했다.
+- 평가용 가상 수치가 production memory retrieval에 섞이지 않게 한다.
+
+### B. `AGENTS.md` current-state routing 강화
+
+continuation/current-state 요청에서는:
+
+1. `진행상태.md`
+2. 활성 execution plan
+
+을 먼저 확인하고, 이 둘로 답이 충분하면 history/DECISIONS/archive를 읽지 않는다.
+
+추가 guard:
+- 평가용·가상·예시·테스트 시나리오를 project fact로 승격 금지
+- current-state 답변에서 오래된 project history를 자동 서론으로 꺼내지 않음
+- historical detail은 사용자가 묻거나 현재 판단에 실제로 필요할 때만 retrieval
+
+새 memory layer나 DB는 추가하지 않았다.
 
 ---
 
-# 6. PHASE 9 — 종료 및 production 복귀
+# 6. 다음 검증 순서
 
-Phase 7 behavioral validation이 PASS하면:
+## STEP 8A — isolation fresh-session retest
+
+Natural fresh chat이 personalization memory의 영향을 받을 수 있으므로 다음 테스트는 **Temporary Chat**을 우선한다.
+
+공식 ChatGPT Temporary Chat은 개인화를 위한 기존 memory를 사용하지 않는다.
+
+조건:
+- Temporary Chat에서 GitHub 접근이 실제로 가능해야 한다.
+- 가능하면 같은 최소 prompt를 사용한다.
+- GitHub 접근이 불가능하면 그 환경을 repo-only FAIL로 오인하지 않는다.
+
+prompt:
+
+> `까막눈 프로젝트 이어서 하자. 지금 어디까지 왔고 다음에 뭘 해야 하는지 확인해줘.`
+
+PASS 기준:
+- 현재 활성 단계가 fresh-session behavioral validation / retest라는 것을 정확히 찾음
+- 첫 콘텐츠 제작은 validation 이후 복귀점으로 구분
+- eval 가상 수치를 실제 사실로 사용하지 않음
+- 오래된 카타카나/과거 포맷을 현재 상태 설명에 불필요하게 꺼내지 않음
+- canonical owner에 없는 촬영/테스트 수치를 창작하지 않음
+
+## STEP 8B — natural fresh-session regression
+
+isolation test가 통과하면 일반 새 채팅에서도 같은 최소 prompt로 한 번 확인한다.
+
+- Temporary만 PASS / natural FAIL → 제품 personalization memory와 repo authority 충돌 문제로 분류
+- 둘 다 FAIL → repo routing/current authority 문제를 추가 수리
+- 둘 다 PASS → Phase 9 종료
+
+---
+
+# 7. PHASE 9 — 종료 및 production 복귀
+
+behavioral validation이 PASS하면:
 - 이 plan을 `COMPLETED`로 전환
 - `진행상태.md`에서 memory validation을 active work에서 제거
 - 첫 콘텐츠 제작을 현재 active work로 전환
 
-그 전에는 GitHub 문서 리팩터링이 **구조적으로 완료됐지만 실제 동작 검증 전**으로 취급한다.
+그 전에는 production으로 넘어가지 않는다.
