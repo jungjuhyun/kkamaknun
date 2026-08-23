@@ -126,6 +126,10 @@
 - `확정` 명확한 supersession과 실제로 underdetermined인 conflict를 구분한다. 모든 충돌을 억지로 단일 current value로 만들지 않는다.
 - `확정` 사용자가 새 채팅용 bootstrap prompt나 context transfer block을 관리하지 않는다. repo 접근이 가능한 세션에서 AI가 스스로 route/retrieve해야 한다.
 - `확정` Phase 5 구조 변경 전 기준 commit은 `4f632705702d192a0eb188ace4d8fcee11d1d178`, backup branch는 `backup/pre-context-memory-refactor-20260823`이다.
+- `확정` Phase 5의 **구조/정적 검증은 PASS**다. fixed preload 제거, current/task-local owner 분리, stable/current/domain/history ownership 정리, known supersession 표시, raw evidence 보존을 확인했다.
+- `보류` Phase 7의 **독립 fresh-session behavioral validation**은 현재 도구로 자동 실행할 수 없어 아직 full PASS로 부르지 않는다. 판정은 `STRUCTURAL PASS / BEHAVIORAL VALIDATION PENDING`이다.
+- `확정` behavioral evidence가 없다는 이유만으로 Phase 8의 추가 architecture 수리에 들어가지 않는다. 실제 routing/stale/judgment failure가 관찰될 때만 다시 수정한다.
+- `확정` memory refactor 검증을 기다리느라 콘텐츠 제작을 계속 막지 않는다. 구조는 provisionally 사용하고 project active work는 **첫 콘텐츠 촬영·편집으로 복귀**한다.
 
 ---
 
