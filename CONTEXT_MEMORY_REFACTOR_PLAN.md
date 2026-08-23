@@ -1,6 +1,6 @@
 # CONTEXT / MEMORY REFACTOR PLAN
 
-> 상태: **PLAN LOCKED — EXECUTING PHASE 1**
+> 상태: **PLAN LOCKED — EXECUTING PHASE 2**
 > 작성일: 2026-08-23
 > 기준 main: `511ca72fa141777dca846e6bcc9c5116653ef89d`
 > 목적: 긴 대화에서 축적된 **프로젝트 맥락 + 현재 상태 + 판단 기준 + 작업 절차 + 실패 경험**을 새 채팅/새 세션이 가능한 한 적은 사용자 개입으로 복원하도록 `kkamaknun`의 외부 기억 구조를 연구 기반으로 리팩터링한다.
@@ -61,7 +61,7 @@
 
 ## 2. 현재까지 확보한 핵심 연구 근거
 
-아래는 계획 작성 전에 실시한 1차 딥리서치에서 반복적으로 확인된 방향이다. 이 목록은 Phase 1에서 더 확장·검증한다.
+아래는 계획 작성 전에 실시한 1차 딥리서치에서 반복적으로 확인된 방향이다. 전체 Phase 1 종합은 `기록/CONTEXT_MEMORY_RESEARCH_2026-08.md`를 기준으로 한다.
 
 ### 2.1 Context는 큰 창이 아니라 제한된 자원으로 취급
 
@@ -298,13 +298,25 @@ RAW HISTORY / EVIDENCE / GIT HISTORY
 - 서로 충돌하는 연구 결과
 - 최종 설계 원칙 후보
 
+### Phase 1 완료 결과 — 2026-08-23
+
+- 산출물 작성 완료: `기록/CONTEXT_MEMORY_RESEARCH_2026-08.md`
+- 공식 production engineering(OpenAI/Anthropic), peer-reviewed ACL/ICLR/ICML, 2026 최신 public benchmark/preprint를 교차 조사했다.
+- 특히 `LongMemEval-V2 / AgentRunbook-C V2`, `ReFind`, `Infini Memory`, `Filesystem-Based Memory`, `STALE`, `DynamicMem`, `Memora/FAMA`, `HaluMem`, procedural memory, memory cost 연구를 workload별로 비교했다.
+- 단일 universal SOTA memory system은 없으며 benchmark/backbone/workload에 따라 우세가 달랐다.
+- 현재 workload에 가장 강하게 수렴한 방향은 **small bootstrap + explicit canonical current state + stable declarative memory + procedural/judgment memory + raw evidence preservation + agentic iterative retrieval + guarded/non-destructive writes + explicit stale/supersede + behavioral cold-start eval**이다.
+- raw archive를 first-class evidence로 보존하고, LLM의 continuous consolidation으로 source를 파괴하지 않는 것이 중요하다는 반대근거도 반영했다.
+- 아직 기존 memory/process 구조 파일은 수정하지 않았다.
+
+**Exit Gate P1: PASS.**
+
 ### Exit Gate P1
 
-- 최소 3개 이상의 서로 다른 연구/실무 계열에서 동일 방향이 수렴하는가?
-- 특정 vendor의 한 글만 근거로 결정하고 있지 않은가?
-- 2026년 최신 결과가 2024~2025 foundational 결과를 어떻게 수정했는지 확인했는가?
-- `우리 workload`와 다른 benchmark 결과를 그대로 일반화하지 않았는가?
-- 연구 결과와 AI의 추론을 구분해 기록했는가?
+- 최소 3개 이상의 서로 다른 연구/실무 계열에서 동일 방향이 수렴하는가? → **YES**
+- 특정 vendor의 한 글만 근거로 결정하고 있지 않은가? → **YES**
+- 2026년 최신 결과가 2024~2025 foundational 결과를 어떻게 수정했는지 확인했는가? → **YES**
+- `우리 workload`와 다른 benchmark 결과를 그대로 일반화하지 않았는가? → **YES**
+- 연구 결과와 AI의 추론을 구분해 기록했는가? → **YES**
 
 **Gate 불통과 → 연구 계속. 구조 수정 금지.**
 
@@ -648,18 +660,18 @@ PASS 후:
 
 # 6. 현재 진행 위치
 
-**현재: PHASE 1 — 딥리서치 및 evidence matrix 확정**
+**현재: PHASE 2 — 현재 `kkamaknun` memory architecture 전수 감사**
 
 완료:
-- PHASE 0 문제 정의
-- 1차 연구 탐색
-- repo root / 핵심 memory 파일 구조 확인
-- 실행 roadmap 작성
-- 계획 재검토 및 누락 축 보완
+- PHASE 0 문제 정의 및 계획 잠금
+- 계획 재검토 / 누락 축 보완
 - Exit Gate P0 PASS
+- PHASE 1 딥리서치 / evidence matrix
+- 연구 산출물 `기록/CONTEXT_MEMORY_RESEARCH_2026-08.md`
+- Exit Gate P1 PASS
 
-현재 수행:
+다음:
 
-> **PHASE 1 — 연구 범위를 확장하고 evidence matrix를 완성한다.**
+> **PHASE 2 — repository root, 핵심 memory/process 문서, 관련 기록/실측/git history를 전수 감사하고 실제 defect와 이미 잘 된 부분을 구분한다.**
 
-Phase 1이 끝나기 전에는 기존 memory/process 구조를 리팩터링하지 않는다.
+Phase 2가 끝나기 전에는 기존 memory/process 구조를 리팩터링하지 않는다.
