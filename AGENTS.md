@@ -4,7 +4,7 @@
 
 1. `CLAUDE.md` — Karpathy 공통 상위 행동 규칙
 2. `PROJECT_RULES.md` — 까막눈 프로젝트 전용 실패 방지 규칙
-3. `PLANNING_PROCESS.md` — 주요 기획의 생성→독립 RED TEAM→수리→재공격 공정
+3. `PLANNING_PROCESS.md` — 주요 기획의 생성→RED TEAM 1차→수리→RED TEAM 2차 공정
 4. `JUDGMENT.md` — 무엇을 좋은 기획으로 판단하는지, 왜 그렇게 판단하는지
 5. `USER_CONTEXT.md` — 사용자 의도·취향·판단 기준·작업 방식
 6. `진행상태.md` — 현재 최우선 과제와 다음 행동
