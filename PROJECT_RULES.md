@@ -46,9 +46,15 @@
 
 - **mutable current fact는 canonical owner 하나를 우선한다.** 같은 현재값을 여러 core 문서에 독립적으로 복제하지 않는다.
 
+- **프로젝트의 현재 상태·최근 완료사항·다음 행동을 묻는 요청은 repo 검증이 선행되어야 한다.** repository 접근이 가능한 환경에서는 `jungjuhyun/kkamaknun`의 current owner를 확인하기 전까지 ChatGPT personalization memory, 과거 채팅 기억, 오래된 요약을 현재 사실의 근거로 쓰지 않는다.
+
+- **repo 접근이 실패하거나 해당 세션에서 repository tool이 제공되지 않으면 current state를 복원했다고 말하지 않는다.** 그 경우 `repo 확인 불가 / 현재 상태 검증 불가`라고 명시하고, 과거 기억으로 빈칸을 채워 현재 상태를 만들어내지 않는다.
+
 - `DECISIONS.md`, `기록/`, `계획.md`, git history는 **history/evidence**다. current truth가 필요할 때는 current/domain owner를 먼저 확인한다.
 
 - 명확히 철회·대체된 과거 상태를 현재처럼 되살리지 않는다. 반대로 실제로 어느 쪽이 current인지 불명확한 충돌은 억지로 하나의 값으로 정하지 않는다.
+
+- 평가용·가상·예시·테스트 시나리오는 canonical owner에서 실제 프로젝트 사실로 확인되지 않는 한 current/history fact로 승격하지 않는다.
 
 - memory write는 답변 생성보다 엄격하게 한다. 일회성 대화·단일 실패·검증 안 된 AI 요약을 자동으로 permanent rule/judgment/context로 승격하지 않는다.
 
