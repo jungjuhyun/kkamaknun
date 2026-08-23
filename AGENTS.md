@@ -1,52 +1,66 @@
-# AGENTS.md — 필수 시작 절차
+# AGENTS.md — 프로젝트 bootstrap / router
 
-이 저장소에서 작업하기 전에 아래 파일을 **이 순서대로 반드시 읽는다.**
+이 파일은 거대한 매뉴얼이 아니라 **어디를 언제 읽을지 정하는 작은 지도**다.
 
-1. `CLAUDE.md` — Karpathy 공통 상위 행동 규칙
-2. `PROJECT_RULES.md` — 까막눈 프로젝트 전용 실패 방지 규칙
-3. `PLANNING_PROCESS.md` — 주요 기획의 생성→RED TEAM 1차→수리→RED TEAM 2차 공정
-4. `JUDGMENT.md` — 무엇을 좋은 기획으로 판단하는지, 왜 그렇게 판단하는지
-5. `USER_CONTEXT.md` — 사용자 의도·취향·판단 기준·작업 방식
-6. `진행상태.md` — 현재 최우선 과제와 다음 행동
-7. `DECISIONS.md` — 확정·보류·폐기된 결정
+## 기본 시작
 
-현재 첫 콘텐츠를 다룰 때는 위 문서를 읽은 뒤 `첫콘텐츠_계획.md`를 추가로 읽는다.
-장비 문제를 다룰 때는 `장비세팅.md`를 추가로 읽는다.
-필요할 때만 `기록/`, `실측/`, `계획.md`의 과거 자료를 조회한다.
+1. `CLAUDE.md` — 공통 상위 행동 규칙. 현재 harness가 이미 주입했다면 중복으로 다시 읽지 않는다.
+2. `PROJECT_RULES.md` — 까막눈 프로젝트 전체에 적용되는 durable 실패 방지 규칙.
+3. 현재 요청을 분류한 뒤 **필요한 문서만 추가로 읽는다.**
 
-## 우선순위
+모든 프로젝트 작업에서 `PLANNING_PROCESS.md`, `JUDGMENT.md`, `USER_CONTEXT.md`, `DECISIONS.md`를 일괄 preload하지 않는다.
+
+## 현재 상태를 이어갈 때
+
+사용자가 `이 프로젝트 이어서 하자`, `다음 뭐하지`, `지금 어디까지 왔지`처럼 현재 작업에 의존하는 요청을 하면:
+
+1. `진행상태.md`를 읽는다.
+2. `진행상태.md`에 활성 execution plan이 있으면 그 파일을 읽는다.
+3. 필요한 domain 문서만 추가한다.
+
+`진행상태.md`는 **project-level current state**의 기준이다. 활성 execution plan이 있으면 그 plan은 **해당 작업 내부 phase/local state**의 기준이다.
+
+## 요청별 routing
+
+- **새 콘텐츠/포맷/큰 방향 판단** → `진행상태.md` → `PLANNING_PROCESS.md` → `JUDGMENT.md`; 사용자 적합성 판단이 실제로 필요할 때만 `USER_CONTEXT.md` 추가.
+- **첫 콘텐츠 세부** → `진행상태.md` → `첫콘텐츠_계획.md`; 큰 판단이면 planning/judgment 문서 추가.
+- **장비·OBS·녹화 세팅** → 필요하면 `진행상태.md` → `장비세팅.md`.
+- **사용자 장기 성향·배경** → `USER_CONTEXT.md`.
+- **왜 그렇게 정했는지 / 과거 변경 이유** → current owner를 먼저 확인한 뒤 `DECISIONS.md`; 필요하면 `기록/` 또는 git history.
+- **실측·시장·재료 근거** → 관련 domain owner → `실측/`; 최신 외부 사실이면 웹/공식 자료.
+- **과거 반복듣기 설계** → `계획.md`, 필요 시 관련 `기록/`, `실측/`, `도구/`.
+
+## 권위와 stale 처리
 
 - 시스템/개발자/현재 사용자 지시가 저장소 문서보다 우선한다.
-- 저장소 내부에서는 `CLAUDE.md`의 Karpathy 규칙을 공통 상위 행동 규칙으로 본다.
-- `PROJECT_RULES.md`는 이를 확장할 수 있지만 약화·대체하지 않는다.
-- `PLANNING_PROCESS.md`는 주요 기획을 어떻게 검수할지 정한다.
-- `JUDGMENT.md`는 검수할 때 사용할 판단 기준과 축적된 판단 이유를 제공한다.
-- 현재 상태 판단은 `진행상태.md`와 `DECISIONS.md`를 우선한다.
-- 과거 문서의 분량이 많다고 현재 주력으로 추정하지 않는다.
-- 폐기·보류된 아이디어를 되살리기 전에 `DECISIONS.md`를 확인한다.
-- 새 실측이나 현재 사용자 지시가 과거 판단과 충돌하면 과거 판단을 방어하지 말고 갱신한다.
+- mutable current fact는 **그 정보의 canonical owner**가 우선한다.
+- `DECISIONS.md`, `기록/`, `계획.md`, git history는 current truth의 대체물이 아니라 history/evidence다.
+- 오래된 기록 한 줄을 찾았다는 이유로 현재 상태로 승격하지 않는다. 현재값이 필요한 질문이면 current/domain owner와 충돌 여부를 확인한다.
+- 명확히 대체된 값은 새 값을 사용한다. 실제로 어느 쪽이 current인지 불분명하면 임의로 하나를 고르지 않는다.
 
-## 주요 기획 제출 규칙
+## 주요 기획
 
 사용자가 별도로 `공격해봐`라고 지시하기를 기다리지 않는다.
-새 포맷·후속 콘텐츠·큰 구조 변경은 `PLANNING_PROCESS.md`의 공정을 거쳐 **자기검수까지 끝난 안**으로 제시한다.
+새 포맷·후속 콘텐츠·큰 구조 변경은 `PLANNING_PROCESS.md`의 자기검수를 거쳐 제출한다.
+무엇을 좋은 기획으로 보는지는 `JUDGMENT.md`를 따른다.
 
-결론만 이어받지 않는다. 다음 세션에서도 같은 판단을 재현해야 하는 중요한 이유가 생기면 `JUDGMENT.md`에 남긴다.
+## memory write routing
+
+의미 있는 변화만 canonical memory에 승격한다.
+
+- project current state → `진행상태.md`
+- active task phase → 해당 active execution plan
+- durable project invariant → `PROJECT_RULES.md`
+- reusable planning procedure → `PLANNING_PROCESS.md`
+- reusable judgment principle → `JUDGMENT.md`
+- stable user/project context → `USER_CONTEXT.md`
+- domain detail → 해당 domain 문서
+- 의미 있는 decision transition → `DECISIONS.md`
+- 긴 조사/과정/원본 보존 → `기록/`
+
+일회성 대화나 단일 실패를 자동으로 영구 규칙으로 만들지 않는다. 같은 정보를 여러 current owner에 복제하지 않는다.
 
 ## CLAUDE.md 보호
 
 `CLAUDE.md`의 `BEGIN IMMUTABLE KARPATHY GUIDELINES` ~ `END IMMUTABLE KARPATHY GUIDELINES` 블록은 수정·삭제·요약·재작성·재배열하지 않는다.
-새 프로젝트 규칙은 `PROJECT_RULES.md`에만 추가한다.
-
-## 작업 종료 전
-
-프로젝트 방향·편성·우선순위·사용자 선호에 의미 있는 변경이 생겼으면 종료 전에 다음을 갱신한다.
-
-- 행동 규칙 변화 → `PROJECT_RULES.md`
-- 재사용 가능한 판단 기준/판단 이유 → `JUDGMENT.md`
-- 현재 상태 변화 → `진행상태.md`
-- 결정/철회 → `DECISIONS.md`
-- 장기적으로 재사용할 사용자 맥락 → `USER_CONTEXT.md`
-- 긴 대화·조사 과정 보존 필요 → `기록/`
-
-문서 갱신 자체가 목적이 되어 실제 촬영·편집을 방해하지 않도록 한다.
+새 프로젝트 규칙은 `PROJECT_RULES.md`에만 둔다.
