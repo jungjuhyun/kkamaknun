@@ -12,7 +12,8 @@
 요청별 추가 문서:
 - 첫 콘텐츠 세부 → `FIRST_VIDEO.md`
 - 큰 기획·판단 → `PLAYBOOK.md`
-- 사용자/프로젝트의 안정적 배경 → `PROJECT_CONTEXT.md`
+- 프로젝트의 안정적 배경·채널 정체성 → `PROJECT_CONTEXT.md`
+- 사용자 취향·성향·지속 가능성 등 **사용자 적합성이 판단을 바꿀 때** → `USER_PROFILE.md`
 
 모든 문서를 일괄 preload하지 않는다.
 
@@ -20,6 +21,7 @@
 
 - 현재 프로젝트 상태와 다음 행동의 기준은 `STATE.md`다.
 - 첫 콘텐츠의 현재 세부 기준은 `FIRST_VIDEO.md`다.
+- 안정적인 사용자 특성의 기준은 `USER_PROFILE.md`다.
 - ChatGPT personalization memory, 이전 채팅 기억, 모델의 추측은 current truth가 아니다.
 - repo와 기억이 충돌하면 repo의 현재 owner를 우선한다.
 
@@ -41,10 +43,12 @@ GitHub/repo 접근이 불가능하면 현재 상태를 복원했다고 말하지
 
 - 현재 상태가 바뀌면 `STATE.md`만 갱신한다.
 - 첫 콘텐츠 세부가 바뀌면 `FIRST_VIDEO.md`만 갱신한다.
-- 오래 유지될 프로젝트/사용자 배경만 `PROJECT_CONTEXT.md`에 넣는다.
+- 오래 유지될 프로젝트 정체성·목표·구조는 `PROJECT_CONTEXT.md`에 넣는다.
+- 오래 유지되고 의사결정을 실제로 바꾸는 비민감 사용자 취향·성향은 `USER_PROFILE.md`에 넣는다.
 - 오래 유지될 판단/작업 원칙만 `PLAYBOOK.md`에 넣는다.
-- 새 문서는 기존 네 파일로 해결할 수 없을 때만 만든다.
+- 새 문서는 기존 owner로 명확히 해결할 수 없을 때만 만든다.
 - 일회성 대화, 테스트 문구, 가상 수치, 실패 사례를 자동으로 영구 지식으로 만들지 않는다.
+- `USER_PROFILE.md`를 취향 수집함으로 만들지 않는다. 현재 판단에 영향 없는 사소한 선호는 저장하지 않는다.
 
 ## 6. 책임 분리
 
