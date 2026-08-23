@@ -1,7 +1,12 @@
-# DECISIONS — 결정 로그
+# DECISIONS — 결정 전환 / 역사 로그
 
-목적: 새 세션이 과거 아이디어를 현재 확정안으로 오해하거나, 이미 철회한 논의를 반복하지 않게 한다.
-상태 표기: `확정` / `현재 우선` / `유력 후보` / `보류` / `철회`.
+목적: 과거에 무엇을 왜 확정·보류·철회했는지 보존한다.
+
+**이 파일은 current-state canonical owner가 아니다.** 각 항목의 `현재 우선`, `확정` 등은 **그 기록이 만들어진 시점의 상태**를 뜻한다. 지금 무엇이 current인지가 필요하면 `AGENTS.md`의 routing에 따라 `진행상태.md`, 활성 execution plan, 해당 domain owner를 먼저 확인한다.
+
+상태 표기: `확정` / `현재 우선` / `유력 후보` / `보류` / `철회` / `대체됨` / `사용자 보고`.
+
+명확한 후속 결정이 이전 결정을 바꿨다면 가능한 범위에서 `대체됨` 또는 대체 관계를 남긴다. 모든 과거 row를 복잡한 ID/graph schema로 소급 변환하지 않는다.
 
 ---
 
@@ -88,27 +93,45 @@
 - `확정` 사용자가 매번 `아이디어 공격해봐`라고 별도로 지시하지 않아도 된다. **주요 기획은 AI가 제안 전에 자체 RED TEAM을 수행한다.**
 - `확정` 공정은 `목표 잠금 → 원안 생성 → RED TEAM 1차 → 판정 → 수리 → RED TEAM 2차 → GO/TEST/HOLD/KILL → 사용자 제출`이다.
 - `확정` 원안 생성과 공격을 같은 단계에서 섞지 않는다. RED TEAM 단계에서는 원안을 살리거나 변호할 의무가 없다.
-- `확정` 주요 공격 기준은 `클릭 / 시청 지속 / 사건 밀도 / 반복 피로 / 결과 내구성 / 우연 의존성 / 제작 통제 / 사용자 적합성 / 시청자 전이 / 채널 정체성 / 반복 생산성 / 사업 적합성 / 더 단순한 대안 / 근거 수준`이다.
+- `대체됨` 2026-08-23 당시 주요 공격 기준을 `클릭 / 시청 지속 / 사건 밀도 / 반복 피로 / 결과 내구성 / 우연 의존성 / 제작 통제 / 사용자 적합성 / 시청자 전이 / 채널 정체성 / 반복 생산성 / 사업 적합성 / 더 단순한 대안 / 근거 수준`의 14개 축으로 기록했다. 이후 `PLANNING_PROCESS.md` 리팩터링에서 **5개 bundle(시청자 반응 / 결과 내구성 / 제작 통제 / 프로젝트 적합성 / 근거 수준)**으로 통합됐다. 현재 procedure는 `PLANNING_PROCESS.md`가 기준이다.
 - `확정` 해결 가능한 공격은 구조를 수리한 뒤 다시 공격한다. 새로운 근거가 없는 한 2차 공격 이후 무한 검토하지 않는다.
 - `확정` `PLANNING_PROCESS.md`를 기획 공정의 기준 문서로 사용한다.
-- `확정` `JUDGMENT.md`를 **판단 기준·판단 이유·중요 사례** 보존 문서로 사용한다.
-- `확정` 새 세션은 결론뿐 아니라 `왜 A보다 B를 택했는가`까지 복원해야 한다. 재사용 가능한 판단 이유는 `JUDGMENT.md`에 기록한다.
+- `확정` `JUDGMENT.md`를 재사용 가능한 판단 원칙과 이유의 보존 문서로 사용한다.
+- `확정` 새 세션은 결론뿐 아니라 `왜 A보다 B를 택했는가`까지 가능한 범위에서 복원해야 한다.
 - `확정` 사실·사용자 보고·추론·가설을 섞지 않는다. 확인하지 않은 파일/영상/도구 결과를 확인했다고 말하지 않는다.
 
 ---
 
-## 2026-08-21 — AI 역할/작업 규칙
+## 2026-08-21 ~ 2026-08-23 — AI 역할/작업 규칙
 
-- `확정` 기획·구조·시장/포맷 판단은 GPT를 주로 사용하고, 최종 나레이션 문장 다듬기는 Claude를 활용하는 역할 분담이 현재 적합하다.
+- `확정` 기획·구조·시장/포맷 판단은 GPT를 주로 사용하고, 최종 나레이션 문장 다듬기는 Claude를 활용하는 역할 분담이 적합하다.
 - `확정` `CLAUDE.md`의 Karpathy 규칙은 공통 상위 행동규칙으로 복원했다.
 - `확정` 프로젝트 전용 규칙은 `PROJECT_RULES.md`로 분리한다.
 - `확정` `CLAUDE.md`의 Karpathy 블록은 수정 금지이며 변경 감지 GitHub Actions가 있다.
 - `확정` Codex/에이전트 시작 절차는 `AGENTS.md`에서 관리한다.
-- `확정` 2026-08-23부터 시작 순서에 `PLANNING_PROCESS.md`와 `JUDGMENT.md`를 추가한다.
+- `대체됨` 2026-08-23 한때 startup에 `PLANNING_PROCESS.md`와 `JUDGMENT.md`를 포함한 core 7문서 일괄 preload를 사용했다. context/memory audit 후 **small router + query-dependent progressive disclosure**로 대체한다.
 
 ---
 
-## 아직 결정하지 않은 것
+## 2026-08-23 — Context / Memory Architecture Refactor
+
+- `확정` repository 자체를 external memory substrate로 유지한다. 별도 active memory repo나 vector/graph DB를 선행 구축하지 않는다.
+- `확정` startup fixed full preload를 폐기하고 `AGENTS.md`를 작은 router/map으로 사용한다.
+- `확정` `진행상태.md`는 project-level current-state canonical owner다. 활성 execution plan이 있으면 해당 plan이 그 작업 내부 phase/local state를 소유한다.
+- `확정` `USER_CONTEXT.md`는 stable user/project context만 소유하고 current first-content/gear/task state를 보유하지 않는다.
+- `확정` `PROJECT_RULES.md`는 durable project invariant만 소유하며 parked/current domain implementation detail을 보유하지 않는다.
+- `확정` `JUDGMENT.md`는 reusable judgment principle 중심으로 유지하고 current first-content working detail은 domain owner에 둔다.
+- `확정` `DECISIONS.md`는 historical transition log이며 current truth의 두 번째 owner가 아니다.
+- `확정` raw `기록/`, `실측/`, `계획.md`, git history는 삭제하지 않고 cold evidence/history로 보존한다.
+- `확정` 명확한 supersession과 실제로 underdetermined인 conflict를 구분한다. 모든 충돌을 억지로 단일 current value로 만들지 않는다.
+- `확정` 사용자가 새 채팅용 bootstrap prompt나 context transfer block을 관리하지 않는다. repo 접근이 가능한 세션에서 AI가 스스로 route/retrieve해야 한다.
+- `확정` Phase 5 구조 변경 전 기준 commit은 `4f632705702d192a0eb188ace4d8fcee11d1d178`, backup branch는 `backup/pre-context-memory-refactor-20260823`이다.
+
+---
+
+## 아직 결정하지 않은 첫 콘텐츠 항목 — 당시 기록
+
+아래는 first-content domain history다. 현재값은 `첫콘텐츠_계획.md`와 `진행상태.md`를 우선한다.
 
 - 첫 영상에 사용할 정확한 작품/화수.
 - pre-memory를 실제 본편에 사용할지 여부.
