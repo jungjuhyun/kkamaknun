@@ -1,6 +1,6 @@
 # CONTEXT / MEMORY REFACTOR PLAN
 
-> 상태: **PLAN LOCKED — 구조 수정 전 계획 단계**
+> 상태: **PLAN LOCKED — EXECUTING PHASE 1**
 > 작성일: 2026-08-23
 > 기준 main: `511ca72fa141777dca846e6bcc9c5116653ef89d`
 > 목적: 긴 대화에서 축적된 **프로젝트 맥락 + 현재 상태 + 판단 기준 + 작업 절차 + 실패 경험**을 새 채팅/새 세션이 가능한 한 적은 사용자 개입으로 복원하도록 `kkamaknun`의 외부 기억 구조를 연구 기반으로 리팩터링한다.
@@ -172,6 +172,16 @@
   - freshness-latency, query volume, write/read tradeoff가 존재.
   - https://arxiv.org/abs/2606.06448
 
+### 2.11 memory synthesis / consolidation도 별도의 설계 문제
+
+- OpenAI, **Dreaming: Better memory for a more helpful ChatGPT** (2026-06-04)
+  - 장기 memory의 핵심 목표를 useful context carry-forward, preference/constraint following, staying current로 평가한다.
+  - saved memory만으로는 stale/incorrect/irrelevant해질 수 있어 chat history에서 memory state를 자동 합성·갱신하는 구조를 사용한다.
+  - freshness, continuity, relevance와 scalability를 memory architecture의 직접 목표로 둔다.
+  - https://openai.com/index/chatgpt-memory-dreaming/
+
+이 자료는 우리 repository가 제품 수준의 background synthesis를 그대로 구현해야 한다는 근거가 아니다. Phase 1에서는 **deterministic canonical state와 synthesized/consolidated memory의 경계를 어디에 둘지**, 그리고 자동 요약이 provenance·정확성·freshness를 해치지 않도록 어떤 제한이 필요한지를 별도로 검토한다.
+
 ---
 
 ## 3. 이번 작업의 잠정 설계 가설 — 아직 확정 아님
@@ -218,7 +228,17 @@ RAW HISTORY / EVIDENCE / GIT HISTORY
 - [x] 1차 딥리서치를 수행한다.
 - [x] 현재 repository root와 핵심 문서 구조를 확인한다.
 - [x] 이 실행계획을 repository에 기록한다.
-- [ ] 계획 자체를 한 번 재검토하고 누락된 연구축이 있는지 확인한다.
+- [x] 계획 자체를 한 번 재검토하고 누락된 연구축이 있는지 확인한다.
+
+### Phase 0 재검토 결과 — 2026-08-23
+
+- 기존 계획은 단계 순서, 산출물, Exit Gate, 구조 수정 금지 시점이 명확해 순차 실행 조건을 충족한다.
+- 최신 웹 재검색에서 OpenAI의 2026 memory synthesis 연구/제품 발표를 확인했고, 기존 계획에 **memory synthesis / consolidation** 축이 충분히 명시되지 않았다고 판단했다.
+- 따라서 Phase 1 연구 질문과 source family에 해당 축을 추가했다.
+- 이 변경은 사용자 압박 때문이 아니라 새 공식 1차 자료 확인에 따른 계획 보정이다.
+- 기존 memory/process 구조 파일은 아직 수정하지 않았다.
+
+**Exit Gate P0: PASS.**
 
 ### Exit Gate P0
 
@@ -249,10 +269,12 @@ RAW HISTORY / EVIDENCE / GIT HISTORY
 10. cold-start evaluation을 어떻게 설계해야 contamination이 없는가?
 11. latency/token overhead를 어느 수준까지 허용할 것인가?
 12. 최신 ChatGPT/GitHub connector 환경에서 실제로 구현 가능한 것은 무엇인가?
+13. deterministic canonical state와 synthesized/consolidated memory의 경계는 무엇이며, synthesis가 provenance·freshness·correctness를 훼손하지 않게 하려면 어떤 제한이 필요한가?
 
 ### 반드시 조사할 source family
 
 - OpenAI 2025~2026 official engineering / product docs
+- OpenAI memory synthesis / freshness / continuity 관련 최신 공식 자료
 - Anthropic 2025~2026 engineering / research
 - ACL 2026 agent memory / memory utilization
 - LongMemEval-V2 + AgentRunbook-C V2 source code/benchmark
@@ -626,15 +648,17 @@ PASS 후:
 
 # 6. 현재 진행 위치
 
-**현재: PHASE 0 — 계획 잠금**
+**현재: PHASE 1 — 딥리서치 및 evidence matrix 확정**
 
 완료:
-- 문제 정의
+- PHASE 0 문제 정의
 - 1차 연구 탐색
 - repo root / 핵심 memory 파일 구조 확인
 - 실행 roadmap 작성
+- 계획 재검토 및 누락 축 보완
+- Exit Gate P0 PASS
 
-다음:
+현재 수행:
 
 > **PHASE 1 — 연구 범위를 확장하고 evidence matrix를 완성한다.**
 
