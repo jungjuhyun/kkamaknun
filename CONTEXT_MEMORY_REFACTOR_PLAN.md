@@ -1,6 +1,6 @@
 # CONTEXT / MEMORY REFACTOR PLAN
 
-> 상태: **PLAN LOCKED — EXECUTING PHASE 2**
+> 상태: **PLAN LOCKED — EXECUTING PHASE 3**
 > 작성일: 2026-08-23
 > 기준 main: `511ca72fa141777dca846e6bcc9c5116653ef89d`
 > 목적: 긴 대화에서 축적된 **프로젝트 맥락 + 현재 상태 + 판단 기준 + 작업 절차 + 실패 경험**을 새 채팅/새 세션이 가능한 한 적은 사용자 개입으로 복원하도록 `kkamaknun`의 외부 기억 구조를 연구 기반으로 리팩터링한다.
@@ -384,12 +384,24 @@ RAW HISTORY / EVIDENCE / GIT HISTORY
 - 유지 / 이동 / 삭제 / archive 후보
 - 근거
 
+### Phase 2 완료 결과 — 2026-08-23
+
+- 산출물 작성 완료: `기록/CONTEXT_MEMORY_REPO_AUDIT.md`.
+- root, core memory/process 문서, current domain 문서, `기록/`, `실측/`, `도구/`, immutable 보호, 최근 memory/process git history를 감사했다.
+- 실제 defect는 **fixed core preload**, **mutable state의 다중 복제**, **stable context와 current state 혼합**, **invariant와 domain rule 혼합**, **decision supersession 불명확**, **README/current-state mirror**, **domain 파일 간 protocol 중복**으로 확인했다.
+- 특히 `진행상태.md`는 시스템 작업 종료/촬영 단계라고 쓰여 있지만 실제 현재는 이 계획의 context-memory refactor Phase 2를 실행 중이어서 **current-state conflict가 실제로 발생**했다.
+- 반대로 repository를 system of record로 쓰는 것, `CLAUDE.md` immutable block, raw `기록/`·`실측/`, historical `계획.md`, `PLANNING_PROCESS.md`/`JUDGMENT.md` 계층 자체, vector DB 부재는 현재 근거로 defect라고 보지 않았다.
+- Phase 2 시작 시 새로 확인한 2026-08-20 `StateMemBench/StateMem`은 explicit supersession/state-first 구조의 우선도를 높였고, 현재 OpenAI Agents SDK memory는 small summary → index → detailed rollout의 progressive disclosure를 공식 구현하고 있음을 확인했다. `TANGLE`은 모든 conflict를 억지로 하나의 current value로 만들면 안 된다는 제한 근거로 기록했다.
+- 아직 기존 memory/process architecture 파일은 수정하지 않았다.
+
+**Exit Gate P2: PASS.**
+
 ### Exit Gate P2
 
-- repository root와 memory 관련 파일을 전수 확인했는가?
-- `전부`, `N개`, `유일` 같은 폐쇄형 표현은 실제 전수 확인 후에만 사용했는가?
-- 문제를 만들어내기 위해 억지 defect를 추가하지 않았는가?
-- 연구에서 중요하다고 한 failure mode와 실제 repo 문제가 연결되는가?
+- repository root와 memory 관련 파일을 전수 확인했는가? → **YES**
+- `전부`, `N개`, `유일` 같은 폐쇄형 표현은 실제 전수 확인 후에만 사용했는가? → **YES**
+- 문제를 만들어내기 위해 억지 defect를 추가하지 않았는가? → **YES**
+- 연구에서 중요하다고 한 failure mode와 실제 repo 문제가 연결되는가? → **YES**
 
 ---
 
@@ -660,7 +672,7 @@ PASS 후:
 
 # 6. 현재 진행 위치
 
-**현재: PHASE 2 — 현재 `kkamaknun` memory architecture 전수 감사**
+**현재: PHASE 3 — 목표 아키텍처 확정 및 RED TEAM**
 
 완료:
 - PHASE 0 문제 정의 및 계획 잠금
@@ -669,9 +681,12 @@ PASS 후:
 - PHASE 1 딥리서치 / evidence matrix
 - 연구 산출물 `기록/CONTEXT_MEMORY_RESEARCH_2026-08.md`
 - Exit Gate P1 PASS
+- PHASE 2 repository memory architecture 전수 감사
+- 감사 산출물 `기록/CONTEXT_MEMORY_REPO_AUDIT.md`
+- Exit Gate P2 PASS
 
 다음:
 
-> **PHASE 2 — repository root, 핵심 memory/process 문서, 관련 기록/실측/git history를 전수 감사하고 실제 defect와 이미 잘 된 부분을 구분한다.**
+> **PHASE 3 — Phase 1 연구와 Phase 2 audit만을 근거로 target architecture를 설계하고, 구현 전에 RED TEAM을 통과시킨다.**
 
-Phase 2가 끝나기 전에는 기존 memory/process 구조를 리팩터링하지 않는다.
+Phase 3가 끝나기 전에는 기존 memory/process 구조를 리팩터링하지 않는다.
