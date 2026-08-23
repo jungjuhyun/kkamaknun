@@ -1,88 +1,75 @@
 # kkamaknun (까막눈)
 
-일본어 학습 유튜브 채널 「까막눈」의 계획·실측·도구 저장소.
+일본어 학습·실험 유튜브 채널 「까막눈」의 계획·판단·실측·도구 저장소.
 
-채널의 주인공은 만드는 사람 본인이다. 강의가 아니라 **학습·실험 로그** —
-문제를 찾는다 → 필요한 만큼 배운다 → 실제로 써먹어본다 → 성공/실패를 확인한다 → 다음 문제로 간다.
-성장·수익화·지속 가능한 생산성도 함께 판단한다.
+이 저장소는 채널 제작 자료뿐 아니라, 세션이 바뀌어도 **현재 상태·장기 맥락·판단 기준·작업 절차·과거 근거**를 가능한 한 적은 사용자 개입으로 이어받기 위한 project system of record 역할을 한다.
 
-## 지금 하는 것
+## 프로젝트 기본 방향
 
-**첫 콘텐츠가 최우선.**
-
-겉 질문:
-
-> 애니·일본 콘텐츠를 오래 본 사람은 자막 없이 실제로 어디까지 이해할 수 있을까?
-
-속 목적:
-
-> 나는 왜 못 알아들었고, 일본어 공부를 어디서부터 시작해야 하는가?
-
-현재 포맷은 자막 OFF 시청 → 반응이 생기면 SPACE → 실제로 들린 일본어 소리와 이해한 뜻을 말함 → 촬영 중 정답 확인 없이 끝까지 진행 → 후편집에서 실제 자막과 비교해 성공/부분/추론/오답/미청취 및 원인을 진단하는 구조다.
-
-`귀멸의 칼날` TV 애니가 현재 유력 후보지만 정확한 화수는 최종 확정 전이다.
-
-기존 `틀어만 두세요` 애니 반복듣기 포맷은 폐기하지 않았고 **후속 저비용 생산 엔진 후보**로 보관한다.
-
-## 기획 운영 방식
-
-2026-08-23부터 주요 기획은 사용자가 매번 `공격해봐`라고 지시하기 전에 자체 검수를 거친다.
+채널의 주인공은 만드는 사람 본인이다. 강의 자체보다:
 
 ```text
-목표 잠금
-→ 원안 생성
-→ RED TEAM 1차
-→ 판정
-→ 수리
-→ RED TEAM 2차
-→ GO / TEST / HOLD / KILL
-→ 사용자 제출
+문제 발견
+→ 가설
+→ 필요한 만큼 학습/훈련
+→ 실제 상황에서 검증
+→ 결과
+→ 다음 문제
 ```
 
-- 절차: [PLANNING_PROCESS.md](PLANNING_PROCESS.md)
-- 판단 기준과 판단 이유: [JUDGMENT.md](JUDGMENT.md)
-- 실제 결정 로그: [DECISIONS.md](DECISIONS.md)
-- 현재 위치: [진행상태.md](진행상태.md)
+의 실험·성장 구조를 사용한다.
 
-목적은 **세션이 바뀌어도 결론뿐 아니라 판단 방식까지 최대한 이어받는 것**이다.
+채널 성장·수익화·지속 가능한 생산성도 함께 판단한다.
 
-## 새 세션이 읽는 순서
+## 현재 상태는 어디서 보나
 
-1. [AGENTS.md](AGENTS.md) — 필수 시작 절차
-2. [CLAUDE.md](CLAUDE.md) — 수정 금지 Karpathy 공통 상위 행동규칙
-3. [PROJECT_RULES.md](PROJECT_RULES.md) — 까막눈 프로젝트 전용 실패 방지 규칙
-4. [PLANNING_PROCESS.md](PLANNING_PROCESS.md) — 기획 생성·공격·수리 공정
-5. [JUDGMENT.md](JUDGMENT.md) — 판단 기준·판단 이유·중요 사례
-6. [USER_CONTEXT.md](USER_CONTEXT.md) — 사용자 의도·취향·작업 방식
-7. [진행상태.md](진행상태.md) — **현재 최우선과 다음 행동**
-8. [DECISIONS.md](DECISIONS.md) — 확정·보류·철회 결정
+README는 current-state mirror가 아니다.
 
-현재 첫 콘텐츠 작업이면 그 다음 [첫콘텐츠_계획.md](첫콘텐츠_계획.md), 장비 작업이면 [장비세팅.md](장비세팅.md)를 추가로 읽는다.
+현재 무엇을 하고 있는지는:
 
-## 핵심 문서
+- [진행상태.md](진행상태.md) — project-level current state
+- `진행상태.md`가 가리키는 활성 execution plan — 해당 작업 내부 phase/local state
+
+를 따른다.
+
+과거 README의 `현재 첫 콘텐츠 상태`, 장비 상태, startup 순서 등을 여기 다시 복제하지 않는다.
+
+## agent bootstrap
+
+- [AGENTS.md](AGENTS.md) — **작은 router/map**. 요청에 따라 필요한 문서만 추가로 읽는 progressive-disclosure 경로를 정의한다.
+- [CLAUDE.md](CLAUDE.md) — 수정 금지 Karpathy 공통 상위 행동규칙.
+- [PROJECT_RULES.md](PROJECT_RULES.md) — 프로젝트 전체에 오래 적용되는 durable 실패 방지 규칙.
+
+모든 project work에서 planning/judgment/history 문서를 일괄 preload하지 않는다. 세부 routing은 `AGENTS.md`가 기준이다.
+
+## 핵심 문서와 canonical 역할
 
 | 파일 | 역할 |
 |---|---|
-| [AGENTS.md](AGENTS.md) | 에이전트가 프로젝트를 시작할 때 반드시 읽는 순서 |
-| [PROJECT_RULES.md](PROJECT_RULES.md) | 프로젝트 전용 실패 방지 규칙 |
-| [PLANNING_PROCESS.md](PLANNING_PROCESS.md) | 주요 기획을 원안→RED TEAM→수리→재공격하는 생산 공정 |
-| [JUDGMENT.md](JUDGMENT.md) | 무엇을 좋은 기획으로 보는지와 왜 그렇게 판단하는지 |
-| [USER_CONTEXT.md](USER_CONTEXT.md) | 사용자 목적·성향·협업 방식·장기 맥락 |
-| [진행상태.md](진행상태.md) | 세션 인수인계 — 지금 어디까지 왔고 다음에 뭘 할지 |
-| [DECISIONS.md](DECISIONS.md) | 확정·유력·보류·철회 결정 로그 |
-| [첫콘텐츠_계획.md](첫콘텐츠_계획.md) | 첫 영상의 촬영·검증·편집·진단 상세 설계 |
-| [장비세팅.md](장비세팅.md) | OBS·오디오·카메라·지지대 등 촬영 세팅 |
-| [계획.md](계획.md) | 2026-08-20까지 구축한 반복듣기/후속 생산 엔진 상세 설계 |
-| [실측/](실측/) | 직접 잰 숫자들 — 재료 창고, 경쟁 채널, 인기 순위, 제작자 실적 |
-| [도구/](도구/) | 반복듣기 포맷용 재료 검색·수급 스크립트 |
-| [기록/](기록/) | 긴 대화·조사·동기화 기록 |
+| [AGENTS.md](AGENTS.md) | bootstrap / query routing |
+| [CLAUDE.md](CLAUDE.md) | immutable common behavior |
+| [PROJECT_RULES.md](PROJECT_RULES.md) | durable project invariants |
+| [진행상태.md](진행상태.md) | **project-level current state canonical owner** |
+| [USER_CONTEXT.md](USER_CONTEXT.md) | stable user/project context |
+| [PLANNING_PROCESS.md](PLANNING_PROCESS.md) | major planning procedure |
+| [JUDGMENT.md](JUDGMENT.md) | reusable judgment principles |
+| [DECISIONS.md](DECISIONS.md) | historical decision transition log — current owner 아님 |
+| [첫콘텐츠_계획.md](첫콘텐츠_계획.md) | first-content detailed domain owner |
+| [장비세팅.md](장비세팅.md) | OBS·오디오·카메라·장비 domain owner |
+| [계획.md](계획.md) | 2026-08-20 이전 반복듣기 설계 archive |
+| [실측/](실측/) | raw measured evidence |
+| [도구/](도구/) | 작업용 scripts |
+| [기록/](기록/) | historical records, research, audits, architecture docs |
 
-## 현재 상태
+## memory 원칙
 
-영상 0편.
+- current mutable fact는 가능한 한 canonical owner 하나에서 관리한다.
+- `DECISIONS.md`, `기록/`, `계획.md`, git history는 과거 상태와 근거를 보존하지만 current truth의 대체물이 아니다.
+- 필요한 과거 근거만 on-demand retrieval한다.
+- raw evidence/history를 파괴적으로 덮어쓰지 않는다.
+- 모든 대화·실패를 permanent rule이나 memory로 승격하지 않는다.
+- 사용자가 새 세션마다 bootstrap prompt나 context-transfer block을 운반하는 방식에 의존하지 않는다.
 
-- 약 3분 파일럿 촬영 경험 있음 — 재미있는 부분이 일부 나왔다는 것은 **사용자 보고 기준**이며 AI가 영상을 직접 분석한 것으로 취급하지 않는다.
-- 정확한 대사 끝에 SPACE를 맞추기 어렵다는 실전 문제가 나와 `말하기 전에 먼저 SPACE` 보정안을 다음 촬영에서 검증한다.
-- 실물 복면 방향은 철회했고 현재는 얼굴을 그대로 보여주는 방향.
-- FHD 웹캠의 약간 흐릿하고 생활감 있는 화면을 유지한다.
-- 본촬영 전 OBS 오디오 분리 트랙과 카메라 각도를 확인한 뒤 작품/화수를 확정하고 10분 내외 테스트→시험 편집→본촬영 순으로 진행한다.
+## CLAUDE 보호
+
+`CLAUDE.md`의 `BEGIN IMMUTABLE KARPATHY GUIDELINES` ~ `END IMMUTABLE KARPATHY GUIDELINES` 블록은 수정하지 않는다. repository-specific rule은 `PROJECT_RULES.md`에 둔다.
