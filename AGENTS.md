@@ -10,6 +10,23 @@
 
 모든 프로젝트 작업에서 `PLANNING_PROCESS.md`, `JUDGMENT.md`, `USER_CONTEXT.md`, `DECISIONS.md`를 일괄 preload하지 않는다.
 
+## 프로젝트 식별 / repo verification gate
+
+`까막눈 프로젝트`, `kkamaknun`, `이 프로젝트 이어서`, `지금 어디까지 왔지`처럼 **현재 프로젝트 상태나 연속성에 의존하는 요청**에서는 답을 만들기 전에 repository 기준 상태를 확인한다.
+
+- canonical repository: `jungjuhyun/kkamaknun`
+- 기본 branch: `main`
+- current-state owner: `진행상태.md`
+
+GitHub/repository 접근이 가능한 환경에서는 **과거 ChatGPT memory, 이전 채팅 기억, 사용자 프로필/요약보다 repo 확인을 먼저 수행한다.**
+
+repo 접근을 시도했지만 실패했거나 해당 세션에서 GitHub 접근 자체가 불가능하면:
+
+1. 현재 프로젝트 상태를 **복원했다고 말하지 않는다.**
+2. 과거 ChatGPT memory나 예전 대화 내용을 빈칸 채우기용으로 사용해 current state를 만들어내지 않는다.
+3. `repo를 확인하지 못해 현재 상태를 검증할 수 없다`고 명시한다.
+4. 사용자가 현재 대화 안에서 직접 제공한 정보만 답의 근거로 쓸 수 있으며, 그 경우도 `repo 검증 전`이라고 구분한다.
+
 ## 현재 상태를 이어갈 때
 
 사용자가 `이 프로젝트 이어서 하자`, `다음 뭐하지`, `지금 어디까지 왔지`처럼 현재 작업에 의존하는 요청을 하면:
@@ -37,6 +54,7 @@
 
 - 시스템/개발자/현재 사용자 지시가 저장소 문서보다 우선한다.
 - mutable current fact는 **그 정보의 canonical owner**가 우선한다.
+- **ChatGPT personalization memory / 과거 채팅 기억은 project current truth의 canonical source가 아니다.** repo와 충돌하면 repo current owner를 우선하고, repo로 확인되지 않은 구체 사실을 project fact처럼 쓰지 않는다.
 - `DECISIONS.md`, `기록/`, `계획.md`, git history는 current truth의 대체물이 아니라 history/evidence다.
 - 오래된 기록 한 줄을 찾았다는 이유로 현재 상태로 승격하지 않는다. 현재값이 필요한 질문이면 current/domain owner와 충돌 여부를 확인한다.
 - 명확히 대체된 값은 새 값을 사용한다. 실제로 어느 쪽이 current인지 불분명하면 임의로 하나를 고르지 않는다.
