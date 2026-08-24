@@ -10,10 +10,16 @@ clean-sheet memory/context 구조의 **Project cold-start 검증 PASS** 이후 m
 최근 대화에서 확정된 채널 정체성·기획 원칙·사용자 적합성 중 장기적으로 필요한 내용은 각 owner 문서에 반영했다.
 세부 근거와 일회성 대화까지 모두 영구 지식으로 복제하지 않는다.
 
-현재 기획 공정 검증 상태:
+## 기획자 공정 검증 상태
+
+- **Creator Discovery는 현재 충분한 수준으로 종료**한다. 실제 판단에 필요한 새 정보가 생기지 않는 한 광범위한 인터뷰를 다시 시작하지 않는다.
+- 광범위한 AI/OSS 기획 공정 조사도 현재 POC를 돌리기에 충분한 수준까지 했다. 주요 참고로 `ericrisco/rsc-harness`의 `youtube-ideation`, `sharbelxyz/nova-youtube-agent`, LLM-assisted ideation review 등을 검토했다. 실제 구현에 다시 쓸 때는 최신 상태를 웹에서 재확인한다.
 - **POC1 PASS** — 과거 카타카나 원재료를 가지고 수동 replay/calibration 기획을 했고, 사용자가 PASS 판정함.
 - **POC2 진행 중** — 실제 정답이 미리 없는 촬영물을 대상으로 검증.
 - POC2는 `2-A Material Logging`과 `2-B Planning`으로 나눠 본다.
+- **기획자/Planner 구현은 POC2-B 통과 전에는 고정하지 않는다.** 먼저 수동 공정이 실제 재료에서 작동하는지 검증한다.
+
+현재는 새로운 agent framework/메타 시스템을 더 찾는 것이 아니라 POC2 실증이 우선이다.
 
 ## 현재 첫 콘텐츠 실제 소스
 
