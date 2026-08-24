@@ -58,7 +58,7 @@ The test: Every changed line should trace directly to the user's request.
 
 Transform tasks into verifiable goals:
 - "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Fix the bug" → "Write a test that reproduces it, then make them pass"
 - "Refactor X" → "Ensure tests pass before and after"
 
 For multi-step tasks, state a brief plan:
@@ -78,30 +78,32 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ## Claude project adapter
 
 이 파일은 Claude용 진입점일 뿐이며 현재 프로젝트 사실을 소유하지 않는다.
-GPT와 Claude는 아래 **공통 정본 4개**를 함께 사용한다.
+프로젝트 사실과 판단은 아래 shared owner 문서를 사용한다.
 
 - `STATE.md` — 현재 상태와 다음 행동
-- `PROJECT_CONTEXT.md` — 오래 유지되는 사용자/프로젝트 맥락
+- `PROJECT_CONTEXT.md` — 오래 유지되는 프로젝트 정체성·목표
 - `PLAYBOOK.md` — 공통 판단·작업 원칙
 - `FIRST_VIDEO.md` — 현재 첫 콘텐츠 세부
-
-현재 repo에 별도 `USER_PROFILE.md`가 있으면 그것은 **선택적 사용자 적합성 문서**다. 공통 정본 4개를 대체하지 않으며, 사용자 취향·성향이 실제 판단을 바꿀 때만 읽는다.
+- `USER_PROFILE.md` — 사용자 적합성이 실제 판단을 바꿀 때만 읽는 안정적 사용자 프로필
 
 ### 시작 순서
 
-1. 프로젝트 작업을 시작하면 `PLAYBOOK.md`의 공통 원칙을 확인한다.
-2. `이어가자`, `지금 어디까지`, `다음 뭐야`처럼 연속성에 의존하는 요청이면 **먼저 `STATE.md`를 읽는다.**
-3. `STATE.md`만으로 부족할 때만 요청에 맞춰 `FIRST_VIDEO.md` 또는 `PROJECT_CONTEXT.md`를 추가로 읽는다.
-4. 사용자 취향·성향·지속 가능성이 실제 판단을 바꿀 때만 `USER_PROFILE.md`를 추가로 읽는다.
-5. 모든 문서를 무조건 한꺼번에 읽지 않는다.
+1. `이어가자`, `지금 어디까지`, `다음 뭐야`처럼 **현재 프로젝트 연속성에 의존하는 요청이면 가장 먼저 `STATE.md`를 읽는다.**
+2. 그 다음 현재 요청에 실제로 필요한 owner만 추가로 읽는다.
+   - 첫 콘텐츠 세부 → `FIRST_VIDEO.md`
+   - 큰 기획·판단 → `PLAYBOOK.md`
+   - 프로젝트 정체성·목표 → `PROJECT_CONTEXT.md`
+   - 사용자 취향·성향·지속 가능성이 실제 판단을 바꿀 때 → `USER_PROFILE.md`
+3. 연속성에 의존하지 않는 큰 판단/기획에서는 `PLAYBOOK.md`를 필요에 따라 확인한다.
+4. 모든 문서를 무조건 한꺼번에 읽지 않는다.
 
 ### 권위와 과거 자료
 
 - 현재 상태는 `STATE.md`, 첫 콘텐츠 세부는 `FIRST_VIDEO.md`가 우선한다.
-- 안정적 사용자 특성이 필요할 때는 `USER_PROFILE.md`를 사용한다.
-- `AGENTS.md`는 GPT용 어댑터이며 별도의 프로젝트 정본이 아니다.
+- 안정적 프로젝트 정체성·목표는 `PROJECT_CONTEXT.md`, 안정적 사용자 특성은 `USER_PROFILE.md`가 담당한다.
+- `AGENTS.md`와 이 파일은 adapter이며 별도의 프로젝트 사실 owner가 아니다.
 - git history, backup branch, 삭제된 과거 문서는 사용자가 명시적으로 과거 기록·복구를 요청한 경우에만 본다.
-- repo와 모델 기억이 충돌하면 공통 정본과 해당 owner를 우선한다.
+- repo와 모델 기억이 충돌하면 해당 current owner를 우선한다.
 - repo를 확인할 수 없으면 과거 기억으로 현재 상태를 추측하지 않는다.
 
 ### 수정 위치
