@@ -4,7 +4,10 @@ version = "0.1.0"
 description = "까막눈 애니 표현 장면 수집기"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "pydantic",
+    "pydantic-settings",
+]
 
 [build-system]
 requires = ["uv_build>=0.12.5,<0.13"]
