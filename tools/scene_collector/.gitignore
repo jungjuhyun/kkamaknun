@@ -1,0 +1,10 @@
+.venv/
+.uv-bootstrap/
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+
+# 로컬 설정과 비밀정보는 커밋하지 않는다.
+.env
+settings.toml
