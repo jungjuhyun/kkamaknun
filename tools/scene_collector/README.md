@@ -2,7 +2,7 @@
 
 한국어로 찾고 싶은 뜻에서 출발해 실제 애니 표현 장면을 수집하기 위한 Windows 로컬 도구다.
 
-현재 저장소에는 **작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**이 완료되어 있다. 이 브랜치에는 **작업 3 — AI 실제 연결 확인**을 위한 연결 코드와 opt-in 시험이 들어 있다. 검색 품질 로직이나 저장·화면 기능은 아직 없다.
+현재 브랜치에는 **작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**, **작업 3 — AI 실제 연결 확인**까지 완료되어 있다. 검색 품질 로직이나 저장·화면 기능은 아직 없다.
 
 ## 개발 환경
 
@@ -67,15 +67,15 @@ uv run pytest --run-nadeshiko-live -m nadeshiko_live -ra
 
 API 키는 `settings.toml`에 넣지 않는다. 운영체제 환경변수 또는 저장소에 커밋하지 않는 로컬 비밀 파일에서 현재 셸로 읽는다. 실제 키와 응답은 시험 fixture로 저장하지 않는다. 모델명은 Python 코드에 고정하지 않고 live 시험 실행 시 환경변수로 받아 임시 `settings.toml`에 기록한다.
 
-2026-08-27 기준 공식 문서에서 확인한 저비용 모델을 사용하는 실행 예시는 다음과 같다. 실제 실행 전 각 provider 공식 문서에서 모델의 현재 사용 가능 여부를 다시 확인한다.
+2026-08-27 실제 연결 검증에 사용한 모델의 실행 예시는 다음과 같다. 실제 실행 전 각 provider 공식 문서에서 모델의 현재 사용 가능 여부를 다시 확인한다.
 
 ```powershell
 $env:SCENE_COLLECTOR_AI_LIVE_OPENAI_MODEL = "gpt-5.4-nano"
-$env:SCENE_COLLECTOR_AI_LIVE_GOOGLE_MODEL = "gemini-2.5-flash"
+$env:SCENE_COLLECTOR_AI_LIVE_GOOGLE_MODEL = "gemini-3.6-flash"
 uv run pytest --run-ai-live -m ai_live -ra
 ```
 
-두 서비스 시험은 같은 중립 프롬프트와 `text: str`, `number: int` Pydantic 자료형을 사용한다. 두 서비스가 모두 실제 호출과 자료형 검증에 성공해야 작업 3을 통과한 것으로 본다.
+실제 live 시험에서 OpenAI `gpt-5.4-nano`와 Google `gemini-3.6-flash`가 모두 같은 중립 프롬프트에 대해 `text: str`, `number: int`인 `ConnectivityProbe` Pydantic 자료형을 반환했다. 두 provider 모두 실제 호출과 자료형 검증에 성공해 작업 3은 PASS다. 이번 환경에서는 `gemini-2.5-flash` 호출이 404를 반환해 `gemini-3.6-flash`로 실제 검증했다.
 
 ## 아직 없는 기능
 
