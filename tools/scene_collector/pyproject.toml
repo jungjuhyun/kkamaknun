@@ -28,6 +28,7 @@ markers = [
     "ai_live: 실제 AI provider 계정과 API 사용량이 필요한 연결 시험",
     "nadeshiko_live: 실제 Nadeshiko 계정과 API 사용량이 필요한 연결 시험",
     "search_live: 실제 AI와 Nadeshiko API 사용량이 필요한 검색 품질 시험",
+    "surface_live: 실제 Nadeshiko 검색과 로컬 표면형 필터 비교 시험",
 ]
 
 [tool.ruff]

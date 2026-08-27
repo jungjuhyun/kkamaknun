@@ -2,7 +2,7 @@
 
 한국어로 찾고 싶은 뜻에서 출발해 실제 애니 표현 장면을 수집하기 위한 Windows 로컬 도구다.
 
-현재 브랜치에는 **작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**, **작업 3 — AI 실제 연결 확인**이 완료되어 있다. **작업 4 — 한국어 표현 찾기**에서는 한국어 의도를 AI 일본어 후보와 Nadeshiko 실제 corpus 검색으로 연결한다. 정확 동일표현 검사나 저장·화면 기능은 아직 없다.
+현재 브랜치에는 **작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**, **작업 3 — AI 실제 연결 확인**, **작업 4 — 한국어 표현 찾기**가 완료되어 있다. **작업 5 — 정확 동일표현 검사**에서는 Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남긴다. 저장·화면 기능은 아직 없다.
 
 ## 개발 환경
 
@@ -81,9 +81,19 @@ uv run pytest --run-ai-live -m ai_live -ra
 
 ## 한국어 표현 찾기
 
-`search_expressions()`는 한국어 의도를 기존 Instructor 구조화 출력 경로에 전달해 `ExpressionCandidate` 3~5개를 받고, 일본어 문자열의 중복만 순서대로 제거한 뒤 공식 SDK의 `SearchQuery(search=...)`와 `client.search(...)`로 각 후보를 검색한다. Nadeshiko 결과가 0개인 후보는 `corpus_backed_candidates`에서 제외한다.
+`search_expressions()`는 한국어 의도를 기존 Instructor 구조화 출력 경로에 전달해 `ExpressionCandidate` 3~5개를 받고, 일본어 문자열의 중복만 순서대로 제거한 뒤 공식 SDK로 각 후보를 일반 검색한다. 일반 검색 응답에서 로컬 표면형을 찾지 못한 경우에만 `SearchQuery(search=..., exact_match=True)`로 한 번 더 회수한다. 공식 exact 검색이 실제 동일표현을 놓치는 사례가 있어 일반 검색의 정상 결과를 대체하지 않는다. 두 경로 모두 반환 원문을 같은 로컬 검사에 통과시키며, 최종 `exact_segments`가 0개인 후보는 `corpus_backed_candidates`에서 제외한다. 일반 SDK 원본 `SearchResponse`와 실행한 경우의 `exact_match_response`는 검토용으로 유지한다.
 
-이 단계에서는 따옴표 exact search, 로컬 정확 동일표현 검사, 활용형·한자/가나 처리, 영어 fallback, 앞뒤 문맥 조회를 하지 않는다.
+로컬 검사는 다음 차이만 완화한다.
+
+- `unicodedata.normalize("NFKC", ...)`에 따른 Unicode 호환·전각/반각 차이
+- 원문의 불필요한 Unicode 공백
+- 표현 끝의 `?`, `!`, `.`, `。` 문장부호
+
+내부 문장부호와 활용형은 지우지 않는다. 응답에 Nadeshiko top-level token이 있으면 원문의 token 시작·끝 위치를 표현 경계의 보조 자료로 사용한다. 따라서 독립 token인 `悪い` 뒤에 다른 말이 이어지는 문장은 허용하면서도, `気持ち悪い` compound token 안의 `悪い`는 통과시키지 않는다. 문장부호 없이 바로 다음 token이 이어질 때는 매치 구간 자체가 하나의 top-level token인 경우만 허용해, 여러 token으로 된 표현에 문법 suffix가 덧붙은 결과를 보수적으로 제외한다. token이 없는 응답의 짧은 표면형은 복합어 내부 일치를 피하도록 보수적으로 판정한다. `ほんとそれ`도 `ほんと? それって...`에 걸리지 않는다.
+
+한자/가나 표기 차이는 자동 변환하지 않는다. `matches_surface()`의 `allowed_surfaces`에 검증한 가나 표기를 명시한 경우에만 허용한다. AI가 생성한 `ExpressionCandidate.reading`은 정확한 허용 표기라고 보장할 수 없으므로 자동 연결하지 않는다.
+
+영어 fallback과 앞뒤 문맥 조회는 아직 하지 않는다.
 
 일반 `uv run pytest`는 AI와 Nadeshiko를 fake로 대체한다. 실제 10개 한국어 의도 품질 평가는 루트 `.env`에서 `GOOGLE_API_KEY`와 `NADESHIKO_API_KEY`만 현재 셸에 로드한 뒤 명시적으로 실행한다. 키 값과 `.env` 내용은 출력하거나 저장하지 않는다.
 
@@ -98,9 +108,19 @@ uv run pytest --run-search-live -m search_live -ra
 
 평가 입력은 `tests/fixtures/search_live_intents.json`에 둔다. 보고서에는 후보 자료형, 검색 결과 유무, 첫 일본어·영어 대사, fetch 수와 `has_more`만 기록하며 API 키·사용자 정보·segment/media ID는 넣지 않는다.
 
+## 정확 동일표현 live 비교
+
+작업 5의 실제 비교는 AI를 호출하지 않고 고정 일본어 target 6개만 사용한다. target마다 Nadeshiko 일반 검색과 `exact_match=True`를 한 번씩 호출하고, 두 응답의 로컬 표면형 수와 실제 파이프라인이 선택할 최종 수를 비교한다.
+
+```powershell
+$env:SCENE_COLLECTOR_SURFACE_LIVE_REPORT = (Join-Path $env:TEMP "scene-collector-surface-live.json")
+uv run pytest --run-surface-live -m surface_live -ra
+```
+
+보고서에는 fetch 수·추정 전체 수·token 제공 수, 제거된 대표 원문과 채택된 대표 원문만 기록한다. API 키·사용자 정보·segment/media ID는 기록하지 않는다. 일반 `uv run pytest`에서는 이 시험이 항상 건너뛰어진다.
+
 ## 아직 없는 기능
 
-- 정확 동일표현 검사와 한자/가나 허용 표기
 - 영어 검색 fallback과 선호 작품 필터
 - SQLite 저장과 캐시
 - 사용자 화면

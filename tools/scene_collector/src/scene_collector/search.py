@@ -3,23 +3,26 @@
 from dataclasses import dataclass
 
 from nadeshiko import Nadeshiko
-from nadeshiko.models import SearchQuery, SearchResponse
+from nadeshiko.models import SearchQuery, SearchResponse, Segment
 
 from scene_collector.ai import create_structured_response
 from scene_collector.config import AppSettings
 from scene_collector.models import ExpressionCandidate, ExpressionCandidates
+from scene_collector.surface import matches_surface
 
 
 @dataclass(frozen=True)
 class CandidateSearchResult:
-    """일본어 후보 하나와 해당 Nadeshiko 검색 응답."""
+    """일본어 후보와 원본 검색 응답, 로컬 동일표현 segment."""
 
     candidate: ExpressionCandidate
     response: SearchResponse
+    exact_match_response: SearchResponse | None
+    exact_segments: tuple[Segment, ...]
 
     @property
     def has_results(self) -> bool:
-        return bool(self.response.segments)
+        return bool(self.exact_segments)
 
 
 @dataclass(frozen=True)
@@ -56,13 +59,7 @@ def search_expressions(
 
     unique_candidates = _deduplicate_candidates(generated.candidates)
     searches = tuple(
-        CandidateSearchResult(
-            candidate=candidate,
-            response=nadeshiko_client.search(
-                query=SearchQuery(search=candidate.japanese),
-                take=settings.search.nadeshiko_take,
-            ),
-        )
+        _search_candidate(settings, candidate, nadeshiko_client=nadeshiko_client)
         for candidate in unique_candidates
     )
     return ExpressionSearchResult(
@@ -70,6 +67,60 @@ def search_expressions(
         generated_candidates=tuple(generated.candidates),
         candidate_searches=searches,
     )
+
+
+def _search_candidate(
+    settings: AppSettings,
+    candidate: ExpressionCandidate,
+    *,
+    nadeshiko_client: Nadeshiko,
+) -> CandidateSearchResult:
+    response = nadeshiko_client.search(
+        query=SearchQuery(search=candidate.japanese),
+        take=settings.search.nadeshiko_take,
+    )
+    exact_segments = _surface_segments(response, candidate.japanese)
+    exact_match_response = None
+
+    if not exact_segments:
+        exact_match_response = nadeshiko_client.search(
+            query=SearchQuery(search=candidate.japanese, exact_match=True),
+            take=settings.search.nadeshiko_take,
+        )
+        exact_segments = _surface_segments(exact_match_response, candidate.japanese)
+
+    return CandidateSearchResult(
+        candidate=candidate,
+        response=response,
+        exact_match_response=exact_match_response,
+        exact_segments=exact_segments,
+    )
+
+
+def _surface_segments(response: SearchResponse, primary_surface: str) -> tuple[Segment, ...]:
+    return tuple(
+        segment
+        for segment in response.segments
+        if matches_surface(
+            segment.text_ja.content,
+            primary_surface,
+            token_spans=_token_spans(segment),
+        )
+    )
+
+
+def _token_spans(segment: Segment) -> tuple[tuple[int, int], ...] | None:
+    tokens = segment.text_ja.tokens
+    if not isinstance(tokens, list):
+        return None
+
+    spans = tuple(
+        (begin, end)
+        for token in tokens
+        if isinstance((begin := getattr(token, "b", None)), int)
+        and isinstance((end := getattr(token, "e", None)), int)
+    )
+    return spans or None
 
 
 def _deduplicate_candidates(
