@@ -36,6 +36,10 @@ def live_client(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Nadeshiko]
                 'service = "unused-in-task-2"',
                 'model = "unused-in-task-2"',
                 "",
+                "[search]",
+                "candidate_count = 5",
+                "nadeshiko_take = 5",
+                "",
             )
         ),
         encoding="utf-8",

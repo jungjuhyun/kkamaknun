@@ -7,3 +7,8 @@ work_data_dir = ""
 [ai]
 service = ""
 model = ""
+
+# AI 후보 수는 3~5, 후보별 Nadeshiko 조회량은 1~20 범위로 입력한다.
+[search]
+candidate_count = 5
+nadeshiko_take = 5

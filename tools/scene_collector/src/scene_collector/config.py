@@ -67,6 +67,15 @@ class AISettings(BaseModel):
         return value.strip()
 
 
+class SearchSettings(BaseModel):
+    """표현 후보 생성과 Nadeshiko 1회 검색 범위."""
+
+    model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+
+    candidate_count: int = Field(strict=True, ge=3, le=5)
+    nadeshiko_take: int = Field(strict=True, ge=1, le=20)
+
+
 class AppSettings(BaseSettings):
     """장면 수집기의 현재 설정 자료형."""
 
@@ -80,6 +89,7 @@ class AppSettings(BaseSettings):
 
     storage: StorageSettings
     ai: AISettings
+    search: SearchSettings
     nadeshiko_api_key: SecretStr | None = Field(
         default=None,
         validation_alias="NADESHIKO_API_KEY",

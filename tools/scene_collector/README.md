@@ -2,7 +2,7 @@
 
 한국어로 찾고 싶은 뜻에서 출발해 실제 애니 표현 장면을 수집하기 위한 Windows 로컬 도구다.
 
-현재 브랜치에는 **작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**, **작업 3 — AI 실제 연결 확인**까지 완료되어 있다. 검색 품질 로직이나 저장·화면 기능은 아직 없다.
+현재 브랜치에는 **작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**, **작업 3 — AI 실제 연결 확인**이 완료되어 있다. **작업 4 — 한국어 표현 찾기**에서는 한국어 의도를 AI 일본어 후보와 Nadeshiko 실제 corpus 검색으로 연결한다. 정확 동일표현 검사나 저장·화면 기능은 아직 없다.
 
 ## 개발 환경
 
@@ -24,6 +24,8 @@ uv run ruff check .
 - `storage.work_data_dir`: 사용자가 지정한 기존 작업 데이터 디렉터리의 절대경로
 - `ai.service`: 사용할 AI 서비스 식별자
 - `ai.model`: 사용할 모델 식별자
+- `search.candidate_count`: AI가 생성할 후보 수, 3~5
+- `search.nadeshiko_take`: 후보 하나당 Nadeshiko 조회량, 1~20
 
 기본 설정 파일 위치는 프로그램을 실행하는 현재 디렉터리의 `settings.toml`이다. 다른 위치를 사용할 때는 `load_settings()`에 경로를 전달한다.
 
@@ -77,9 +79,29 @@ uv run pytest --run-ai-live -m ai_live -ra
 
 실제 live 시험에서 OpenAI `gpt-5.4-nano`와 Google `gemini-3.6-flash`가 모두 같은 중립 프롬프트에 대해 `text: str`, `number: int`인 `ConnectivityProbe` Pydantic 자료형을 반환했다. 두 provider 모두 실제 호출과 자료형 검증에 성공해 작업 3은 PASS다. 이번 환경에서는 `gemini-2.5-flash` 호출이 404를 반환해 `gemini-3.6-flash`로 실제 검증했다.
 
+## 한국어 표현 찾기
+
+`search_expressions()`는 한국어 의도를 기존 Instructor 구조화 출력 경로에 전달해 `ExpressionCandidate` 3~5개를 받고, 일본어 문자열의 중복만 순서대로 제거한 뒤 공식 SDK의 `SearchQuery(search=...)`와 `client.search(...)`로 각 후보를 검색한다. Nadeshiko 결과가 0개인 후보는 `corpus_backed_candidates`에서 제외한다.
+
+이 단계에서는 따옴표 exact search, 로컬 정확 동일표현 검사, 활용형·한자/가나 처리, 영어 fallback, 앞뒤 문맥 조회를 하지 않는다.
+
+일반 `uv run pytest`는 AI와 Nadeshiko를 fake로 대체한다. 실제 10개 한국어 의도 품질 평가는 루트 `.env`에서 `GOOGLE_API_KEY`와 `NADESHIKO_API_KEY`만 현재 셸에 로드한 뒤 명시적으로 실행한다. 키 값과 `.env` 내용은 출력하거나 저장하지 않는다.
+
+```powershell
+$env:SCENE_COLLECTOR_SEARCH_LIVE_SERVICE = "google"
+$env:SCENE_COLLECTOR_SEARCH_LIVE_MODEL = "gemini-3.6-flash"
+$env:SCENE_COLLECTOR_SEARCH_LIVE_CANDIDATE_COUNT = "5"
+$env:SCENE_COLLECTOR_SEARCH_LIVE_NADESHIKO_TAKE = "5"
+$env:SCENE_COLLECTOR_SEARCH_LIVE_REPORT = (Join-Path $env:TEMP "scene-collector-search-live.json")
+uv run pytest --run-search-live -m search_live -ra
+```
+
+평가 입력은 `tests/fixtures/search_live_intents.json`에 둔다. 보고서에는 후보 자료형, 검색 결과 유무, 첫 일본어·영어 대사, fetch 수와 `has_more`만 기록하며 API 키·사용자 정보·segment/media ID는 넣지 않는다.
+
 ## 아직 없는 기능
 
-- 한국어 → 일본어 표현 후보 생성과 검색 품질 로직
+- 정확 동일표현 검사와 한자/가나 허용 표기
+- 영어 검색 fallback과 선호 작품 필터
 - SQLite 저장과 캐시
 - 사용자 화면
 - 영상 저장과 내보내기

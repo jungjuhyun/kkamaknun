@@ -6,7 +6,7 @@ from pydantic import BaseModel, ValidationError
 
 import scene_collector.ai as ai_module
 from scene_collector.ai import create_structured_response
-from scene_collector.config import AISettings, AppSettings, StorageSettings
+from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
 
 
 class ConnectivityProbe(BaseModel):
@@ -18,6 +18,7 @@ def _settings(work_data_dir: Path, *, service: str, model: str) -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
         ai=AISettings(service=service, model=model),
+        search=SearchSettings(candidate_count=5, nadeshiko_take=5),
     )
 
 

@@ -5,7 +5,13 @@ import pytest
 from nadeshiko.models import SearchResponse
 
 import scene_collector.nadeshiko as nadeshiko_module
-from scene_collector.config import AISettings, AppSettings, ConfigurationError, StorageSettings
+from scene_collector.config import (
+    AISettings,
+    AppSettings,
+    ConfigurationError,
+    SearchSettings,
+    StorageSettings,
+)
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "nadeshiko_search_response.json"
 
@@ -14,6 +20,7 @@ def _settings(tmp_path: Path, *, api_key: str | None) -> AppSettings:
     values: dict[str, object] = {
         "storage": StorageSettings(work_data_dir=tmp_path),
         "ai": AISettings(service="unused-in-task-2", model="unused-in-task-2"),
+        "search": SearchSettings(candidate_count=5, nadeshiko_take=5),
     }
     if api_key is not None:
         values["NADESHIKO_API_KEY"] = api_key

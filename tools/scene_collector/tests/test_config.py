@@ -18,6 +18,8 @@ def _write_settings(
     work_data_dir: str,
     service: str = '"test-service"',
     model: str = '"test-model"',
+    candidate_count: str = "5",
+    nadeshiko_take: str = "5",
 ) -> None:
     settings_file.write_text(
         "\n".join(
@@ -28,6 +30,10 @@ def _write_settings(
                 "[ai]",
                 f"service = {service}",
                 f"model = {model}",
+                "",
+                "[search]",
+                f"candidate_count = {candidate_count}",
+                f"nadeshiko_take = {nadeshiko_take}",
                 "",
             )
         ),
@@ -46,6 +52,8 @@ def test_loads_valid_settings_from_toml(tmp_path: Path) -> None:
     assert settings.storage.work_data_dir == work_data_dir
     assert settings.ai.service == "test-service"
     assert settings.ai.model == "test-model"
+    assert settings.search.candidate_count == 5
+    assert settings.search.nadeshiko_take == 5
 
 
 @pytest.mark.parametrize(
@@ -125,6 +133,32 @@ def test_rejects_invalid_setting_type(tmp_path: Path) -> None:
     )
 
     with pytest.raises(ConfigurationError, match="ai.model"):
+        load_settings(settings_file)
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    (
+        ("candidate_count", "2"),
+        ("candidate_count", "6"),
+        ("candidate_count", '"5"'),
+        ("nadeshiko_take", "0"),
+        ("nadeshiko_take", "21"),
+        ("nadeshiko_take", '"5"'),
+    ),
+)
+def test_rejects_invalid_search_settings(tmp_path: Path, field: str, value: str) -> None:
+    work_data_dir = tmp_path / "work-data"
+    work_data_dir.mkdir()
+    settings_file = tmp_path / "settings.toml"
+    overrides = {field: value}
+    _write_settings(
+        settings_file,
+        work_data_dir=_toml_string(work_data_dir),
+        **overrides,
+    )
+
+    with pytest.raises(ConfigurationError, match=f"search.{field}"):
         load_settings(settings_file)
 
 

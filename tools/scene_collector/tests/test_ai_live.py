@@ -54,6 +54,10 @@ def test_provider_returns_same_structured_response(
                 f"service = {json.dumps(service)}",
                 f"model = {json.dumps(model)}",
                 "",
+                "[search]",
+                "candidate_count = 5",
+                "nadeshiko_take = 5",
+                "",
             )
         ),
         encoding="utf-8",
