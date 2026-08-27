@@ -5,6 +5,7 @@ description = "까막눈 애니 표현 장면 수집기"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "nadeshiko-sdk==2.3.7",
     "pydantic",
     "pydantic-settings",
 ]
@@ -22,6 +23,9 @@ dev = [
 [tool.pytest.ini_options]
 addopts = "-ra"
 testpaths = ["tests"]
+markers = [
+    "nadeshiko_live: 실제 Nadeshiko 계정과 API 사용량이 필요한 연결 시험",
+]
 
 [tool.ruff]
 target-version = "py311"

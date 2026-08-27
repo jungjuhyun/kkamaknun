@@ -1,0 +1,41 @@
+{
+  "segments": [
+    {
+      "publicId": "anonymous-segment-001",
+      "position": 42,
+      "status": "ACTIVE",
+      "startTimeMs": 123400,
+      "endTimeMs": 125800,
+      "contentRating": "SAFE",
+      "episode": 1,
+      "externalVideoId": null,
+      "mediaPublicId": "anonymous-media-001",
+      "textJa": {
+        "content": "大丈夫ですか？",
+        "highlight": "<mark>大丈夫ですか</mark>？",
+        "tokens": null
+      },
+      "textEn": {
+        "content": "Are you all right?",
+        "isMachineTranslated": false,
+        "highlight": null
+      },
+      "textEs": {
+        "content": "¿Estás bien?",
+        "isMachineTranslated": false,
+        "highlight": null
+      },
+      "urls": {
+        "imageUrl": "https://media.example.invalid/image.jpg",
+        "audioUrl": "https://media.example.invalid/audio.mp3",
+        "videoUrl": "https://media.example.invalid/video.mp4"
+      }
+    }
+  ],
+  "pagination": {
+    "hasMore": true,
+    "estimatedTotalHits": 2,
+    "estimatedTotalHitsRelation": "EXACT",
+    "cursor": "anonymous-cursor"
+  }
+}
