@@ -8,13 +8,23 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="실제 Nadeshiko API 연결 시험을 실행합니다.",
     )
+    parser.addoption(
+        "--run-ai-live",
+        action="store_true",
+        default=False,
+        help="실제 AI provider 연결 시험을 실행합니다.",
+    )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
-    if config.getoption("--run-nadeshiko-live"):
-        return
-
-    skip_live = pytest.mark.skip(reason="--run-nadeshiko-live로만 실제 연결 시험을 실행합니다.")
     for item in items:
-        if "nadeshiko_live" in item.keywords:
-            item.add_marker(skip_live)
+        if "nadeshiko_live" in item.keywords and not config.getoption("--run-nadeshiko-live"):
+            item.add_marker(
+                pytest.mark.skip(
+                    reason="--run-nadeshiko-live로만 실제 연결 시험을 실행합니다."
+                )
+            )
+        if "ai_live" in item.keywords and not config.getoption("--run-ai-live"):
+            item.add_marker(
+                pytest.mark.skip(reason="--run-ai-live로만 실제 AI 연결 시험을 실행합니다.")
+            )
