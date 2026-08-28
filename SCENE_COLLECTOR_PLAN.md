@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 진행 중 / 작업 0~9 완료 / 로컬 자막 fallback main 반영 완료 / 다음 작업 10**
+상태: **개발 진행 중 / 작업 0~10 완료 / 로컬 자막 fallback main 반영 완료 / 다음 작업 11**
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -775,6 +775,12 @@ Nadeshiko MP4 연속 재생과 Windows 실행이 더 안정적인 쪽 하나만 
 기존에 통과한 검색·저장 기능만 연결한다.
 화면 개발 중 새로운 검색 알고리즘을 만들지 않는다.
 
+상태: **완료 — NiceGUI(native mode) 5영역 화면, main 반영.** 표현 찾기 / 일본어 표현 선택 / 장면 검수 / 선호 작품 / 설정을 얇은 adapter(`ui_controller`)로 기존 `search_expressions`·`translate_expression_scenes`·`set_review_decision`·선호작 관리에 연결했다. DB schema·검색 알고리즘·dependency는 변경하지 않았고, 화면 상태는 클라이언트(창)별로 분리했다(검증 중 발견된 상태 공유 버그 수정). UI는 활성 작품 없음("검색에 사용할 활성 작품이 없습니다...")과 실제 corpus 0건을 구분해 안내하고, 비밀키 값은 화면에 출력하지 않는다.
+
+Windows native E2E로 **작품 추가/활성화 → 한국어 검색 → corpus-backed 후보 → 장면 검수 → 번역 → 채택 저장 → 종료(프로세스 잔류 0) → 재실행 → 상태 복원**을 전부 PASS했다. 전체 pytest **117 passed, 15 skipped**, Ruff·`git diff --check` PASS.
+
+알려진 제한(확장하지 않고 기록만): 로컬 자막 작품은 목록 표시만 되고 활성/선호도 편집은 Nadeshiko 작품만 가능, 로컬 장면의 판정 저장은 범위 밖, 재실행 복원은 장면이 남은 가장 최근 검색 1건 기준, 탭 전환 직후 짧은 레이아웃 흔들림(기능 무관).
+
 ### 작업 11 — 영상 저장·내보내기
 
 채택 MP4 저장, JSON/CSV 출력, 중복 다운로드 방지.
@@ -798,7 +804,7 @@ Nadeshiko MP4 연속 재생과 Windows 실행이 더 안정적인 쪽 하나만 
 - Windows/영상/AI 호환 문제가 여러 번 발생: 약 **65~75시간**
 
 확정 계약 시간이 아니라 불확실성 관리용 추정이다.
-작업 0~9의 핵심 검색·연결·저장·캐시·선호작·번역·화면 기술 검증과 검색 recall 검증, 로컬 자막 fallback은 완료됐으며, 남은 개발은 기존 작업 10~13 기준으로 이어간다.
+작업 0~10의 핵심 검색·연결·저장·캐시·선호작·번역·화면 기술·사용자 화면 검증과 검색 recall 검증, 로컬 자막 fallback은 완료됐으며, 남은 개발은 기존 작업 11~13 기준으로 이어간다.
 
 AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작, Windows 영상 재생, SSD 이동, 사용자 작업 흐름 검증 시간까지 자동으로 사라진다고 가정하지 않는다.
 
@@ -903,7 +909,7 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 
 ## 24. 바로 다음 작업
 
-**작업 10 — 실제 사용자 화면**부터 진행한다.
+**작업 11 — 영상 저장·내보내기**부터 진행한다.
 
 작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전, 작업 7 — 선호 애니 관리, 작업 8 — 한국어 장면 번역은 완료되어 `main`에 반영됐다.
 검색 recall 검증도 닫았다. 세 문제 target을 상위 200건까지 확인해도 정확 surface가 없었고 pagination의 제품 적용 이득이 확인되지 않았으므로 검색 계층을 더 늘리지 않는다.
@@ -912,4 +918,5 @@ Task 7에서는 Nadeshiko public media ID 기반 선호작 관리와 `SearchFilt
 Task 8에서는 정확 후보에만 앞뒤 문맥을 조회하고 여러 장면을 한 AI 구조화 요청으로 한국어 번역한다. context cache와 기존 AI cache를 재사용하며, DB schema v2에서 번역-before-review 상태와 provenance를 저장하고 v1 → v2 backup/migration을 검증했다.
 작업 8 이후 확장으로 Nadeshiko 미수록 작품 병목이 실제 확인되어 로컬 timed subtitle fallback(POC + 제품 통합, DB schema v3)을 구현했고, 코드 검수 PASS 후 사용자 승인 하에 `main`에 반영 완료됐다.
 Task 9에서는 NiceGUI와 pywebview를 실제 Windows probe로 비교해 **NiceGUI(native mode)를 선택**했고, 실제 Nadeshiko 샘플 video_url 자산 20개에서 연속 전환·재생/일시정지·다음/이전·한글/일본어 표시·Windows native 실행·정상 종료 후 프로세스 잔류 없음을 확인한 뒤 선택하지 않은 pywebview 시험 코드를 제거했다. 샘플 20개의 정지 화면 + 음성 관찰은 Nadeshiko 전체 corpus로 일반화하지 않는다.
-다음 Task 10에서는 **기존에 통과한 검색·저장·번역·검수 기능만 NiceGUI 화면에 연결**한다. 화면 개발 중 새로운 검색 알고리즘을 만들지 않는다.
+Task 10에서는 기존 검증 기능만 연결한 **NiceGUI 사용자 화면 5영역**을 구현했고, Windows native E2E(작품 추가/활성화 → 한국어 검색 → corpus-backed 후보 → 장면 검수 → 번역 → 채택 저장 → 종료 → 재실행 → 상태 복원)를 전부 통과해 main에 반영했다. 전체 pytest **117 passed, 15 skipped**.
+다음 Task 11에서는 **채택 장면의 MP4 저장과 제작용 JSON/CSV 내보내기, 중복 다운로드 방지**를 구현한다. 새로운 검색·번역 계층은 만들지 않는다.
