@@ -171,9 +171,25 @@ DB에는 `media`, `search_runs`, `expressions`, `segments`, `expression_segments
 
 `search_expressions(..., database=database)`처럼 열린 DB를 전달하면 검색 완료 결과를 한 transaction으로 저장한다. AI cache는 서비스·모델·지시문 버전·실제 입력의 canonical hash가 모두 같은 경우에만 사용하고, JSON을 요청한 Pydantic 자료형으로 다시 검증한다. Nadeshiko cache는 검색 문자열·`exact_match`·`take`·검색 조건을 구분해 SDK의 원본 `SearchResponse`를 저장하며, 복원된 응답에도 현재 로컬 surface matcher를 다시 적용한다.
 
-현재 schema는 `SCHEMA_VERSION = 2`이며 `PRAGMA user_version`으로 확인한다. Task 8에서 `reviews.decision`을 nullable로 바꾸고 번역 provenance column과 `nadeshiko_context_cache`를 추가했다. 기존 v1 파일 DB는 열 때 `backup_before_schema_change()`로 같은 작업 데이터 위치에 `.pre-schema-v1.` 사본을 만든 뒤 한 transaction에서 v2로 migration하며, 실패하면 원본 v1 데이터를 그대로 유지한다. 현재 코드보다 높은 version은 데이터를 변경하지 않고 거부한다. 각 연결에서 foreign key 검사를 명시적으로 켜고, WAL은 활성화하지 않아 SQLite 기본 rollback journal을 유지한다.
+현재 schema는 `SCHEMA_VERSION = 3`이며 `PRAGMA user_version`으로 확인한다. Task 8에서 `reviews.decision`을 nullable로 바꾸고 번역 provenance column과 `nadeshiko_context_cache`를 추가했다(v2). subtitle fallback에서 `media.source`('nadeshiko'/'local')를 추가하고 로컬 작품의 `nadeshiko_media_id`를 NULL로 허용하며 `local_segments` table을 추가했다(v3). 구버전 파일 DB는 열 때 각 단계 전에 `backup_before_schema_change()`로 같은 작업 데이터 위치에 `.pre-schema-v{n}.` 사본을 만든 뒤 한 transaction에서 순차 migration하며, 실패하면 해당 단계 이전 데이터를 그대로 유지한다. media 재작성은 SQLite 공식 절차대로 foreign key 검사를 잠시 끄고 수행하며 commit 전에 `PRAGMA foreign_key_check`로 참조 무결성을 확인한다. 현재 코드보다 높은 version은 데이터를 변경하지 않고 거부한다. 각 연결에서 foreign key 검사를 명시적으로 켜고, WAL은 활성화하지 않아 SQLite 기본 rollback journal을 유지한다.
 
 작업 6 자동시험은 파일 기반 임시 DB와 fake provider를 사용한다. 일반 `uv run pytest`에서 인터넷이나 실제 AI/Nadeshiko API를 호출하지 않는다.
+
+## 로컬 일본어 자막 fallback
+
+Nadeshiko에 없는 작품은 사용자가 직접 확보한 일본어 timed subtitle(SRT/ASS)로 검색한다. 자막 파일은 저장소 밖 사용자 위치에 두고, 자동 다운로드는 없다.
+
+```python
+from pathlib import Path
+
+from scene_collector.subtitles import index_local_subtitles
+
+media, count = index_local_subtitles(database, "작품 표시명", Path("자막 폴더"))
+```
+
+화수는 파일명(`S1E01`, `第13話`, `Ep 7`, `- 02` 등 범용 패턴)에서 추정하며 극장판처럼 없으면 비워 둔다. 같은 작품을 다시 색인하면 기존 색인을 통째로 교체한다. 등록된 로컬 작품은 `media` table에 `source='local'`(Nadeshiko ID 없음)로 저장되어 기존 선호작처럼 `is_active`로 검색 포함 여부를 관리한다.
+
+`search_expressions(..., database=...)`는 활성 Nadeshiko 작품은 기존 공식 검색으로, 활성 로컬 작품은 색인에서 LIKE로 1차 축소한 뒤 기존 surface matcher로 판정해 **한 번의 검색에서 두 결과를 함께 반환**한다(`CandidateSearchResult.exact_segments` + `local_segments`). 활성 Nadeshiko 작품이 없으면 Nadeshiko API를 호출하지 않는다(`response=None`). 로컬 결과는 작품 표시명·화수·start/end ms를 담고 있어 사용자가 보유한 원본 영상에서 해당 위치를 찾는 데 쓴다. 자막과 원본의 판본 차이로 실측 기준 ±15초 안팎의 offset이 있을 수 있고 화마다 다를 수 있다.
 
 ## 아직 없는 기능
 

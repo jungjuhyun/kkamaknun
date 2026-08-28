@@ -9,6 +9,7 @@ dependencies = [
     "nadeshiko-sdk==2.3.7",
     "pydantic",
     "pydantic-settings",
+    "pysubs2==1.8.1",
 ]
 
 [build-system]

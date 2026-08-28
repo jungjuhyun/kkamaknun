@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sqlite3
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -18,12 +18,14 @@ from pydantic import BaseModel, ValidationError
 
 from scene_collector.config import AppSettings
 from scene_collector.models import ExpressionCandidate
+from scene_collector.surface import _normalize_source
 
 if TYPE_CHECKING:
     from scene_collector.search import ExpressionSearchResult
+    from scene_collector.subtitles import SubtitleCue
 
 DATABASE_FILENAME = "scene_collector.sqlite3"
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 ReviewDecision = Literal["채택", "예비", "제외"]
 CachedResponse = TypeVar("CachedResponse", bound=BaseModel)
@@ -39,14 +41,34 @@ class UnsupportedSchemaVersionError(DatabaseError):
 
 @dataclass(frozen=True)
 class StoredMedia:
-    """로컬에 저장된 사용자 선호 작품 상태."""
+    """로컬에 저장된 사용자 선호 작품 상태.
+
+    source가 'nadeshiko'면 nadeshiko_media_id가 있고, 사용자가 등록한
+    로컬 자막 작품('local')이면 nadeshiko_media_id는 None이다.
+    """
 
     id: int
-    nadeshiko_media_id: str
+    nadeshiko_media_id: str | None
     display_name: str | None
     preference: int | None
     content_group: str | None
     is_active: bool
+    source: str
+
+
+@dataclass(frozen=True)
+class LocalSegmentMatch:
+    """로컬 자막 색인에서 찾은 장면과 소속 작품 표시명."""
+
+    id: int
+    media_id: int
+    media_display_name: str | None
+    episode: int | None
+    position: int
+    start_time_ms: int
+    end_time_ms: int
+    japanese_text: str
+    source_file: str
 
 
 @dataclass(frozen=True)
@@ -102,6 +124,39 @@ class StoredSearchRun:
     expressions: tuple[StoredExpression, ...]
 
 
+def _media_table_ddl(table_name: str) -> str:
+    """새로 생성하는 v3 media와 migration 중간 table이 같은 구조를 쓰게 한다."""
+    return f"""
+    CREATE TABLE {table_name} (
+        id INTEGER PRIMARY KEY,
+        nadeshiko_media_id TEXT UNIQUE,
+        display_name TEXT,
+        preference INTEGER,
+        content_group TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1)),
+        source TEXT NOT NULL DEFAULT 'nadeshiko'
+            CHECK (source IN ('nadeshiko', 'local')),
+        CHECK ((nadeshiko_media_id IS NOT NULL) = (source = 'nadeshiko'))
+    )
+    """
+
+
+_LOCAL_SEGMENTS_TABLE_DDL = """
+    CREATE TABLE local_segments (
+        id INTEGER PRIMARY KEY,
+        media_id INTEGER NOT NULL,
+        episode INTEGER,
+        position INTEGER NOT NULL,
+        start_time_ms INTEGER NOT NULL CHECK (start_time_ms >= 0),
+        end_time_ms INTEGER NOT NULL CHECK (end_time_ms >= start_time_ms),
+        japanese_text TEXT NOT NULL,
+        normalized_text TEXT NOT NULL,
+        source_file TEXT NOT NULL,
+        FOREIGN KEY (media_id) REFERENCES media(id) ON DELETE CASCADE
+    )
+    """
+
+
 def _reviews_table_ddl(table_name: str) -> str:
     """새로 생성하는 v2 reviews와 migration 중간 table이 같은 구조를 쓰게 한다."""
     return f"""
@@ -138,16 +193,7 @@ _CONTEXT_CACHE_TABLE_DDL = """
 
 
 _SCHEMA_STATEMENTS = (
-    """
-    CREATE TABLE media (
-        id INTEGER PRIMARY KEY,
-        nadeshiko_media_id TEXT NOT NULL UNIQUE,
-        display_name TEXT,
-        preference INTEGER,
-        content_group TEXT,
-        is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))
-    )
-    """,
+    _media_table_ddl("media"),
     """
     CREATE TABLE search_runs (
         id INTEGER PRIMARY KEY,
@@ -225,8 +271,10 @@ _SCHEMA_STATEMENTS = (
     )
     """,
     _CONTEXT_CACHE_TABLE_DDL,
+    _LOCAL_SEGMENTS_TABLE_DDL,
     "CREATE INDEX expressions_search_run_idx ON expressions(search_run_id)",
     "CREATE INDEX expression_segments_segment_idx ON expression_segments(segment_id)",
+    "CREATE INDEX local_segments_media_idx ON local_segments(media_id)",
 )
 
 _V1_TO_V2_STATEMENTS = (
@@ -246,7 +294,23 @@ _V1_TO_V2_STATEMENTS = (
     _CONTEXT_CACHE_TABLE_DDL,
 )
 
-_EXPECTED_TABLES = frozenset(
+_V2_TO_V3_STATEMENTS = (
+    _media_table_ddl("media_v3"),
+    """
+    INSERT INTO media_v3 (
+        id, nadeshiko_media_id, display_name, preference, content_group, is_active, source
+    )
+    SELECT
+        id, nadeshiko_media_id, display_name, preference, content_group, is_active, 'nadeshiko'
+    FROM media
+    """,
+    "DROP TABLE media",
+    "ALTER TABLE media_v3 RENAME TO media",
+    _LOCAL_SEGMENTS_TABLE_DDL,
+    "CREATE INDEX local_segments_media_idx ON local_segments(media_id)",
+)
+
+_EXPECTED_TABLES_V2 = frozenset(
     {
         "media",
         "search_runs",
@@ -259,8 +323,11 @@ _EXPECTED_TABLES = frozenset(
         "nadeshiko_context_cache",
     }
 )
+_EXPECTED_TABLES = _EXPECTED_TABLES_V2 | {"local_segments"}
 _REVIEW_DECISIONS = frozenset({"채택", "예비", "제외"})
-_MEDIA_COLUMNS = "id, nadeshiko_media_id, display_name, preference, content_group, is_active"
+_MEDIA_COLUMNS = (
+    "id, nadeshiko_media_id, display_name, preference, content_group, is_active, source"
+)
 _REVIEW_COLUMNS = (
     "decision, direct_meaning, natural_translation, scene_usage, notes, "
     "translation_ai_service, translation_ai_model, translation_instruction_version, "
@@ -476,6 +543,129 @@ class SceneCollectorDatabase:
             )
             if cursor.rowcount != 1:
                 raise DatabaseError("상태를 저장할 작품을 찾을 수 없습니다.")
+
+    def register_local_media(self, display_name: str) -> StoredMedia:
+        """로컬 자막 작품을 등록한다. 같은 이름의 local 작품이 있으면 재사용한다."""
+        name = display_name.strip() if isinstance(display_name, str) else ""
+        if not name:
+            raise ValueError("로컬 작품의 표시 이름을 입력해야 합니다.")
+
+        existing = self.find_local_media(name)
+        if existing is not None:
+            return existing
+        with self.transaction() as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO media (nadeshiko_media_id, display_name, source)
+                VALUES (NULL, ?, 'local')
+                """,
+                (name,),
+            )
+            row_id = _last_row_id(cursor)
+        stored = self._media_by_row_id(row_id)
+        if stored is None:
+            raise DatabaseError("등록한 로컬 작품을 다시 읽을 수 없습니다.")
+        return stored
+
+    def find_local_media(self, display_name: str) -> StoredMedia | None:
+        """표시 이름으로 등록된 로컬 자막 작품을 찾는다."""
+        row = self.connection.execute(
+            f"""
+            SELECT {_MEDIA_COLUMNS} FROM media
+            WHERE source = 'local' AND display_name = ?
+            """,
+            (display_name.strip(),),
+        ).fetchone()
+        return _stored_media(row) if row is not None else None
+
+    def _media_by_row_id(self, media_row_id: int) -> StoredMedia | None:
+        row = self.connection.execute(
+            f"SELECT {_MEDIA_COLUMNS} FROM media WHERE id = ?",
+            (media_row_id,),
+        ).fetchone()
+        return _stored_media(row) if row is not None else None
+
+    def replace_local_segments(self, media_row_id: int, cues: Sequence[SubtitleCue]) -> int:
+        """로컬 작품의 자막 색인을 통째로 교체한다. 재색인해도 중복이 없다."""
+        media = self._media_by_row_id(media_row_id)
+        if media is None or media.source != "local":
+            raise DatabaseError("자막을 색인할 로컬 작품을 찾을 수 없습니다.")
+
+        with self.transaction() as connection:
+            connection.execute(
+                "DELETE FROM local_segments WHERE media_id = ?", (media_row_id,)
+            )
+            for cue in cues:
+                connection.execute(
+                    """
+                    INSERT INTO local_segments (
+                        media_id, episode, position, start_time_ms, end_time_ms,
+                        japanese_text, normalized_text, source_file
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        media_row_id,
+                        cue.episode,
+                        cue.position,
+                        cue.start_time_ms,
+                        cue.end_time_ms,
+                        cue.japanese_text,
+                        _normalize_source(cue.japanese_text).text,
+                        cue.source_file,
+                    ),
+                )
+        return len(cues)
+
+    def find_local_segments(
+        self,
+        *,
+        normalized_surface: str,
+        media_row_ids: Sequence[int],
+    ) -> tuple[LocalSegmentMatch, ...]:
+        """로컬 자막 색인에서 정규화 표면형 포함 후보만 1차로 줄여 반환한다.
+
+        LIKE는 후보 축소용이며 최종 판정은 호출자가 기존 surface matcher로 한다.
+        """
+        if not normalized_surface:
+            raise ValueError("검색할 표면형이 비어 있습니다.")
+        ids = [int(value) for value in media_row_ids]
+        if not ids:
+            return ()
+
+        escaped = (
+            normalized_surface.replace("!", "!!").replace("%", "!%").replace("_", "!_")
+        )
+        placeholders = ", ".join("?" for _ in ids)
+        rows = self.connection.execute(
+            f"""
+            SELECT
+                local_segments.id, local_segments.media_id, media.display_name,
+                local_segments.episode, local_segments.position,
+                local_segments.start_time_ms, local_segments.end_time_ms,
+                local_segments.japanese_text, local_segments.source_file
+            FROM local_segments
+            JOIN media ON media.id = local_segments.media_id
+            WHERE local_segments.media_id IN ({placeholders})
+                AND local_segments.normalized_text LIKE ? ESCAPE '!'
+            ORDER BY local_segments.media_id, local_segments.episode,
+                local_segments.source_file, local_segments.position
+            """,
+            (*ids, f"%{escaped}%"),
+        ).fetchall()
+        return tuple(
+            LocalSegmentMatch(
+                id=int(row["id"]),
+                media_id=int(row["media_id"]),
+                media_display_name=row["display_name"],
+                episode=row["episode"],
+                position=int(row["position"]),
+                start_time_ms=int(row["start_time_ms"]),
+                end_time_ms=int(row["end_time_ms"]),
+                japanese_text=row["japanese_text"],
+                source_file=row["source_file"],
+            )
+            for row in rows
+        )
 
     def save_search_result(
         self,
@@ -971,17 +1161,21 @@ class SceneCollectorDatabase:
         if version == SCHEMA_VERSION:
             self._verify_schema()
             return
-        if version == 1:
-            self._migrate_v1_to_v2()
+        if version == 0:
+            existing_tables = self._application_tables()
+            if existing_tables:
+                raise DatabaseError(
+                    "schema version 0인 비어 있지 않은 DB는 자동 변경하지 않습니다. "
+                    "명시적인 migration이 필요합니다."
+                )
+            self._initialize_schema()
             return
 
-        existing_tables = self._application_tables()
-        if existing_tables:
-            raise DatabaseError(
-                "schema version 0인 비어 있지 않은 DB는 자동 변경하지 않습니다. "
-                "명시적인 migration이 필요합니다."
-            )
-        self._initialize_schema()
+        if version == 1:
+            self._migrate_v1_to_v2()
+        if self.schema_version == 2:
+            self._migrate_v2_to_v3()
+        self._verify_schema()
 
     def _migrate_v1_to_v2(self) -> None:
         """기존 v1 DB를 백업한 뒤 한 transaction에서 v2 구조로 옮긴다."""
@@ -990,16 +1184,49 @@ class SceneCollectorDatabase:
             with self.transaction() as connection:
                 for statement in _V1_TO_V2_STATEMENTS:
                     connection.execute(statement)
-                connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
-                self._verify_schema()
+                connection.execute("PRAGMA user_version = 2")
+                self._verify_schema(expected=_EXPECTED_TABLES_V2)
         except sqlite3.Error as error:
             raise DatabaseError(
                 "SQLite v1 → v2 migration에 실패했습니다. "
                 "원본 데이터는 변경 전 상태로 유지됩니다."
             ) from error
 
-        if self.schema_version != SCHEMA_VERSION:
+        if self.schema_version != 2:
             raise DatabaseError("SQLite v2 schema version 저장을 확인할 수 없습니다.")
+
+    def _migrate_v2_to_v3(self) -> None:
+        """기존 v2 DB를 백업한 뒤 media 재작성과 local_segments 추가를 수행한다.
+
+        media는 segments가 참조하는 parent table이라 SQLite 공식 절차대로
+        transaction 밖에서 foreign key 검사를 잠시 끄고 재작성하며,
+        commit 전에 PRAGMA foreign_key_check로 참조 무결성을 확인한다.
+        """
+        self.backup_before_schema_change()
+        connection = self.connection
+        connection.execute("PRAGMA foreign_keys = OFF")
+        try:
+            try:
+                with self.transaction() as tx:
+                    for statement in _V2_TO_V3_STATEMENTS:
+                        tx.execute(statement)
+                    tx.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+                    self._verify_schema()
+                    violations = tx.execute("PRAGMA foreign_key_check").fetchall()
+                    if violations:
+                        raise sqlite3.IntegrityError(
+                            "migration 후 foreign key 위반이 발견됐습니다."
+                        )
+            except sqlite3.Error as error:
+                raise DatabaseError(
+                    "SQLite v2 → v3 migration에 실패했습니다. "
+                    "원본 데이터는 변경 전 상태로 유지됩니다."
+                ) from error
+        finally:
+            connection.execute("PRAGMA foreign_keys = ON")
+
+        if self.schema_version != SCHEMA_VERSION:
+            raise DatabaseError("SQLite v3 schema version 저장을 확인할 수 없습니다.")
 
     def _initialize_schema(self) -> None:
         try:
@@ -1014,8 +1241,8 @@ class SceneCollectorDatabase:
         if self.schema_version != SCHEMA_VERSION:
             raise DatabaseError("SQLite schema version 저장을 확인할 수 없습니다.")
 
-    def _verify_schema(self) -> None:
-        missing_tables = _EXPECTED_TABLES - self._application_tables()
+    def _verify_schema(self, expected: frozenset[str] = _EXPECTED_TABLES) -> None:
+        missing_tables = expected - self._application_tables()
         if missing_tables:
             missing = ", ".join(sorted(missing_tables))
             raise DatabaseError(f"SQLite schema에 필요한 table이 없습니다: {missing}")
@@ -1144,6 +1371,7 @@ def _stored_media(row: sqlite3.Row) -> StoredMedia:
         preference=row["preference"],
         content_group=row["content_group"],
         is_active=bool(row["is_active"]),
+        source=row["source"],
     )
 
 

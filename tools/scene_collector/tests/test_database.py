@@ -36,6 +36,7 @@ EXPECTED_TABLES = {
     "ai_cache",
     "expression_segments",
     "expressions",
+    "local_segments",
     "media",
     "nadeshiko_context_cache",
     "nadeshiko_search_cache",
@@ -43,6 +44,17 @@ EXPECTED_TABLES = {
     "search_runs",
     "segments",
 }
+
+V1_MEDIA_DDL = """
+    CREATE TABLE media (
+        id INTEGER PRIMARY KEY,
+        nadeshiko_media_id TEXT NOT NULL UNIQUE,
+        display_name TEXT,
+        preference INTEGER,
+        content_group TEXT,
+        is_active INTEGER NOT NULL DEFAULT 1 CHECK (is_active IN (0, 1))
+    )
+    """
 
 V1_REVIEWS_DDL = """
     CREATE TABLE reviews (
@@ -156,7 +168,7 @@ def test_creates_file_database_with_foreign_keys_and_default_journal(tmp_path: P
     with SceneCollectorDatabase.open(settings) as database:
         assert database.path == tmp_path / DATABASE_FILENAME
         assert database.path.is_file()
-        assert database.schema_version == SCHEMA_VERSION == 2
+        assert database.schema_version == SCHEMA_VERSION == 3
         assert _table_names(database.connection) == EXPECTED_TABLES
         assert database.connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert database.connection.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
@@ -332,7 +344,7 @@ def test_connection_backup_preserves_sentinel_and_schema_version(tmp_path: Path)
 
     assert first_backup.parent == tmp_path
     assert first_backup != second_backup
-    assert ".pre-schema-v2." in first_backup.name
+    assert ".pre-schema-v3." in first_backup.name
     with sqlite3.connect(first_backup) as backup:
         assert backup.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         assert (
@@ -447,7 +459,10 @@ def _create_seeded_v1_database(path: Path) -> None:
     try:
         with connection:
             for statement in database_module._SCHEMA_STATEMENTS:
-                if "nadeshiko_context_cache" in statement:
+                if "nadeshiko_context_cache" in statement or "local_segments" in statement:
+                    continue
+                if "CREATE TABLE media" in statement:
+                    connection.execute(V1_MEDIA_DDL)
                     continue
                 if "CREATE TABLE reviews" in statement:
                     connection.execute(V1_REVIEWS_DDL)
@@ -506,12 +521,12 @@ def _create_seeded_v1_database(path: Path) -> None:
         connection.close()
 
 
-def test_v1_database_migrates_to_v2_with_backup_and_preserved_data(tmp_path: Path) -> None:
+def test_v1_database_migrates_to_current_schema_with_backups(tmp_path: Path) -> None:
     path = tmp_path / DATABASE_FILENAME
     _create_seeded_v1_database(path)
 
     with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
-        assert database.schema_version == SCHEMA_VERSION == 2
+        assert database.schema_version == SCHEMA_VERSION == 3
         assert _table_names(database.connection) == EXPECTED_TABLES
         review = database.get_review(1, 1)
         assert review is not None
@@ -531,16 +546,126 @@ def test_v1_database_migrates_to_v2_with_backup_and_preserved_data(tmp_path: Pat
         assert segment.segment.public_id == "anonymous-segment-001"
         assert segment.review is not None
         assert segment.review.decision == "채택"
+        migrated_media = database.get_media("anonymous-media-001")
+        assert migrated_media is not None
+        assert migrated_media.source == "nadeshiko"
+        assert migrated_media.display_name == "익명 작품"
+        assert (
+            database.connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        )
 
-    backups = sorted(tmp_path.glob("*.pre-schema-v1.*"))
-    assert len(backups) == 1
-    with sqlite3.connect(backups[0]) as backup:
+    v1_backups = sorted(tmp_path.glob("*.pre-schema-v1.*"))
+    v2_backups = sorted(tmp_path.glob("*.pre-schema-v2.*"))
+    assert len(v1_backups) == 1
+    assert len(v2_backups) == 1
+    with sqlite3.connect(v1_backups[0]) as backup:
         assert backup.execute("PRAGMA user_version").fetchone()[0] == 1
         assert backup.execute("SELECT decision FROM reviews").fetchone()[0] == "채택"
+    with sqlite3.connect(v2_backups[0]) as backup:
+        assert backup.execute("PRAGMA user_version").fetchone()[0] == 2
 
     with SceneCollectorDatabase.open(_settings(tmp_path)) as reopened:
         assert reopened.schema_version == SCHEMA_VERSION
     assert len(sorted(tmp_path.glob("*.pre-schema-v1.*"))) == 1
+    assert len(sorted(tmp_path.glob("*.pre-schema-v2.*"))) == 1
+
+
+def _create_seeded_v2_database(path: Path) -> None:
+    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    segment_json = json.dumps(payload["segments"][0], ensure_ascii=False)
+    connection = sqlite3.connect(path)
+    try:
+        with connection:
+            for statement in database_module._SCHEMA_STATEMENTS:
+                if "local_segments" in statement:
+                    continue
+                if "CREATE TABLE media" in statement:
+                    connection.execute(V1_MEDIA_DDL)
+                    continue
+                connection.execute(statement)
+            connection.execute(
+                """
+                INSERT INTO media (
+                    id, nadeshiko_media_id, display_name, preference, content_group, is_active
+                ) VALUES (1, 'anonymous-media-001', '익명 작품', 4, '극장판', 0)
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO segments (
+                    id, nadeshiko_segment_id, media_id, position, episode,
+                    start_time_ms, end_time_ms, external_video_id, japanese_text,
+                    video_url, audio_url, image_url, raw_json
+                ) VALUES (
+                    1, 'anonymous-segment-001', 1, 42, 1, 0, 1000, NULL, '大丈夫ですか？',
+                    'https://media.example.invalid/video.mp4',
+                    'https://media.example.invalid/audio.mp3',
+                    'https://media.example.invalid/image.jpg', ?
+                )
+                """,
+                (segment_json,),
+            )
+            connection.execute("PRAGMA user_version = 2")
+    finally:
+        connection.close()
+
+
+def test_v2_database_migrates_to_v3_preserving_media_and_references(tmp_path: Path) -> None:
+    path = tmp_path / DATABASE_FILENAME
+    _create_seeded_v2_database(path)
+
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        assert database.schema_version == SCHEMA_VERSION == 3
+        assert _table_names(database.connection) == EXPECTED_TABLES
+        media = database.get_media("anonymous-media-001")
+        assert media is not None
+        assert media.source == "nadeshiko"
+        assert media.display_name == "익명 작품"
+        assert media.preference == 4
+        assert media.content_group == "극장판"
+        assert media.is_active is False
+        joined = database.connection.execute(
+            """
+            SELECT media.nadeshiko_media_id
+            FROM segments JOIN media ON media.id = segments.media_id
+            """
+        ).fetchone()
+        assert joined[0] == "anonymous-media-001"
+        assert database.connection.execute("PRAGMA foreign_key_check").fetchall() == []
+        local = database.register_local_media("로컬 작품")
+        assert local.source == "local"
+        assert local.nadeshiko_media_id is None
+
+    assert len(sorted(tmp_path.glob("*.pre-schema-v2.*"))) == 1
+
+
+def test_v2_migration_failure_keeps_original_v2_data(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / DATABASE_FILENAME
+    _create_seeded_v2_database(path)
+    statements = database_module._V2_TO_V3_STATEMENTS
+    monkeypatch.setattr(
+        database_module,
+        "_V2_TO_V3_STATEMENTS",
+        (*statements[:4], "CREATE TABLE broken (", *statements[4:]),
+    )
+
+    with pytest.raises(DatabaseError, match="v2 → v3 migration"):
+        SceneCollectorDatabase.open(_settings(tmp_path))
+
+    with sqlite3.connect(path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        tables = _table_names(connection)
+        assert "media" in tables
+        assert "media_v3" not in tables
+        assert "local_segments" not in tables
+        row = connection.execute(
+            "SELECT nadeshiko_media_id, preference FROM media"
+        ).fetchone()
+        assert tuple(row) == ("anonymous-media-001", 4)
+        assert connection.execute("SELECT COUNT(*) FROM segments").fetchone()[0] == 1
 
 
 def test_v1_migration_failure_keeps_original_v1_data(

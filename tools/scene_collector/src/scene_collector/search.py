@@ -18,10 +18,14 @@ from nadeshiko.models import (
 from scene_collector.ai import create_structured_response
 from scene_collector.config import AppSettings
 from scene_collector.models import ExpressionCandidate, ExpressionCandidates
-from scene_collector.surface import matches_surface
+from scene_collector.surface import _normalize_surface, matches_surface
 
 if TYPE_CHECKING:
-    from scene_collector.database import SceneCollectorDatabase
+    from scene_collector.database import (
+        LocalSegmentMatch,
+        SceneCollectorDatabase,
+        StoredMedia,
+    )
 
 CANDIDATE_INSTRUCTION_VERSION = "expression-candidates-v1"
 
@@ -32,16 +36,22 @@ class NoActiveMediaError(RuntimeError):
 
 @dataclass(frozen=True)
 class CandidateSearchResult:
-    """일본어 후보와 원본 검색 응답, 로컬 동일표현 segment."""
+    """일본어 후보와 Nadeshiko 응답, 로컬 동일표현 segment.
+
+    response가 None이면 활성 Nadeshiko 작품이 없어 Nadeshiko 검색 자체를
+    건너뛴 경우다. local_segments는 사용자가 등록한 로컬 자막 색인에서
+    같은 surface 검사를 통과한 장면이다.
+    """
 
     candidate: ExpressionCandidate
-    response: SearchResponse
+    response: SearchResponse | None
     exact_match_response: SearchResponse | None
     exact_segments: tuple[Segment, ...]
+    local_segments: tuple[LocalSegmentMatch, ...] = ()
 
     @property
     def has_results(self) -> bool:
-        return bool(self.exact_segments)
+        return bool(self.exact_segments) or bool(self.local_segments)
 
 
 @dataclass(frozen=True)
@@ -69,7 +79,7 @@ def search_expressions(
     if not intent:
         raise ValueError("한국어로 찾을 의미를 입력해야 합니다.")
 
-    media_ids = _active_media_ids(database)
+    media_ids, local_media = _split_active_media(database)
     generated = _generate_candidates(settings, intent, database=database)
     if len(generated.candidates) != settings.search.candidate_count:
         raise ValueError("AI가 설정한 수와 다른 개수의 일본어 후보를 반환했습니다.")
@@ -82,6 +92,7 @@ def search_expressions(
             nadeshiko_client=nadeshiko_client,
             database=database,
             media_ids=media_ids,
+            local_media=local_media,
         )
         for candidate in unique_candidates
     )
@@ -120,15 +131,30 @@ def _generate_candidates(
     return create_structured_response(settings, **arguments)
 
 
-def _active_media_ids(database: SceneCollectorDatabase | None) -> tuple[str, ...] | None:
-    """database가 연결된 제품 검색에서만 활성 선호작 조건을 강제한다."""
+def _split_active_media(
+    database: SceneCollectorDatabase | None,
+) -> tuple[tuple[str, ...] | None, tuple[StoredMedia, ...]]:
+    """활성 선호작을 Nadeshiko 필터용 ID와 로컬 자막 작품으로 나눈다.
+
+    database가 없으면 기존 개발용 전체 corpus 검색을 유지한다(None, ()).
+    database가 있으면 활성 작품이 하나도 없을 때 기존과 같이 오류를 낸다.
+    """
     if database is None:
-        return None
+        return None, ()
 
     active_media = database.list_active_media()
     if not active_media:
         raise NoActiveMediaError("검색에 사용할 활성 선호 작품이 없습니다.")
-    return tuple(sorted(media.nadeshiko_media_id for media in active_media))
+
+    nadeshiko_ids = tuple(
+        sorted(
+            media.nadeshiko_media_id
+            for media in active_media
+            if media.source == "nadeshiko" and media.nadeshiko_media_id is not None
+        )
+    )
+    local_media = tuple(media for media in active_media if media.source == "local")
+    return nadeshiko_ids, local_media
 
 
 def _search_candidate(
@@ -138,34 +164,64 @@ def _search_candidate(
     nadeshiko_client: Nadeshiko,
     database: SceneCollectorDatabase | None,
     media_ids: tuple[str, ...] | None,
+    local_media: tuple[StoredMedia, ...],
 ) -> CandidateSearchResult:
-    response = _search_nadeshiko(
-        candidate.japanese,
-        exact_match=False,
-        take=settings.search.nadeshiko_take,
-        nadeshiko_client=nadeshiko_client,
-        database=database,
-        media_ids=media_ids,
-    )
-    exact_segments = _surface_segments(response, candidate.japanese)
-    exact_match_response = None
-
-    if not exact_segments:
-        exact_match_response = _search_nadeshiko(
+    if media_ids is not None and not media_ids:
+        response: SearchResponse | None = None
+        exact_match_response: SearchResponse | None = None
+        exact_segments: tuple[Segment, ...] = ()
+    else:
+        response = _search_nadeshiko(
             candidate.japanese,
-            exact_match=True,
+            exact_match=False,
             take=settings.search.nadeshiko_take,
             nadeshiko_client=nadeshiko_client,
             database=database,
             media_ids=media_ids,
         )
-        exact_segments = _surface_segments(exact_match_response, candidate.japanese)
+        exact_segments = _surface_segments(response, candidate.japanese)
+        exact_match_response = None
+
+        if not exact_segments:
+            exact_match_response = _search_nadeshiko(
+                candidate.japanese,
+                exact_match=True,
+                take=settings.search.nadeshiko_take,
+                nadeshiko_client=nadeshiko_client,
+                database=database,
+                media_ids=media_ids,
+            )
+            exact_segments = _surface_segments(exact_match_response, candidate.japanese)
+
+    local_segments: tuple[LocalSegmentMatch, ...] = ()
+    if database is not None and local_media:
+        local_segments = _search_local_segments(database, candidate.japanese, local_media)
 
     return CandidateSearchResult(
         candidate=candidate,
         response=response,
         exact_match_response=exact_match_response,
         exact_segments=exact_segments,
+        local_segments=local_segments,
+    )
+
+
+def _search_local_segments(
+    database: SceneCollectorDatabase,
+    surface: str,
+    local_media: tuple[StoredMedia, ...],
+) -> tuple[LocalSegmentMatch, ...]:
+    """로컬 자막 색인에서 LIKE로 후보를 줄인 뒤 기존 surface 검사로 판정한다."""
+    normalized = _normalize_surface(surface)
+    if not normalized:
+        return ()
+
+    matches = database.find_local_segments(
+        normalized_surface=normalized,
+        media_row_ids=[media.id for media in local_media],
+    )
+    return tuple(
+        match for match in matches if matches_surface(match.japanese_text, surface)
     )
 
 
