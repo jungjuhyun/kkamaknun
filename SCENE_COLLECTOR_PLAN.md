@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6·7 완료 / 다음 작업 8**
+상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6·7·8 완료 / 다음 작업 9**
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -299,6 +299,7 @@ Nadeshiko 사용량은 프로그램 시작 시 기억한 숫자를 믿지 않고
 
 작업 6에서는 Nadeshiko 원본 `SearchResponse`를 SQLite에 별도 cache하고 복원 후에도 기존 local surface matcher를 다시 적용하도록 구현했다. cache identity는 검색 문자열·`exact_match`·`take`·검색 조건을 구분한다.
 작업 7부터 활성 media ID 집합도 검색 조건 JSON에 포함되며, 같은 작품 집합은 cache hit하고 다른 작품 조건이나 조건 없는 기존 cache는 재사용하지 않는다.
+작업 8부터 `get_segment_context` 응답도 `(segment_public_id, context_take)` 기준으로 별도 SQLite cache에 저장한다. 같은 장면·같은 범위는 DB 재개방 후에도 SDK 응답을 복원해 재사용하고, 다른 장면이나 다른 범위는 cache miss로 처리한다.
 
 ## 10. 한국어 번역
 
@@ -334,7 +335,13 @@ Nadeshiko 번역 정보
 
 같은 입력·모델·지시문 버전이면 저장된 결과를 우선 재사용한다.
 
-Task 8에서는 이미 정확 surface와 활성 선호작 필터를 통과한 후보만 대상으로 `get_segment_context`를 호출한다. 앞/현재/뒤 문맥과 Nadeshiko 번역 정보를 구조화 입력으로 묶고, 가능한 범위에서 여러 장면을 한 AI 요청으로 번역한다. Task 6의 AI cache를 재사용해 service/model/지시문 버전/실제 입력 내용이 같을 때만 결과를 재사용하며, 번역 결과는 기존 review의 직접 의미·자연번역·장면 쓰임 필드에 저장할 수 있게 연결한다.
+작업 8에서 이 흐름을 구현했다. 정확 surface와 활성 선호작 필터를 통과해 DB의 `expression_segments`에 저장된 후보에만 `get_segment_context(take=2)`를 호출하고, 같은 작품·같은 화의 가장 가까운 previous/current/next를 순서에 의존하지 않고 고른다. 첫·마지막 장면처럼 한쪽 문맥이 없는 경우는 정상 상태로 처리한다.
+
+여러 장면은 최대 5개씩 하나의 Instructor 구조화 요청으로 묶고 `SceneTranslationBatch`로 직접 의미·자연번역·장면 쓰임을 받는다. scene key의 중복·누락·알 수 없는 ID는 저장 전에 거부한다. `scene-translation-v1` 지시문 버전과 canonical 입력을 기존 AI cache에 연결해 service/model/version/input이 같을 때 provider를 다시 호출하지 않는다.
+
+번역은 사용자 판정보다 먼저 존재할 수 있으므로 DB schema v2에서 `reviews.decision`을 nullable로 만들었다. AI 번역 저장은 기존 decision/notes를 보존하고, 사용자 decision 변경은 기존 번역을 지우지 않는다. 번역 provenance는 AI service/model/지시문 버전/입력 hash/생성 시각을 기록한다.
+
+작업 8 전체 pytest는 **100 passed, 15 skipped**, Ruff·`git diff --check` PASS, translation live **1 passed**다. 실제 Google `gemini-3.6-flash`로 세 장면을 한 batch에서 번역했고 같은 DB 재실행과 reopen 후 context·AI 추가 호출 0회를 확인했다. 짧은 `大丈夫` 샘플에서는 직접 의미와 자연번역이 거의 같았지만 자연스러운 결과였고, 더 복잡한 표현 품질은 실제 사용에서 필요할 때 재평가한다.
 
 ## 11. 설정과 이동식 SSD
 
@@ -361,7 +368,7 @@ Task 8에서는 이미 정확 surface와 활성 선호작 필터를 통과한 �
 
 ## 12. SQLite 자료 구조
 
-Task 6에서 첫 실제 schema v1을 구현했다. DB는 `<work_data_dir>/scene_collector.sqlite3`에 두고 Python 표준 `sqlite3`만 사용한다.
+Task 6에서 첫 실제 schema v1을 구현했고 Task 8에서 실제 migration 원칙을 처음 사용해 schema v2로 올렸다. DB는 `<work_data_dir>/scene_collector.sqlite3`에 두고 Python 표준 `sqlite3`만 사용한다.
 
 현재 table:
 
@@ -408,12 +415,18 @@ Task 6에서 첫 실제 schema v1을 구현했다. DB는 `<work_data_dir>/scene_
 
 ### reviews
 - 표현 ID + 장면 ID
-- 판정: `채택 / 예비 / 제외`
+- 판정: `채택 / 예비 / 제외 / 미판정(NULL)`
 - 직접 의미
 - 자연번역
 - 장면 쓰임
 - 메모
+- 번역 AI 서비스/모델
+- 번역 지시문 버전
+- 번역 입력 hash
+- 번역 생성 시각
 - 갱신 시각
+
+AI 번역과 사용자 판정은 별도 사건이다. `decision IS NULL`이면 번역은 존재하지만 아직 사용자가 채택/예비/제외를 결정하지 않은 상태다.
 
 ### ai_cache
 - 요청 해시
@@ -432,17 +445,24 @@ Task 6에서 첫 실제 schema v1을 구현했다. DB는 `<work_data_dir>/scene_
 - 원본 `SearchResponse` JSON
 - 생성 시각
 
-Task 6 구현 원칙:
-- `SCHEMA_VERSION = 1`
+### nadeshiko_context_cache
+- Nadeshiko 장면 public ID
+- context take
+- 원본 `SegmentContextResponse` JSON
+- 생성 시각
+
+현재 DB 구현 원칙:
+- `SCHEMA_VERSION = 2`
 - `PRAGMA user_version`으로 자료구조 버전 관리
 - 모든 연결에서 foreign key 활성화와 실제 활성 여부 확인
 - 명시적 transaction/rollback
 - 현재 코드보다 높은 미래 schema는 write 없이 거부
-- 향후 실제 schema 변경 전 `sqlite3.Connection.backup()`으로 같은 작업 데이터 위치에 백업
+- 실제 schema 변경 전 `sqlite3.Connection.backup()`으로 같은 작업 데이터 위치에 백업
+- v1 → v2 migration은 backup 성공 후 한 transaction에서 reviews 재작성·context cache 생성·`user_version=2`를 수행하고 실패하면 원래 v1 상태를 유지
 - WAL은 기본 활성화하지 않고 rollback journal 유지
 - 새 ORM·migration framework·DB dependency는 추가하지 않음
 
-Task 7은 기존 v1 `media` column으로 충분해 schema version을 올리지 않았다.
+Task 7은 기존 v1 `media` column으로 충분해 schema version을 올리지 않았고, Task 8에서 번역-before-review와 context cache가 실제 DDL 변경을 요구해 v2로 올렸다.
 
 ## 13. 영상 저장과 내보내기
 
@@ -710,6 +730,12 @@ Nadeshiko 작품 검색 → 작품 ID 저장 → 선호도·콘텐츠 묶음·�
 정확 후보의 앞/현재/뒤 문맥을 묶어서 번역.
 모델·지시문 버전·입력 해시 저장.
 
+상태: **완료**. 정확 surface와 활성 선호작 조건을 통과해 저장된 장면에만 `get_segment_context(take=2)`를 호출하고, 같은 작품·화의 가장 가까운 앞/뒤 대사를 선택한다. context는 `(segment_public_id, take)` 기준으로 SQLite에 캐시한다. 여러 장면은 최대 5개씩 하나의 Instructor 구조화 요청으로 번역하며 `SceneTranslationBatch`의 scene key 중복·누락·미지 ID를 저장 전에 거부한다. 기존 AI cache를 `scene-translation-v1` 지시문과 canonical 입력으로 재사용한다.
+
+번역은 사용자 판정보다 먼저 존재할 수 있으므로 `SCHEMA_VERSION = 2`로 올려 `reviews.decision`을 nullable로 만들고 번역 provenance를 추가했다. v1 DB는 `Connection.backup()` 후 한 transaction에서 v2로 migration하며 실패 시 v1 원본을 유지한다. AI 번역 저장과 사용자 decision/notes 수정 경로를 분리해 서로 덮어쓰지 않는다.
+
+전체 pytest **100 passed, 15 skipped**, Ruff·`git diff --check` PASS, translation live **1 passed**를 확인했다. 실제 Google `gemini-3.6-flash`에서 세 장면을 한 batch로 번역했고 같은 DB 재실행과 reopen 후 Nadeshiko context·AI provider 추가 호출이 발생하지 않았다. 이번 짧은 샘플의 번역 품질은 자연스러웠으며, 복잡한 생략·간접 표현은 실제 사용에서 필요할 때 재평가한다.
+
 ### 작업 9 — 화면 기술 확인
 
 NiceGUI / pywebview를 작은 시험으로 비교.
@@ -744,7 +770,7 @@ Nadeshiko MP4 연속 재생과 Windows 실행이 더 안정적인 쪽 하나만 
 - Windows/영상/AI 호환 문제가 여러 번 발생: 약 **65~75시간**
 
 확정 계약 시간이 아니라 불확실성 관리용 추정이다.
-작업 0~7의 핵심 검색·연결·저장·캐시·선호작 관리 검증과 검색 recall 검증은 완료됐으며, 남은 개발은 기존 작업 8~13 기준으로 이어간다.
+작업 0~8의 핵심 검색·연결·저장·캐시·선호작·번역 검증과 검색 recall 검증은 완료됐으며, 남은 개발은 기존 작업 9~13 기준으로 이어간다.
 
 AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작, Windows 영상 재생, SSD 이동, 사용자 작업 흐름 검증 시간까지 자동으로 사라진다고 가정하지 않는다.
 
@@ -849,11 +875,12 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 
 ## 24. 바로 다음 작업
 
-**작업 8 — 한국어 장면 번역**부터 진행한다.
+**작업 9 — 화면 기술 확인**부터 진행한다.
 
-작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전, 작업 7 — 선호 애니 관리는 완료되어 `main`에 반영됐다.
+작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전, 작업 7 — 선호 애니 관리, 작업 8 — 한국어 장면 번역은 완료되어 `main`에 반영됐다.
 검색 recall 검증도 닫았다. 세 문제 target을 상위 200건까지 확인해도 정확 surface가 없었고 pagination의 제품 적용 이득이 확인되지 않았으므로 검색 계층을 더 늘리지 않는다.
 Task 6에서는 SQLite v1 schema, 파일 DB 재시작 복원, review, AI cache, Nadeshiko raw search cache, foreign key, 명시적 transaction/rollback, `PRAGMA user_version`, 구조 변경 전 backup까지 offline으로 검증했다.
 Task 7에서는 Nadeshiko public media ID 기반 선호작 관리와 `SearchFilters.media.include` 기반 활성 작품 검색을 구현했다. media 조건은 Nadeshiko cache identity에도 포함되며 활성 작품이 없으면 global corpus로 자동 확대하지 않는다.
-다음 Task 8에서는 정확 surface와 활성 선호작 필터를 통과한 후보에만 앞뒤 문맥을 조회하고, 앞/현재/뒤 일본어와 Nadeshiko 번역 정보를 묶어 AI가 직접 의미·자연스러운 한국어·장면 쓰임을 구조화 반환하게 한다. 여러 장면을 가능한 범위에서 묶고 Task 6 AI cache를 재사용하며, 결과는 기존 review 저장 구조에 연결한다.
-UI, 영상 저장, 추가 검색 알고리즘은 작업 8에 섞지 않는다.
+Task 8에서는 정확 후보에만 앞뒤 문맥을 조회하고 여러 장면을 한 AI 구조화 요청으로 한국어 번역한다. context cache와 기존 AI cache를 재사용하며, DB schema v2에서 번역-before-review 상태와 provenance를 저장하고 v1 → v2 backup/migration을 검증했다.
+다음 Task 9에서는 **NiceGUI와 pywebview를 제품 전체 구현 전에 작은 Windows 시험으로 직접 비교**한다. 실제 Nadeshiko MP4의 연속 탐색·재생/일시정지·다음/이전 전환·한글/일본어 표시·Windows 실행을 확인해 더 안정적인 하나만 남기고 선택하지 않은 시험 코드는 제거한다.
+Task 9에서는 기존 검색·번역 알고리즘이나 실제 사용자 화면 전체를 구현하지 않는다.
