@@ -6,7 +6,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from nadeshiko import Nadeshiko
-from nadeshiko.models import SearchQuery, SearchResponse, Segment
+from nadeshiko.models import (
+    MediaFilterItem,
+    SearchFilters,
+    SearchFiltersMedia,
+    SearchQuery,
+    SearchResponse,
+    Segment,
+)
 
 from scene_collector.ai import create_structured_response
 from scene_collector.config import AppSettings
@@ -17,6 +24,10 @@ if TYPE_CHECKING:
     from scene_collector.database import SceneCollectorDatabase
 
 CANDIDATE_INSTRUCTION_VERSION = "expression-candidates-v1"
+
+
+class NoActiveMediaError(RuntimeError):
+    """database가 연결된 검색에 활성 선호 작품이 하나도 없을 때 발생한다."""
 
 
 @dataclass(frozen=True)
@@ -58,6 +69,7 @@ def search_expressions(
     if not intent:
         raise ValueError("한국어로 찾을 의미를 입력해야 합니다.")
 
+    media_ids = _active_media_ids(database)
     generated = _generate_candidates(settings, intent, database=database)
     if len(generated.candidates) != settings.search.candidate_count:
         raise ValueError("AI가 설정한 수와 다른 개수의 일본어 후보를 반환했습니다.")
@@ -69,6 +81,7 @@ def search_expressions(
             candidate,
             nadeshiko_client=nadeshiko_client,
             database=database,
+            media_ids=media_ids,
         )
         for candidate in unique_candidates
     )
@@ -107,12 +120,24 @@ def _generate_candidates(
     return create_structured_response(settings, **arguments)
 
 
+def _active_media_ids(database: SceneCollectorDatabase | None) -> tuple[str, ...] | None:
+    """database가 연결된 제품 검색에서만 활성 선호작 조건을 강제한다."""
+    if database is None:
+        return None
+
+    active_media = database.list_active_media()
+    if not active_media:
+        raise NoActiveMediaError("검색에 사용할 활성 선호 작품이 없습니다.")
+    return tuple(sorted(media.nadeshiko_media_id for media in active_media))
+
+
 def _search_candidate(
     settings: AppSettings,
     candidate: ExpressionCandidate,
     *,
     nadeshiko_client: Nadeshiko,
     database: SceneCollectorDatabase | None,
+    media_ids: tuple[str, ...] | None,
 ) -> CandidateSearchResult:
     response = _search_nadeshiko(
         candidate.japanese,
@@ -120,6 +145,7 @@ def _search_candidate(
         take=settings.search.nadeshiko_take,
         nadeshiko_client=nadeshiko_client,
         database=database,
+        media_ids=media_ids,
     )
     exact_segments = _surface_segments(response, candidate.japanese)
     exact_match_response = None
@@ -131,6 +157,7 @@ def _search_candidate(
             take=settings.search.nadeshiko_take,
             nadeshiko_client=nadeshiko_client,
             database=database,
+            media_ids=media_ids,
         )
         exact_segments = _surface_segments(exact_match_response, candidate.japanese)
 
@@ -149,26 +176,38 @@ def _search_nadeshiko(
     take: int,
     nadeshiko_client: Nadeshiko,
     database: SceneCollectorDatabase | None,
+    media_ids: tuple[str, ...] | None = None,
 ) -> SearchResponse:
+    conditions = {"media_ids": list(media_ids)} if media_ids is not None else None
     if database is not None:
         cached = database.get_nadeshiko_search_cache(
             search_text=search_text,
             exact_match=exact_match,
             take=take,
+            conditions=conditions,
         )
         if cached is not None:
             return cached
 
-    response = nadeshiko_client.search(
-        query=SearchQuery(search=search_text, exact_match=exact_match),
-        take=take,
-    )
+    query = SearchQuery(search=search_text, exact_match=exact_match)
+    if media_ids is None:
+        response = nadeshiko_client.search(query=query, take=take)
+    else:
+        media_filter = SearchFiltersMedia(
+            include=[MediaFilterItem(media_public_id=media_id) for media_id in media_ids]
+        )
+        response = nadeshiko_client.search(
+            query=query,
+            take=take,
+            filters=SearchFilters(media=media_filter),
+        )
     if database is not None:
         database.put_nadeshiko_search_cache(
             search_text=search_text,
             exact_match=exact_match,
             take=take,
             response=response,
+            conditions=conditions,
         )
     return response
 

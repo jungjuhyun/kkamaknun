@@ -26,6 +26,12 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         default=False,
         help="Nadeshiko 검색과 로컬 표면형 필터 비교 시험을 실행합니다.",
     )
+    parser.addoption(
+        "--run-media-live",
+        action="store_true",
+        default=False,
+        help="실제 Nadeshiko 작품 metadata와 media filter 검색 시험을 실행합니다.",
+    )
 
 
 def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
@@ -45,4 +51,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
         if "surface_live" in item.keywords and not config.getoption("--run-surface-live"):
             item.add_marker(
                 pytest.mark.skip(reason="--run-surface-live로만 실제 표면형 시험을 실행합니다.")
+            )
+        if "media_live" in item.keywords and not config.getoption("--run-media-live"):
+            item.add_marker(
+                pytest.mark.skip(reason="--run-media-live로만 실제 작품 metadata 시험을 실행합니다.")
             )

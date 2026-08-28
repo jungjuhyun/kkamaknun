@@ -2,7 +2,7 @@
 
 한국어로 찾고 싶은 뜻에서 출발해 실제 애니 표현 장면을 수집하기 위한 Windows 로컬 도구다.
 
-현재 브랜치에는 **작업 0 — 개발 골격**부터 **작업 6 — 저장·캐시·자료구조 버전**까지 완료되어 있다. Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남기고, 검색·검수 상태와 외부 요청 캐시를 작업 데이터 위치의 SQLite DB에 저장한다. 화면 기능은 아직 없다.
+현재 브랜치에는 **작업 0 — 개발 골격**부터 **작업 7 — 선호 애니 관리**까지 완료되어 있다. Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남기고, 검색·검수 상태와 외부 요청 캐시를 작업 데이터 위치의 SQLite DB에 저장한다. 사용자 선호 작품은 Nadeshiko public ID 기준으로 관리하며, DB가 연결된 제품 검색은 활성 선호작만 공식 media filter로 검색한다. 화면 기능은 아직 없다.
 
 ## 개발 환경
 
@@ -119,6 +119,25 @@ uv run pytest --run-surface-live -m surface_live -ra
 
 보고서에는 fetch 수·추정 전체 수·token 제공 수, 제거된 대표 원문과 채택된 대표 원문만 기록한다. API 키·사용자 정보·segment/media ID는 기록하지 않는다. 일반 `uv run pytest`에서는 이 시험이 항상 건너뛰어진다.
 
+## 선호 작품 관리
+
+작품 이름 문자열이 아니라 Nadeshiko public media ID를 내부 식별자로 저장한다. `display_name`은 사람에게 보여주기 위한 metadata일 뿐이므로 작품명이 바뀌어도 로컬 선택은 깨지지 않는다.
+
+- `media.search_media(client, "작품명")`은 공식 SDK의 `search_media` endpoint로 public ID와 표시명 후보(`MediaSummary`)를 가져온다. 전체 corpus를 받아 로컬에서 문자열 검색하지 않는다.
+- `media.store_media(database, media)`는 검색·조회 결과의 public ID와 표시명을 `media` table에 upsert한다. 같은 public ID는 중복 row를 만들지 않고, 표시명은 `name_ja → name_romaji → name_en` 순서로 고른다.
+- `media.refresh_media_metadata(database, client, media_id)`는 필요한 작품 하나만 공식 `get_media`로 조회해 표시명을 갱신한다. Task 6에서 segment 저장으로 public ID만 있는 row도 이 경로로 표시명을 채운다. 어떤 갱신에서도 사용자 `preference`/`content_group`/`is_active`는 덮어쓰지 않는다.
+- `SceneCollectorDatabase`의 `set_media_preference`(nullable 정수, scale 미확정), `set_media_content_group`(임의 문자열 또는 None, 빈 문자열은 None으로 정규화), `set_media_active`, `get_media`/`list_media`/`list_active_media`로 선호작 상태를 관리하고 재시작 후 복원한다.
+
+database를 전달한 제품 검색(`search_expressions(..., database=...)`)은 활성 작품의 public ID를 정렬해 공식 `SearchFilters.media.include` 필터로 한 요청에 전달한다. 비활성 작품은 검색하지 않으며, 활성 작품이 하나도 없으면 전체 corpus로 자동 확대하지 않고 `NoActiveMediaError`를 발생시킨다. database 없이 호출하는 개발용 검색 경로는 기존처럼 전체 corpus를 검색한다. media 조건은 Nadeshiko search cache identity(`conditions`의 정렬된 `media_ids`)에도 포함되므로 다른 활성 작품 조합이나 조건 없는 기존 cache와 섞이지 않는다.
+
+실제 Nadeshiko 작품 metadata·media filter 검증은 API 사용량이 발생하므로 명시적으로 실행한다. 루트 `.env`에서 `NADESHIKO_API_KEY`만 현재 셸에 로드하고 키 값은 출력하지 않는다. AI API 키는 필요 없다.
+
+```powershell
+uv run pytest --run-media-live -m media_live -ra
+```
+
+이 시험은 공식 `list_media`/`search_media`/`get_media`로 실제 작품 public ID와 표시명을 얻고, temp SQLite DB에 저장한 선호작 상태의 재시작 복원과, 해당 작품으로 필터한 실제 대사 검색(기본 검색어 `大丈夫`, 필요할 때만 `SCENE_COLLECTOR_MEDIA_LIVE_QUERY`로 변경)과 반복 검색의 cache 동작을 확인한다.
+
 ## 로컬 저장과 캐시
 
 `SceneCollectorDatabase.open(settings)`는 새 경로 설정을 요구하지 않고 다음 파일을 관리한다.
@@ -137,7 +156,7 @@ DB에는 `media`, `search_runs`, `expressions`, `segments`, `expression_segments
 
 ## 아직 없는 기능
 
-- 영어 검색 fallback과 선호 작품 필터
-- 선호 작품 관리와 한국어 장면 번역
+- 영어 검색 fallback
+- 한국어 장면 번역
 - 사용자 화면
 - 영상 저장과 내보내기

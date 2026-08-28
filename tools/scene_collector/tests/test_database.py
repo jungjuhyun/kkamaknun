@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from nadeshiko.models import SearchQuery, SearchResponse
+from nadeshiko.models import SearchFilters, SearchQuery, SearchResponse
 from pydantic import BaseModel
 
 import scene_collector.ai as ai_module
@@ -494,10 +494,17 @@ def test_repeated_search_uses_both_caches_and_persists_each_run(
 
     class FakeNadeshiko:
         def __init__(self) -> None:
-            self.calls: list[tuple[str, bool, int]] = []
+            self.calls: list[tuple[str, bool, int, tuple[str, ...]]] = []
 
-        def search(self, *, query: SearchQuery, take: int) -> SearchResponse:
-            self.calls.append((query.search, bool(query.exact_match), take))
+        def search(
+            self,
+            *,
+            query: SearchQuery,
+            take: int,
+            filters: SearchFilters,
+        ) -> SearchResponse:
+            included = tuple(item.media_public_id for item in filters.media.include)
+            self.calls.append((query.search, bool(query.exact_match), take, included))
             if query.search == "大丈夫ですか":
                 return _search_response(("segment-ok", "大丈夫ですか？"))
             if query.search == "ちょっと待って" and query.exact_match:
@@ -509,6 +516,7 @@ def test_repeated_search_uses_both_caches_and_persists_each_run(
     client = FakeNadeshiko()
 
     with SceneCollectorDatabase.open(settings) as database:
+        database.upsert_media("anonymous-media-001", display_name="익명 작품 1")
         first = search_expressions(
             settings,
             "상대에게 기다려 달라고 말하기",
@@ -526,6 +534,7 @@ def test_repeated_search_uses_both_caches_and_persists_each_run(
         assert ai_call_count == 1
         assert tuple(client.calls) == first_calls
         assert len(client.calls) == 5
+        assert all(call[3] == ("anonymous-media-001",) for call in client.calls)
         assert [item.candidate.japanese for item in first.corpus_backed_candidates] == [
             "大丈夫ですか",
             "ちょっと待って",

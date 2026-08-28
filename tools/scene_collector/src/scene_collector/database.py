@@ -38,6 +38,18 @@ class UnsupportedSchemaVersionError(DatabaseError):
 
 
 @dataclass(frozen=True)
+class StoredMedia:
+    """로컬에 저장된 사용자 선호 작품 상태."""
+
+    id: int
+    nadeshiko_media_id: str
+    display_name: str | None
+    preference: int | None
+    content_group: str | None
+    is_active: bool
+
+
+@dataclass(frozen=True)
 class StoredReview:
     """표현에 연결된 장면의 사용자 검수 상태."""
 
@@ -199,6 +211,7 @@ _EXPECTED_TABLES = frozenset(
     }
 )
 _REVIEW_DECISIONS = frozenset({"채택", "예비", "제외"})
+_MEDIA_COLUMNS = "id, nadeshiko_media_id, display_name, preference, content_group, is_active"
 
 
 def database_path(settings: AppSettings) -> Path:
@@ -330,6 +343,85 @@ class SceneCollectorDatabase:
                 pass
             raise DatabaseError("구조 변경 전 데이터베이스 백업에 실패했습니다.") from error
         return backup_path
+
+    def upsert_media(
+        self,
+        nadeshiko_media_id: str,
+        *,
+        display_name: str | None = None,
+    ) -> StoredMedia:
+        """작품을 public ID 기준으로 저장하고 표시명 metadata만 갱신한다.
+
+        같은 public ID의 row는 중복 생성하지 않는다. display_name이 None이면
+        기존 표시명을 유지하고, preference/content_group/is_active는 어떤
+        경우에도 덮어쓰지 않는다.
+        """
+        media_id = _required_media_id(nadeshiko_media_id)
+        with self.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO media (nadeshiko_media_id, display_name)
+                VALUES (?, ?)
+                ON CONFLICT(nadeshiko_media_id) DO UPDATE SET
+                    display_name = COALESCE(excluded.display_name, media.display_name)
+                """,
+                (media_id, display_name),
+            )
+        stored = self.get_media(media_id)
+        if stored is None:
+            raise DatabaseError("저장한 작품을 다시 읽을 수 없습니다.")
+        return stored
+
+    def get_media(self, nadeshiko_media_id: str) -> StoredMedia | None:
+        """Nadeshiko public ID로 저장된 작품 하나를 읽는다."""
+        row = self.connection.execute(
+            f"SELECT {_MEDIA_COLUMNS} FROM media WHERE nadeshiko_media_id = ?",
+            (_required_media_id(nadeshiko_media_id),),
+        ).fetchone()
+        return _stored_media(row) if row is not None else None
+
+    def list_media(self) -> tuple[StoredMedia, ...]:
+        """저장된 전체 작품을 저장 순서대로 반환한다."""
+        rows = self.connection.execute(
+            f"SELECT {_MEDIA_COLUMNS} FROM media ORDER BY id"
+        ).fetchall()
+        return tuple(_stored_media(row) for row in rows)
+
+    def list_active_media(self) -> tuple[StoredMedia, ...]:
+        """기본 검색 대상인 활성 작품만 반환한다."""
+        rows = self.connection.execute(
+            f"SELECT {_MEDIA_COLUMNS} FROM media WHERE is_active = 1 ORDER BY id"
+        ).fetchall()
+        return tuple(_stored_media(row) for row in rows)
+
+    def set_media_preference(self, nadeshiko_media_id: str, preference: int | None) -> None:
+        """작품의 선호도 값을 저장한다."""
+        self._update_media_field(nadeshiko_media_id, "preference", preference)
+
+    def set_media_content_group(self, nadeshiko_media_id: str, content_group: str | None) -> None:
+        """작품의 사용자 콘텐츠 묶음을 저장한다. 빈 문자열은 None으로 정규화한다."""
+        if content_group is not None:
+            content_group = content_group.strip() or None
+        self._update_media_field(nadeshiko_media_id, "content_group", content_group)
+
+    def set_media_active(self, nadeshiko_media_id: str, active: bool) -> None:
+        """작품의 기본 검색 포함 여부를 저장한다."""
+        self._update_media_field(nadeshiko_media_id, "is_active", int(active))
+
+    def _update_media_field(
+        self,
+        nadeshiko_media_id: str,
+        column: str,
+        value: object,
+    ) -> None:
+        media_id = _required_media_id(nadeshiko_media_id)
+        with self.transaction() as connection:
+            cursor = connection.execute(
+                f"UPDATE media SET {column} = ? WHERE nadeshiko_media_id = ?",
+                (value, media_id),
+            )
+            if cursor.rowcount != 1:
+                raise DatabaseError("상태를 저장할 작품을 찾을 수 없습니다.")
 
     def save_search_result(
         self,
@@ -803,6 +895,23 @@ class SceneCollectorDatabase:
             selected=bool(row["is_selected"]),
             segments=segments,
         )
+
+
+def _required_media_id(nadeshiko_media_id: str) -> str:
+    if not isinstance(nadeshiko_media_id, str) or not nadeshiko_media_id.strip():
+        raise ValueError("Nadeshiko 작품 public ID를 입력해야 합니다.")
+    return nadeshiko_media_id.strip()
+
+
+def _stored_media(row: sqlite3.Row) -> StoredMedia:
+    return StoredMedia(
+        id=int(row["id"]),
+        nadeshiko_media_id=row["nadeshiko_media_id"],
+        display_name=row["display_name"],
+        preference=row["preference"],
+        content_group=row["content_group"],
+        is_active=bool(row["is_active"]),
+    )
 
 
 def _stored_segment(row: sqlite3.Row) -> StoredSegment:
