@@ -529,6 +529,16 @@ class SceneCollectorDatabase:
         """작품의 기본 검색 포함 여부를 저장한다."""
         self._update_media_field(nadeshiko_media_id, "is_active", int(active))
 
+    def set_local_media_active(self, media_row_id: int, active: bool) -> None:
+        """로컬 자막 작품의 기본 검색 포함 여부를 row ID로 저장한다."""
+        with self.transaction() as connection:
+            cursor = connection.execute(
+                "UPDATE media SET is_active = ? WHERE id = ? AND source = 'local'",
+                (int(active), media_row_id),
+            )
+            if cursor.rowcount != 1:
+                raise DatabaseError("상태를 저장할 로컬 작품을 찾을 수 없습니다.")
+
     def _update_media_field(
         self,
         nadeshiko_media_id: str,

@@ -19,7 +19,7 @@ from typing import TypeVar
 
 from nicegui import ui
 
-from scene_collector import ui_controller
+from scene_collector import curated, ui_controller
 from scene_collector.config import AppSettings, ConfigurationError, load_settings
 from scene_collector.database import (
     DatabaseError,
@@ -103,6 +103,9 @@ async def main_page() -> None:
     selected_expression_id: int | None = None
     media_rows: tuple[StoredMedia, ...] = ()
     media_names: dict[str, str] = {}
+    curated_pool: tuple[curated.CuratedItem, ...] = ()
+    curated_view_rows: tuple[curated.CuratedItemView, ...] = ()
+    curated_load_error: str | None = None
 
     async def refresh_media_state() -> None:
         nonlocal media_rows, media_names
@@ -140,6 +143,13 @@ async def main_page() -> None:
         )
 
     await refresh_media_state()
+    try:
+        curated_pool = await context.call(curated.load_curated_pool)
+        curated_view_rows = await context.call(
+            lambda: curated.curated_views(database, curated_pool)
+        )
+    except curated.CuratedPoolError as error:
+        curated_load_error = str(error)
     current = await context.call(lambda: ui_controller.restore_latest_search(database))
     if current is not None:
         for item in current.items:
@@ -219,7 +229,16 @@ async def main_page() -> None:
             scenes_box = ui.column().classes("w-full")
 
         with ui.tab_panel(media_tab):
-            ui.label("Nadeshiko 작품을 검색해 저장하고, 기본 검색에 쓸 활성 작품을 관리합니다.")
+            ui.label(
+                "추천 후보 목록 — 체크한 작품만 기본 검색 대상이 됩니다. "
+                "프랜차이즈 하나를 체크하면 연결된 entry가 함께 활성화됩니다."
+            ).style("font-weight: 600")
+            curated_filter = ui.toggle(
+                ["전체", "A군", "B군"], value="전체", on_change=lambda: render_curated()
+            )
+            curated_box = ui.column().classes("w-full")
+            ui.separator()
+            ui.label("작품 직접 검색 (curated 목록에 없는 작품 추가)")
             with ui.row().classes("items-end"):
                 media_query_input = ui.input("작품명 검색", placeholder="예: Chainsaw Man")
                 ui.button("Nadeshiko 작품 검색", on_click=lambda: do_media_search())
@@ -385,6 +404,62 @@ async def main_page() -> None:
             elif not item.expression.segments:
                 ui.label("이 표현에는 표시할 장면이 없습니다.")
 
+    async def refresh_curated() -> None:
+        nonlocal curated_view_rows
+        if curated_load_error is not None:
+            return
+        curated_view_rows = await context.call(
+            lambda: curated.curated_views(database, curated_pool)
+        )
+        render_curated()
+
+    async def do_toggle_curated(item: curated.CuratedItem, active: bool) -> None:
+        try:
+            await context.call(lambda: curated.set_curated_item_active(database, item, active))
+        except _USER_ERRORS as error:
+            _notify_error(error)
+            await refresh_curated()
+            return
+        await refresh_media_state()
+        await refresh_curated()
+        render_media_list()
+        ui.notify(f"{item.korean_title}: {'활성화' if active else '비활성화'}했습니다.")
+
+    def render_curated() -> None:
+        curated_box.clear()
+        with curated_box:
+            if curated_load_error is not None:
+                ui.label(f"추천 후보 목록을 읽지 못했습니다: {curated_load_error}").style(
+                    "color: #b00020"
+                )
+                return
+            selected = curated_filter.value
+            rows = [
+                view
+                for view in curated_view_rows
+                if selected == "전체"
+                or (selected == "A군" and view.item.group == "A")
+                or (selected == "B군" and view.item.group == "B")
+            ]
+            active_count = sum(1 for view in curated_view_rows if view.checked)
+            ui.label(
+                f"{len(rows)}개 표시 · 전체 {len(curated_view_rows)}개 중 체크 {active_count}개"
+            ).style("color: #666")
+            for view in rows:
+                item = view.item
+                with ui.row().classes("items-center w-full"):
+                    checkbox = ui.checkbox(
+                        value=view.checked,
+                        on_change=lambda e, it=item: do_toggle_curated(it, e.value),
+                    )
+                    if not view.checkable:
+                        checkbox.disable()
+                    ui.label(
+                        f"[{item.group}{item.tier} · 근거 {item.popularity_evidence_grade}] "
+                        f"{item.korean_title}"
+                    )
+                    ui.label(view.status_label).style("color: #666; font-size: 0.85rem")
+
     async def do_media_search() -> None:
         query = (media_query_input.value or "").strip()
         if not query:
@@ -523,6 +598,7 @@ async def main_page() -> None:
 
     render_candidates()
     render_scenes()
+    render_curated()
     render_media_list()
     render_settings()
 

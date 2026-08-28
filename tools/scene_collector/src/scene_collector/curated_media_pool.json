@@ -1,0 +1,1557 @@
+{
+ "version": 1,
+ "source_note": "Nadeshiko media ID: 공식 SDK list_media 전체 catalog 덤프(2026-08-29)에서 name_ja 정확 일치로 해석. Jimaku entry ID: jimaku.cc 공식 인덱스에서 2026-08-29 확인(비압축 일본어 SRT/ASS 파일 존재 확인 기준).",
+ "items": [
+  {
+   "key": "kimetsu_no_yaiba",
+   "korean_title": "귀멸의 칼날",
+   "japanese_title": "鬼滅の刃",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "xwRBLXH18XkY"
+   ],
+   "jimaku_entry_ids": [
+    3337,
+    3336,
+    4038
+   ],
+   "note": "Nadeshiko entry 커버 범위 미확정. 후속 시즌은 Jimaku 확인(무한성편 극장판은 usable 미확정)."
+  },
+  {
+   "key": "jujutsu_kaisen",
+   "korean_title": "주술회전",
+   "japanese_title": "呪術廻戦",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "N09bRmS7qUJ3"
+   ],
+   "jimaku_entry_ids": [
+    1893,
+    329
+   ],
+   "note": "후속 시즌·극장판 0은 Jimaku 확인."
+  },
+  {
+   "key": "chainsaw_man",
+   "korean_title": "체인소 맨",
+   "japanese_title": "チェンソーマン",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "AT6Jxq0_yFrC",
+    "_BFaSkaRJ8tf"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "TV + 레제편 극장판."
+  },
+  {
+   "key": "shingeki_no_kyojin",
+   "korean_title": "진격의 거인",
+   "japanese_title": "進撃の巨人",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1435,
+    3458,
+    3456,
+    3457,
+    3459,
+    3460,
+    3463,
+    3464,
+    11263
+   ],
+   "note": "로컬 자막 POC 실측 완료 작품."
+  },
+  {
+   "key": "slam_dunk",
+   "korean_title": "슬램덩크",
+   "japanese_title": "SLAM DUNK",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    2250,
+    1467
+   ],
+   "note": "THE FIRST SLAM DUNK(JPN ass/srt)와 TV판(420 파일) 확인."
+  },
+  {
+   "key": "haikyuu",
+   "korean_title": "하이큐!!",
+   "japanese_title": "ハイキュー!!",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1142,
+    1554,
+    2885,
+    2886,
+    7780
+   ],
+   "note": ""
+  },
+  {
+   "key": "detective_conan",
+   "korean_title": "명탐정 코난",
+   "japanese_title": "名探偵コナン",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    743
+   ],
+   "note": "TV 1,156 파일. 극장판 entry 40+ 별도."
+  },
+  {
+   "key": "crayon_shinchan",
+   "korean_title": "짱구는 못말려",
+   "japanese_title": "クレヨンしんちゃん",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    2083
+   ],
+   "note": "TV 1,336 파일. 극장판 entry 40+ 별도."
+  },
+  {
+   "key": "one_piece",
+   "korean_title": "원피스",
+   "japanese_title": "ONE PIECE",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "B",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "TB4EwqIyV7cS",
+    "Vn7dKtd5fvg1"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "entry 커버 범위 미확정."
+  },
+  {
+   "key": "naruto",
+   "korean_title": "나루토",
+   "japanese_title": "NARUTO",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "B",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "aciGP3wVIjWj"
+   ],
+   "jimaku_entry_ids": [
+    2142
+   ],
+   "note": "질풍전은 Jimaku(506 파일)."
+  },
+  {
+   "key": "spy_family",
+   "korean_title": "SPY×FAMILY",
+   "japanese_title": "SPY×FAMILY",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "j77LZ8R3xgD3",
+    "Uf5GRdNCX7N5",
+    "j-HmyuxPgUV5"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "dandadan",
+   "korean_title": "단다단",
+   "japanese_title": "ダンダダン",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "B",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "RA3LSPl5Le41",
+    "Cg0knsWTJ9FG"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "sousou_no_frieren",
+   "korean_title": "장송의 프리렌",
+   "japanese_title": "葬送のフリーレン",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "5NM4z2QXd1Gt",
+    "OuAJ8wpgROJm"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "gintama",
+   "korean_title": "은혼",
+   "japanese_title": "銀魂",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1955,
+    5744,
+    5745,
+    5746
+   ],
+   "note": "본편 408 파일. 라프텔 역대 1위."
+  },
+  {
+   "key": "death_note",
+   "korean_title": "데스노트",
+   "japanese_title": "DEATH NOTE",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "SPZaYublW7Xu"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "oshi_no_ko",
+   "korean_title": "최애의 아이",
+   "japanese_title": "【推しの子】",
+   "group": "A",
+   "tier": 1,
+   "popularity_evidence_grade": "B",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "1kcKrntbOGv_",
+    "QGc0lUj_Ush8",
+    "cFXYJHUppEdB"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "boku_no_hero_academia",
+   "korean_title": "나의 히어로 아카데미아",
+   "japanese_title": "僕のヒーローアカデミア",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "uY2DD5HDL8DY"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "entry 커버 범위 미확정."
+  },
+  {
+   "key": "tensei_slime",
+   "korean_title": "전생했더니 슬라임이었던 건에 대하여",
+   "japanese_title": "転生したらスライムだった件",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "JFxHP8q6COa2"
+   ],
+   "jimaku_entry_ids": [
+    1861
+   ],
+   "note": "후속 시즌은 Jimaku 확인."
+  },
+  {
+   "key": "blue_lock",
+   "korean_title": "블루 록",
+   "japanese_title": "ブルーロック",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1370,
+    7646,
+    7713
+   ],
+   "note": ""
+  },
+  {
+   "key": "solo_leveling",
+   "korean_title": "나 혼자만 레벨업",
+   "japanese_title": "俺だけレベルアップな件",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "pJbooED924Wn",
+    "JnEqb0X-ZzoP"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "한국 원작 IP."
+  },
+  {
+   "key": "one_punch_man",
+   "korean_title": "원펀맨",
+   "japanese_title": "ワンパンマン",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "yVS7DdklQB0A"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "entry 커버 범위 미확정."
+  },
+  {
+   "key": "bleach",
+   "korean_title": "블리치",
+   "japanese_title": "BLEACH",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "960LJPCMJMDt"
+   ],
+   "jimaku_entry_ids": [
+    540
+   ],
+   "note": "구작 TV는 Jimaku."
+  },
+  {
+   "key": "fullmetal_alchemist",
+   "korean_title": "강철의 연금술사",
+   "japanese_title": "鋼の錬金術師 FULLMETAL ALCHEMIST",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "2eCYhdfQXnNA"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "hunter_x_hunter",
+   "korean_title": "헌터×헌터",
+   "japanese_title": "HUNTER×HUNTER",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    3477
+   ],
+   "note": "2011판 156 파일."
+  },
+  {
+   "key": "tokyo_revengers",
+   "korean_title": "도쿄 리벤저스",
+   "japanese_title": "東京リベンジャーズ",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1137,
+    2139,
+    360
+   ],
+   "note": ""
+  },
+  {
+   "key": "kaijuu_8gou",
+   "korean_title": "괴수 8호",
+   "japanese_title": "怪獣８号",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "k2pHvsVnBlkq",
+    "B7uX7jF4nJJQ"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "sakamoto_days",
+   "korean_title": "사카모토 데이즈",
+   "japanese_title": "SAKAMOTO DAYS",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "B",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "EXdu4hSyz3ZL"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "re_zero",
+   "korean_title": "Re:제로부터 시작하는 이세계 생활",
+   "japanese_title": "Re:ゼロから始める異世界生活",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "M2YLM75JWNH0",
+    "OLlHcBLpzQEh",
+    "kfiXW5-m4dPJ",
+    "QVFx2lkNddQ1"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "mushoku_tensei",
+   "korean_title": "무직전생",
+   "japanese_title": "無職転生",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "rUAJ3viIvkxM",
+    "KXmsFgD949ss",
+    "7BCHAdZQ-wRW",
+    "4b3WFJqPVMax"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "sword_art_online",
+   "korean_title": "소드 아트 온라인",
+   "japanese_title": "ソードアート・オンライン",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "Qe2CHYOiDDJN",
+    "zQUUH4VjBZ3z"
+   ],
+   "jimaku_entry_ids": [
+    1993,
+    1212,
+    1339
+   ],
+   "note": "II/Alicization/극장판은 Jimaku."
+  },
+  {
+   "key": "konosuba",
+   "korean_title": "코노스바",
+   "japanese_title": "この素晴らしい世界に祝福を！",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "48uEm_pEHwZx",
+    "s641OYhyzdu0",
+    "YYRxfLxlOLGy"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "S3 미수록."
+  },
+  {
+   "key": "kaguya_sama",
+   "korean_title": "카구야 님은 고백받고 싶어",
+   "japanese_title": "かぐや様は告らせたい",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "9k_uOLFnNXTV",
+    "Lsd9blluH2Cy"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "울트라 로맨틱 미수록."
+  },
+  {
+   "key": "gotoubun_no_hanayome",
+   "korean_title": "5등분의 신부",
+   "japanese_title": "五等分の花嫁",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "gH0SAAaFkBUn",
+    "ohqt4m0YFwQj"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "S3·극장판 미수록."
+  },
+  {
+   "key": "kusuriya_no_hitorigoto",
+   "korean_title": "약사의 혼잣말",
+   "japanese_title": "薬屋のひとりごと",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "q7aSw5hf0iRy"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "entry 커버 범위 미확정."
+  },
+  {
+   "key": "bocchi_the_rock",
+   "korean_title": "봇치 더 록!",
+   "japanese_title": "ぼっち・ざ・ろっく！",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "QaghD1I-CcHb"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "horimiya",
+   "korean_title": "호리미야",
+   "japanese_title": "ホリミヤ",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    859,
+    1593
+   ],
+   "note": ""
+  },
+  {
+   "key": "seishun_buta_yarou",
+   "korean_title": "청춘 돼지 시리즈",
+   "japanese_title": "青春ブタ野郎シリーズ",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "QDv_T3Ep6P1a",
+    "YkAnXOjAzLd0",
+    "7hPcEqV-pl7e",
+    "rmlyGJ_wpFmq"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "shigatsu_wa_kimi_no_uso",
+   "korean_title": "4월은 너의 거짓말",
+   "japanese_title": "四月は君の嘘",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "hCMkdhY-McoW"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "violet_evergarden",
+   "korean_title": "바이올렛 에버가든",
+   "japanese_title": "ヴァイオレット・エヴァーガーデン",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "YJLdFegcypAT"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "TVA만. 극장판 미수록."
+  },
+  {
+   "key": "inuyasha",
+   "korean_title": "이누야샤",
+   "japanese_title": "犬夜叉",
+   "group": "A",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1611,
+    5691,
+    5819
+   ],
+   "note": "본편 656 파일."
+  },
+  {
+   "key": "pokemon",
+   "korean_title": "포켓몬스터",
+   "japanese_title": "ポケットモンスター",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "A",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    924,
+    1734
+   ],
+   "note": "무인편 559 파일. 세대별 entry 40+ 별도."
+  },
+  {
+   "key": "doraemon",
+   "korean_title": "도라에몽",
+   "japanese_title": "ドラえもん",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    3489,
+    8780
+   ],
+   "note": "2005판 1,161 파일. 극장판 entry 50+ 별도."
+  },
+  {
+   "key": "dragon_ball",
+   "korean_title": "드래곤볼",
+   "japanese_title": "ドラゴンボール",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "qzU10I0MRHaQ"
+   ],
+   "jimaku_entry_ids": [
+    603
+   ],
+   "note": "DAIMA만 수록. Z(586 파일) 등은 Jimaku."
+  },
+  {
+   "key": "yuu_yuu_hakusho",
+   "korean_title": "유유백서",
+   "japanese_title": "幽☆遊☆白書",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "A9iXNw8WDrOO"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "jojo",
+   "korean_title": "조조의 기묘한 모험",
+   "japanese_title": "ジョジョの奇妙な冒険",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "GSL9dz957jWJ",
+    "QifJSkKHdCFU"
+   ],
+   "jimaku_entry_ids": [
+    1481,
+    1712,
+    883
+   ],
+   "note": "4부 이후는 Jimaku."
+  },
+  {
+   "key": "mob_psycho_100",
+   "korean_title": "모브사이코 100",
+   "japanese_title": "モブサイコ100",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "S9ZzrIpIpJC-"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "entry 커버 범위 미확정."
+  },
+  {
+   "key": "bungou_stray_dogs",
+   "korean_title": "문호 스트레이독스",
+   "japanese_title": "文豪ストレイドッグス",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "_w4urycqBvST",
+    "h11R5O6FA9Od",
+    "RfDObbgihut4"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "4기 이후 미수록."
+  },
+  {
+   "key": "assassination_classroom",
+   "korean_title": "암살교실",
+   "japanese_title": "暗殺教室",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "eONUjL6OFxns",
+    "bc8GjwkQ0shZ"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "dungeon_meshi",
+   "korean_title": "던전밥",
+   "japanese_title": "ダンジョン飯",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "ySKG2HRfPxOZ"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "vinland_saga",
+   "korean_title": "빈란드 사가",
+   "japanese_title": "ヴィンランド・サガ",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "T1s_hMqtgpEM",
+    "BvcxsFIxOUug"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "yakusoku_no_neverland",
+   "korean_title": "약속의 네버랜드",
+   "japanese_title": "約束のネバーランド",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "8fdxpfJCLGbd"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "S1만."
+  },
+  {
+   "key": "tokyo_ghoul",
+   "korean_title": "도쿄 구울",
+   "japanese_title": "東京喰種",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1766,
+    1866,
+    3758,
+    3759
+   ],
+   "note": ""
+  },
+  {
+   "key": "nanatsu_no_taizai",
+   "korean_title": "일곱 개의 대죄",
+   "japanese_title": "七つの大罪",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "B",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    699,
+    473,
+    1536
+   ],
+   "note": ""
+  },
+  {
+   "key": "code_geass",
+   "korean_title": "코드 기어스",
+   "japanese_title": "コードギアス 反逆のルルーシュ",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "QJtQfyWaVPYR"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "R2 미수록."
+  },
+  {
+   "key": "steins_gate",
+   "korean_title": "슈타인즈 게이트",
+   "japanese_title": "シュタインズ・ゲート",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "NW2qsqkYpX68",
+    "xnr9qz52Haid"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "fate_series",
+   "korean_title": "Fate 시리즈",
+   "japanese_title": "Fate/Zero・Fate/stay night",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "uvqz8CldYHn_",
+    "GpFCzq7ZX8LF",
+    "CxUPycJfui8d"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "Heaven's Feel 등 미수록."
+  },
+  {
+   "key": "evangelion",
+   "korean_title": "에반게리온",
+   "japanese_title": "エヴァンゲリオン",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "d3HAJ0mSvn4b",
+    "31U2DB_w8yBh"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "구극장판·신극장판 서/파/Q 미수록."
+  },
+  {
+   "key": "madoka_magica",
+   "korean_title": "마법소녀 마도카 마기카",
+   "japanese_title": "魔法少女まどか☆マギカ",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "lnqflST-T9w5"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "TV만. 극장판 미수록."
+  },
+  {
+   "key": "kuroko_no_basket",
+   "korean_title": "쿠로코의 농구",
+   "japanese_title": "黒子のバスケ",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    798,
+    5760,
+    5761,
+    7383
+   ],
+   "note": ""
+  },
+  {
+   "key": "yu_gi_oh",
+   "korean_title": "유희왕",
+   "japanese_title": "遊☆戯☆王",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    291,
+    5973
+   ],
+   "note": "DM 305 파일."
+  },
+  {
+   "key": "sailor_moon",
+   "korean_title": "세일러문",
+   "japanese_title": "美少女戦士セーラームーン",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    843
+   ],
+   "note": "무인 138 파일. 후속 시리즈 entry 별도."
+  },
+  {
+   "key": "cardcaptor_sakura",
+   "korean_title": "카드캡터 체리",
+   "japanese_title": "カードキャプターさくら",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1032,
+    2233
+   ],
+   "note": "본편 140 파일."
+  },
+  {
+   "key": "monogatari_series",
+   "korean_title": "모노가타리 시리즈",
+   "japanese_title": "〈物語〉シリーズ",
+   "group": "A",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "series_or_franchise",
+   "source_status": "nadeshiko_partial",
+   "nadeshiko_media_ids": [
+    "1FJnr11iJj4I",
+    "XbZSOuXzrX1v",
+    "_k_X90BOA-nA",
+    "Iol0_ycq7Fnm",
+    "A3GxWJX_dYWL",
+    "Y1rcTVV3yi_W"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "시리즈 일부만 수록."
+  },
+  {
+   "key": "suzume_no_tojimari",
+   "korean_title": "스즈메의 문단속",
+   "japanese_title": "すずめの戸締まり",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "5qEiU11sv4w_"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "국내 564만(KOBIS)."
+  },
+  {
+   "key": "kimi_no_na_wa",
+   "korean_title": "너의 이름은.",
+   "japanese_title": "君の名は。",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "BVXQVGQ15E1i"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "국내 398만(KOBIS)."
+  },
+  {
+   "key": "howl_no_ugoku_shiro",
+   "korean_title": "하울의 움직이는 성",
+   "japanese_title": "ハウルの動く城",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "W4HVUIjq3neT"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "국내 302만(KOBIS)."
+  },
+  {
+   "key": "sen_to_chihiro",
+   "korean_title": "센과 치히로의 행방불명",
+   "japanese_title": "千と千尋の神隠し",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1073
+   ],
+   "note": "국내 217만(KOBIS). Jimaku srt 6·ass 3."
+  },
+  {
+   "key": "kimitachi_wa_dou_ikiru_ka",
+   "korean_title": "그대들은 어떻게 살 것인가",
+   "japanese_title": "君たちはどう生きるか",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "okC_FlG0Vtmr"
+   ],
+   "jimaku_entry_ids": [],
+   "note": "국내 202만(KOBIS)."
+  },
+  {
+   "key": "ponyo",
+   "korean_title": "벼랑 위의 포뇨",
+   "japanese_title": "崖の上のポニョ",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1731
+   ],
+   "note": "국내 152만(KOBIS)."
+  },
+  {
+   "key": "tenki_no_ko",
+   "korean_title": "날씨의 아이",
+   "japanese_title": "天気の子",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "A",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1487
+   ],
+   "note": "국내 89만(KOBIS)."
+  },
+  {
+   "key": "tonari_no_totoro",
+   "korean_title": "이웃집 토토로",
+   "japanese_title": "となりのトトロ",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "B",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    764
+   ],
+   "note": ""
+  },
+  {
+   "key": "koe_no_katachi",
+   "korean_title": "목소리의 형태",
+   "japanese_title": "聲の形",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "B",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "UJUPYNCIUHzS"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "toki_wo_kakeru_shoujo",
+   "korean_title": "시간을 달리는 소녀",
+   "japanese_title": "時をかける少女",
+   "group": "B",
+   "tier": 1,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "CQjSpxXVFiwh"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "mononoke_hime",
+   "korean_title": "원령공주",
+   "japanese_title": "もののけ姫",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "B",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1953
+   ],
+   "note": ""
+  },
+  {
+   "key": "majo_no_takkyuubin",
+   "korean_title": "마녀 배달부 키키",
+   "japanese_title": "魔女の宅急便",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "B",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1369
+   ],
+   "note": ""
+  },
+  {
+   "key": "tenkuu_no_shiro_laputa",
+   "korean_title": "천공의 성 라퓨타",
+   "japanese_title": "天空の城ラピュタ",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "B",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    937
+   ],
+   "note": ""
+  },
+  {
+   "key": "karigurashi_no_arrietty",
+   "korean_title": "마루 밑 아리에티",
+   "japanese_title": "借りぐらしのアリエッティ",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "A",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    560
+   ],
+   "note": "국내 108만(KOBIS)."
+  },
+  {
+   "key": "neko_no_ongaeshi",
+   "korean_title": "고양이의 보은",
+   "japanese_title": "猫の恩返し",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "A",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    2131
+   ],
+   "note": "국내 53만(KOBIS)."
+  },
+  {
+   "key": "byousoku_5cm",
+   "korean_title": "초속 5센티미터",
+   "japanese_title": "秒速５センチメートル",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    407
+   ],
+   "note": ""
+  },
+  {
+   "key": "kotonoha_no_niwa",
+   "korean_title": "언어의 정원",
+   "japanese_title": "言の葉の庭",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1872
+   ],
+   "note": ""
+  },
+  {
+   "key": "ookami_kodomo",
+   "korean_title": "늑대아이",
+   "japanese_title": "おおかみこどもの雨と雪",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    649
+   ],
+   "note": ""
+  },
+  {
+   "key": "summer_wars",
+   "korean_title": "썸머 워즈",
+   "japanese_title": "サマーウォーズ",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "WsNaNRM5NRkB"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "bakemono_no_ko",
+   "korean_title": "괴물의 아이",
+   "japanese_title": "バケモノの子",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1829
+   ],
+   "note": ""
+  },
+  {
+   "key": "look_back",
+   "korean_title": "룩백",
+   "japanese_title": "ルックバック",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "YxuVSBjYlVFd"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "kimi_no_suizou",
+   "korean_title": "너의 췌장을 먹고 싶어",
+   "japanese_title": "君の膵臓をたべたい",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "cd73HFJu_LxZ"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "porco_rosso",
+   "korean_title": "붉은 돼지",
+   "japanese_title": "紅の豚",
+   "group": "B",
+   "tier": 2,
+   "popularity_evidence_grade": "B",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1788
+   ],
+   "note": ""
+  },
+  {
+   "key": "kaze_tachinu",
+   "korean_title": "바람이 분다",
+   "japanese_title": "風立ちぬ",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "B",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    2202
+   ],
+   "note": ""
+  },
+  {
+   "key": "omoide_no_marnie",
+   "korean_title": "추억의 마니",
+   "japanese_title": "思い出のマーニー",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1828
+   ],
+   "note": ""
+  },
+  {
+   "key": "kokuriko_zaka_kara",
+   "korean_title": "코쿠리코 언덕에서",
+   "japanese_title": "コクリコ坂から",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "U5in_GC7F0iZ"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "omohide_poroporo",
+   "korean_title": "추억은 방울방울",
+   "japanese_title": "おもひでぽろぽろ",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "ZMT0aDlrGrxA"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "mimi_wo_sumaseba",
+   "korean_title": "귀를 기울이면",
+   "japanese_title": "耳をすませば",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "Sl6CwU7eb7EO"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "hotaru_no_haka",
+   "korean_title": "반딧불이의 묘",
+   "japanese_title": "火垂るの墓",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "0f3CTHBj-XKO"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "mirai_no_mirai",
+   "korean_title": "미래의 미라이",
+   "japanese_title": "未来のミライ",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1586
+   ],
+   "note": ""
+  },
+  {
+   "key": "ryuu_to_sobakasu_no_hime",
+   "korean_title": "용과 주근깨 공주",
+   "japanese_title": "竜とそばかすの姫",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1239
+   ],
+   "note": ""
+  },
+  {
+   "key": "josee_to_tora",
+   "korean_title": "조제, 호랑이 그리고 물고기들",
+   "japanese_title": "ジョゼと虎と魚たち",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "jimaku_required",
+   "nadeshiko_media_ids": [],
+   "jimaku_entry_ids": [
+    1344
+   ],
+   "note": ""
+  },
+  {
+   "key": "akira",
+   "korean_title": "AKIRA",
+   "japanese_title": "AKIRA",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "gDSkvX3rtWnR"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  },
+  {
+   "key": "perfect_blue",
+   "korean_title": "퍼펙트 블루",
+   "japanese_title": "PERFECT BLUE",
+   "group": "B",
+   "tier": 3,
+   "popularity_evidence_grade": "C",
+   "kind": "standalone_movie",
+   "source_status": "nadeshiko",
+   "nadeshiko_media_ids": [
+    "3TQWVPHRcQ9Q"
+   ],
+   "jimaku_entry_ids": [],
+   "note": ""
+  }
+ ]
+}
