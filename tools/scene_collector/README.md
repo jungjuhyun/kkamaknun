@@ -213,8 +213,27 @@ uv run python experiments/ui_probe/fetch_probe_segments.py $env:SCENE_COLLECTOR_
 uv run python experiments/ui_probe/nicegui_probe.py
 ```
 
+## 사용자 화면 실행 — Task 10
+
+```powershell
+uv run python -m scene_collector.app
+```
+
+실행 디렉터리의 `settings.toml`과 같은 위치의 `.env`를 읽는다. 다른 설정 파일이 필요할 때만 `SCENE_COLLECTOR_SETTINGS_FILE` 환경변수로 경로를 지정한다. NiceGUI native mode 창이 열린다.
+
+화면은 표현 찾기 / 일본어 표현 선택 / 장면 검수 / 선호 작품 / 설정 다섯 탭이며, 처음 사용 순서는 다음과 같다.
+
+1. **설정** 탭에서 작업 데이터 위치·AI 서비스/모델·Nadeshiko 키 상태를 확인한다. 키 값 자체는 화면에 표시하지 않는다.
+2. **선호 작품** 탭에서 작품을 검색해 저장하고 `기본 검색에 포함`을 켠다. 활성 작품이 하나도 없으면 검색은 실행되지 않고 "검색에 사용할 활성 작품이 없습니다" 안내가 표시된다.
+3. **표현 찾기** 탭에서 한국어 의미를 입력해 검색한다. AI 후보는 생성됐지만 활성 작품 corpus에서 정확 동일표현이 없으면 그 사실을 그대로 안내한다.
+4. **일본어 표현 선택** 탭에서 corpus-backed 후보(일본어/읽기/의미/말투) 하나를 선택한다.
+5. **장면 검수** 탭에서 Nadeshiko 장면은 영상·원문을 확인하고, 필요할 때 `문맥 조회 + 한국어 번역`을 실행한 뒤 채택/예비/제외를 저장한다. 로컬 자막 장면은 작품명·화수·타임코드·대사만 표시하며 영상 미리보기는 원래 없다.
+6. 프로그램을 종료 후 다시 실행하면 장면이 남아 있는 가장 최근 검색·선택·판정 상태가 복원된다.
+
+검색·번역·판정 저장은 기존 검증된 `search_expressions`·`translate_expression_scenes`·`set_review_decision` 경로를 그대로 사용하고, 화면 상태(검색 결과·선택)는 창(클라이언트)별로 분리되어 다른 창의 조작이 내 화면을 바꾸지 않는다. DB·네트워크 호출은 단일 작업 thread에서만 실행한다.
+
 ## 아직 없는 기능
 
 - 영어 검색 fallback
-- 사용자 화면
+- 로컬 자막 장면의 번역·검수 저장
 - 영상 저장과 내보내기

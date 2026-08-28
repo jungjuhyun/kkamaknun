@@ -731,6 +731,20 @@ class SceneCollectorDatabase:
 
         return search_run_id
 
+    def latest_search_run_id(self) -> int | None:
+        """가장 최근 검색 실행의 ID를 반환한다. 저장된 검색이 없으면 None."""
+        row = self.connection.execute("SELECT MAX(id) FROM search_runs").fetchone()
+        if row is None or row[0] is None:
+            return None
+        return int(row[0])
+
+    def list_search_run_ids(self) -> tuple[int, ...]:
+        """저장된 검색 실행 ID를 최신 순서로 반환한다."""
+        rows = self.connection.execute(
+            "SELECT id FROM search_runs ORDER BY id DESC"
+        ).fetchall()
+        return tuple(int(row[0]) for row in rows)
+
     def load_search_run(self, search_run_id: int) -> StoredSearchRun | None:
         """검색 한 건을 기존 Pydantic/SDK 자료형과 함께 복원한다."""
         connection = self.connection
