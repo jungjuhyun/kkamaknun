@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6·7·8 완료 / 로컬 자막 fallback 검수 PASS·main merge 대기 / 다음 개발 작업 9**
+상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6·7·8 완료 / 로컬 자막 fallback 검수 PASS·main 반영 완료 / 다음 작업 9**
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -754,7 +754,7 @@ POC(`experiments/subtitle_poc/search_subtitles.py`): 자막 폴더를 pysubs2로
 
 코드 검수(2026-08-28): **PASS**. main 대비 변경이 `tools/scene_collector` 안으로 한정되고, 전체 pytest **112 passed, 15 skipped**(live 전부 skip, API 비용 0)·Ruff·`git diff --check` PASS를 확인했다. migration은 실제 시드된 v1/v2 DB로 데이터·참조 보존과 실패 주입 시 rollback까지 검증됐다.
 
-상태: **코드 검수 PASS — main merge는 사용자 승인 대기.** merge 전에는 완료로 취급하지 않는다.
+상태: **완료 — 코드 검수 PASS 후 사용자 승인 하에 main에 fast-forward로 반영됐다.**
 
 여전히 범위 밖: Jimaku 자동 대체 검색·자동 다운로드, STT(Whisper 등), FFmpeg 자동 클리핑, UI, 로컬 장면의 번역·검수 저장 연결. 로컬 장면의 번역·검수 연결은 실사용에서 필요가 확인될 때 별도 작업으로 연다.
 
@@ -897,13 +897,13 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 
 ## 24. 바로 다음 작업
 
-**로컬 timed subtitle fallback 브랜치의 main merge(사용자 승인 필요)를 마무리한 뒤, 작업 9 — 화면 기술 확인**을 진행한다.
+**작업 9 — 화면 기술 확인**부터 진행한다.
 
 작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전, 작업 7 — 선호 애니 관리, 작업 8 — 한국어 장면 번역은 완료되어 `main`에 반영됐다.
 검색 recall 검증도 닫았다. 세 문제 target을 상위 200건까지 확인해도 정확 surface가 없었고 pagination의 제품 적용 이득이 확인되지 않았으므로 검색 계층을 더 늘리지 않는다.
 Task 6에서는 SQLite v1 schema, 파일 DB 재시작 복원, review, AI cache, Nadeshiko raw search cache, foreign key, 명시적 transaction/rollback, `PRAGMA user_version`, 구조 변경 전 backup까지 offline으로 검증했다.
 Task 7에서는 Nadeshiko public media ID 기반 선호작 관리와 `SearchFilters.media.include` 기반 활성 작품 검색을 구현했다. media 조건은 Nadeshiko cache identity에도 포함되며 활성 작품이 없으면 global corpus로 자동 확대하지 않는다.
 Task 8에서는 정확 후보에만 앞뒤 문맥을 조회하고 여러 장면을 한 AI 구조화 요청으로 한국어 번역한다. context cache와 기존 AI cache를 재사용하며, DB schema v2에서 번역-before-review 상태와 provenance를 저장하고 v1 → v2 backup/migration을 검증했다.
-작업 8 이후 확장으로 Nadeshiko 미수록 작품 병목이 실제 확인되어 로컬 timed subtitle fallback(POC + 제품 통합, DB schema v3)을 구현했고 코드 검수 PASS를 받았다. 이 확장은 `claude/scene-collector-subtitle-poc` 브랜치에 있으며 **사용자 승인 하의 main merge가 남은 유일한 절차**다. merge 완료 후 이 문단과 상태 표기를 갱신한다.
+작업 8 이후 확장으로 Nadeshiko 미수록 작품 병목이 실제 확인되어 로컬 timed subtitle fallback(POC + 제품 통합, DB schema v3)을 구현했고, 코드 검수 PASS 후 사용자 승인 하에 `main`에 반영 완료됐다.
 다음 Task 9에서는 **NiceGUI와 pywebview를 제품 전체 구현 전에 작은 Windows 시험으로 직접 비교**한다. 실제 Nadeshiko MP4의 연속 탐색·재생/일시정지·다음/이전 전환·한글/일본어 표시·Windows 실행을 확인해 더 안정적인 하나만 남기고 선택하지 않은 시험 코드는 제거한다.
 Task 9에서는 기존 검색·번역 알고리즘이나 실제 사용자 화면 전체를 구현하지 않는다.
