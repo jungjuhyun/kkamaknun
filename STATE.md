@@ -148,7 +148,7 @@ OBS 멀티트랙 저장 기술 검증은 **완료**했다.
 - 한국어 번역은 모델·AI 서비스·지시문 버전·입력 해시를 함께 저장해 재사용 가능하게 한다.
 - 작업 상태는 SQLite에 저장하고 자료구조 버전과 변경 전 백업을 둔다.
 - 이동식 SSD를 기본 실행 공간으로 사용하지만 실제 SSD 폴더 구조나 드라이브 경로를 코드에 하드코딩하지 않는다. 사용자가 지정한 작업 데이터 위치를 설정에서 읽는다.
-- 화면 기술은 NiceGUI/pywebview 중 실제 Windows MP4 연속 재생 시험 후 하나만 선택한다.
+- 화면 기술은 NiceGUI/pywebview를 실제 Windows MP4 연속 재생 시험으로 비교해 **NiceGUI(native mode)를 선택했다.**
 - 일반 자동시험에서 실제 AI/Nadeshiko API 비용·사용량이 발생하지 않게 실제 연결 시험과 분리한다.
 
 첫 버전에서 제외한 범위:
@@ -185,7 +185,15 @@ Nadeshiko 미수록 작품 병목이 실제로 확인된 뒤 진행한 확장이
 - **제품 통합 구현**: DB schema v3(`media.source`가 'nadeshiko'/'local'을 구분, 로컬 작품은 Nadeshiko ID 없음, `local_segments` 색인 table). 한 번의 한국어 검색이 활성 Nadeshiko 작품은 기존 공식 검색으로, 활성 로컬 작품은 색인 LIKE 1차 축소 후 기존 Task 5 surface matcher 최종 판정으로 함께 회수한다. 로컬 작품은 Nadeshiko media filter·cache 조건에 섞이지 않고, 활성 Nadeshiko 작품이 없으면 Nadeshiko API를 호출하지 않는다. 기존 v1/v2 DB는 단계별 백업 후 순차 migration한다.
 - **코드 검수 PASS** (2026-08-28): main 대비 변경이 `tools/scene_collector` 안으로 한정되고, pytest **112 passed, 15 skipped**(live 전부 skip, API 비용 0)·Ruff·`git diff --check` PASS, migration 실패 주입 시 원본 데이터 보존까지 확인했다.
 - **여전히 범위 밖**: Jimaku 자동 대체 검색·자동 다운로드, STT(Whisper 등), FFmpeg 자동 클리핑, UI, 로컬 장면의 번역·검수 저장 연결.
-- **상태**: 사용자 승인 하에 main merge 완료. 이 확장은 종결이며 다음 개발 작업은 작업 9다.
+- **상태**: 사용자 승인 하에 main merge 완료. 이 확장은 종결됐다.
+
+## 작업 9 — 화면 기술 확인 완료
+
+Windows 실측 비교로 **NiceGUI 3.16.0(native mode)을 화면 기술로 선택**했고, 선택하지 않은 pywebview probe 코드는 제거했다(pywebview는 `nicegui[native]`의 transitive dependency로만 남음). 두 기술 모두 WebView2(EdgeChromium, `Edg/151`) renderer였고, pywebview의 js_api 재귀 노출로 인한 실제 hang 관찰과 Task 10 화면 구현 부담이 선택 근거다.
+
+최신 main 위 재검증에서도 실제 Nadeshiko 샘플 video_url 자산 20개로 연속 전환(순환 포함)·재생·일시정지·다음/이전·일본어/한국어 표시·Windows native 실행·종료 후 프로세스 잔류 없음이 모두 PASS였다.
+
+**샘플 20개에서 관찰된 "정지 화면 + 대사 음성" MP4 형태는 그 샘플에 한정된 관찰이며 Nadeshiko 전체 corpus의 모든 video_url 자산으로 일반화하지 않는다.**
 
 상세 구현 계획·자료구조·통과 기준·오류 시험·개발량 추정은 `SCENE_COLLECTOR_PLAN.md`가 실행 계획이다.
 
@@ -194,11 +202,11 @@ Nadeshiko 미수록 작품 병목이 실제로 확인된 뒤 진행한 확장이
 - 기준 약 52시간
 - Windows/영상/AI 호환 문제가 여러 번 발생하면 약 65~75시간
 
-이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. 작업 0~8의 핵심 검색·저장·캐시·선호작·번역 검증과 검색 recall 검증, 로컬 자막 fallback 확장(검수 PASS 후 main 반영)까지 완료됐다. 개발의 다음 작업은 기존 계획의 작업 9다.
+이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. 작업 0~9의 검색·저장·캐시·선호작·번역·화면 기술 검증과 로컬 자막 fallback 확장까지 모두 main에 반영됐다. 개발의 다음 작업은 기존 계획의 작업 10이다.
 
 ## 지금 딱 한 단계
 
-**0화 구성은 계속 유지하면서, 장면 수집기의 작업 9 — 화면 기술 확인을 진행한다.**
+**0화 구성은 계속 유지하면서, 장면 수집기의 작업 10 — 실제 사용자 화면을 진행한다.**
 
 현재 목표 순서:
 1. 확보된 촬영물에서 0화에 들어갈 실제 사건/반응 후보를 선별해 0화를 구성한다.
@@ -214,10 +222,10 @@ Nadeshiko 미수록 작품 병목이 실제로 확인된 뒤 진행한 확장이
 11. 작업 7 — 선호 애니 관리: **완료**.
 12. 작업 8 — 한국어 장면 번역: **완료**.
 13. 로컬 timed subtitle fallback (POC + 제품 통합): **완료 — 코드 검수 PASS 후 main 반영**.
-14. 작업 9 — NiceGUI / pywebview Windows MP4 연속 재생 비교: **다음 작업**.
-15. 실제 Windows 영상/UI 시험 결과로 하나의 화면 기술만 선택한 뒤 기존 검증 기능을 UI에 연결한다.
+14. 작업 9 — NiceGUI / pywebview Windows MP4 연속 재생 비교: **완료 — NiceGUI(native mode) 선택, main 반영**.
+15. 작업 10 — 실제 사용자 화면: **다음 작업**. 기존에 통과한 검색·저장 기능만 NiceGUI 화면에 연결하고, 화면 개발 중 새로운 검색 알고리즘을 만들지 않는다.
 
-즉 현재 우선순위는 새로운 검색·번역 알고리즘을 더 만드는 것이 아니라 **0화 구성 + NiceGUI와 pywebview를 작은 Windows MP4 시험으로 실제 비교해 화면 기술 하나를 선택하는 것**이다.
+즉 현재 우선순위는 새로운 검색·번역 알고리즘을 더 만드는 것이 아니라 **0화 구성 + 이미 검증된 기능을 NiceGUI 사용자 화면으로 연결하는 것**이다.
 
 ## 운영 원칙
 

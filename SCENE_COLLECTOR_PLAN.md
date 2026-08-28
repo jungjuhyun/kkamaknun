@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6·7·8 완료 / 로컬 자막 fallback 검수 PASS·main 반영 완료 / 다음 작업 9**
+상태: **개발 진행 중 / 작업 0~9 완료 / 로컬 자막 fallback main 반영 완료 / 다음 작업 10**
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -764,6 +764,12 @@ NiceGUI / pywebview를 작은 시험으로 비교.
 Nadeshiko MP4 연속 재생과 Windows 실행이 더 안정적인 쪽 하나만 선택.
 시험 후 선택하지 않은 화면 코드는 제거.
 
+상태: **완료 — NiceGUI 3.16.0(native mode) 선택, main 반영.** NiceGUI 3.16.0과 pywebview 6.2.1을 같은 조건(같은 영상 목록·같은 창 구성·같은 WebView2/EdgeChromium backend, `Edg/151` user-agent 확인)의 작은 Windows probe로 실측 비교했다. pywebview에서 js_api public 속성의 JS 재귀 노출로 인한 실제 창 hang이 관찰됐고, Task 10 다섯 화면을 직접 HTML/JS bridge로 만드는 부담까지 근거로 NiceGUI를 선택했다. pywebview probe 코드와 직접 dependency는 제거했고 pywebview는 `nicegui[native]`의 transitive dependency로만 남는다.
+
+최신 main 위 재검증(subtitle fallback 반영 후)에서도 실제 Nadeshiko 샘플 video_url 자산 20개로 연속 전환(20→1 순환, 역방향 포함)·재생·일시정지·다음/이전·일본어/한국어 표시·Windows native 실행·정상 종료 후 프로세스 잔류 없음이 전부 PASS였고, 전체 pytest **112 passed, 15 skipped**·Ruff·`git diff --check` PASS를 확인했다.
+
+**이번에 샘플링한 20개 자산에서 관찰된 "정지 화면 + 대사 음성" MP4 형태는 해당 샘플에 한정된 관찰이며, Nadeshiko 전체 corpus의 모든 video_url 자산으로 일반화하지 않는다.** 움직이는 MP4 재생은 ffmpeg 로컬 테스트 영상으로 별도 검증했다.
+
 ### 작업 10 — 실제 사용자 화면
 
 기존에 통과한 검색·저장 기능만 연결한다.
@@ -792,7 +798,7 @@ Nadeshiko MP4 연속 재생과 Windows 실행이 더 안정적인 쪽 하나만 
 - Windows/영상/AI 호환 문제가 여러 번 발생: 약 **65~75시간**
 
 확정 계약 시간이 아니라 불확실성 관리용 추정이다.
-작업 0~8의 핵심 검색·연결·저장·캐시·선호작·번역 검증과 검색 recall 검증은 완료됐으며, 남은 개발은 기존 작업 9~13 기준으로 이어간다.
+작업 0~9의 핵심 검색·연결·저장·캐시·선호작·번역·화면 기술 검증과 검색 recall 검증, 로컬 자막 fallback은 완료됐으며, 남은 개발은 기존 작업 10~13 기준으로 이어간다.
 
 AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작, Windows 영상 재생, SSD 이동, 사용자 작업 흐름 검증 시간까지 자동으로 사라진다고 가정하지 않는다.
 
@@ -897,7 +903,7 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 
 ## 24. 바로 다음 작업
 
-**작업 9 — 화면 기술 확인**부터 진행한다.
+**작업 10 — 실제 사용자 화면**부터 진행한다.
 
 작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전, 작업 7 — 선호 애니 관리, 작업 8 — 한국어 장면 번역은 완료되어 `main`에 반영됐다.
 검색 recall 검증도 닫았다. 세 문제 target을 상위 200건까지 확인해도 정확 surface가 없었고 pagination의 제품 적용 이득이 확인되지 않았으므로 검색 계층을 더 늘리지 않는다.
@@ -905,5 +911,5 @@ Task 6에서는 SQLite v1 schema, 파일 DB 재시작 복원, review, AI cache, 
 Task 7에서는 Nadeshiko public media ID 기반 선호작 관리와 `SearchFilters.media.include` 기반 활성 작품 검색을 구현했다. media 조건은 Nadeshiko cache identity에도 포함되며 활성 작품이 없으면 global corpus로 자동 확대하지 않는다.
 Task 8에서는 정확 후보에만 앞뒤 문맥을 조회하고 여러 장면을 한 AI 구조화 요청으로 한국어 번역한다. context cache와 기존 AI cache를 재사용하며, DB schema v2에서 번역-before-review 상태와 provenance를 저장하고 v1 → v2 backup/migration을 검증했다.
 작업 8 이후 확장으로 Nadeshiko 미수록 작품 병목이 실제 확인되어 로컬 timed subtitle fallback(POC + 제품 통합, DB schema v3)을 구현했고, 코드 검수 PASS 후 사용자 승인 하에 `main`에 반영 완료됐다.
-다음 Task 9에서는 **NiceGUI와 pywebview를 제품 전체 구현 전에 작은 Windows 시험으로 직접 비교**한다. 실제 Nadeshiko MP4의 연속 탐색·재생/일시정지·다음/이전 전환·한글/일본어 표시·Windows 실행을 확인해 더 안정적인 하나만 남기고 선택하지 않은 시험 코드는 제거한다.
-Task 9에서는 기존 검색·번역 알고리즘이나 실제 사용자 화면 전체를 구현하지 않는다.
+Task 9에서는 NiceGUI와 pywebview를 실제 Windows probe로 비교해 **NiceGUI(native mode)를 선택**했고, 실제 Nadeshiko 샘플 video_url 자산 20개에서 연속 전환·재생/일시정지·다음/이전·한글/일본어 표시·Windows native 실행·정상 종료 후 프로세스 잔류 없음을 확인한 뒤 선택하지 않은 pywebview 시험 코드를 제거했다. 샘플 20개의 정지 화면 + 음성 관찰은 Nadeshiko 전체 corpus로 일반화하지 않는다.
+다음 Task 10에서는 **기존에 통과한 검색·저장·번역·검수 기능만 NiceGUI 화면에 연결**한다. 화면 개발 중 새로운 검색 알고리즘을 만들지 않는다.
