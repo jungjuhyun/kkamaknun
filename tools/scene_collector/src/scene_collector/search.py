@@ -1,6 +1,9 @@
 """한국어 의도를 AI 후보와 Nadeshiko corpus 검색으로 연결한다."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from nadeshiko import Nadeshiko
 from nadeshiko.models import SearchQuery, SearchResponse, Segment
@@ -9,6 +12,11 @@ from scene_collector.ai import create_structured_response
 from scene_collector.config import AppSettings
 from scene_collector.models import ExpressionCandidate, ExpressionCandidates
 from scene_collector.surface import matches_surface
+
+if TYPE_CHECKING:
+    from scene_collector.database import SceneCollectorDatabase
+
+CANDIDATE_INSTRUCTION_VERSION = "expression-candidates-v1"
 
 
 @dataclass(frozen=True)
@@ -43,30 +51,60 @@ def search_expressions(
     korean_intent: str,
     *,
     nadeshiko_client: Nadeshiko,
+    database: SceneCollectorDatabase | None = None,
 ) -> ExpressionSearchResult:
     """한국어 의도에서 일본어 후보를 만들고 실제 검색 결과가 있는 후보를 찾는다."""
     intent = korean_intent.strip()
     if not intent:
         raise ValueError("한국어로 찾을 의미를 입력해야 합니다.")
 
-    generated = create_structured_response(
-        settings,
-        prompt=_candidate_prompt(intent, settings.search.candidate_count),
-        response_model=ExpressionCandidates,
-    )
+    generated = _generate_candidates(settings, intent, database=database)
     if len(generated.candidates) != settings.search.candidate_count:
         raise ValueError("AI가 설정한 수와 다른 개수의 일본어 후보를 반환했습니다.")
 
     unique_candidates = _deduplicate_candidates(generated.candidates)
     searches = tuple(
-        _search_candidate(settings, candidate, nadeshiko_client=nadeshiko_client)
+        _search_candidate(
+            settings,
+            candidate,
+            nadeshiko_client=nadeshiko_client,
+            database=database,
+        )
         for candidate in unique_candidates
     )
-    return ExpressionSearchResult(
+    result = ExpressionSearchResult(
         korean_intent=intent,
         generated_candidates=tuple(generated.candidates),
         candidate_searches=searches,
     )
+    if database is not None:
+        database.save_search_result(
+            result,
+            ai_service=settings.ai.service,
+            ai_model=settings.ai.model,
+            instruction_version=CANDIDATE_INSTRUCTION_VERSION,
+        )
+    return result
+
+
+def _generate_candidates(
+    settings: AppSettings,
+    intent: str,
+    *,
+    database: SceneCollectorDatabase | None,
+) -> ExpressionCandidates:
+    arguments = {
+        "prompt": _candidate_prompt(intent, settings.search.candidate_count),
+        "response_model": ExpressionCandidates,
+    }
+    if database is not None:
+        return create_structured_response(
+            settings,
+            **arguments,
+            cache=database,
+            instruction_version=CANDIDATE_INSTRUCTION_VERSION,
+        )
+    return create_structured_response(settings, **arguments)
 
 
 def _search_candidate(
@@ -74,18 +112,25 @@ def _search_candidate(
     candidate: ExpressionCandidate,
     *,
     nadeshiko_client: Nadeshiko,
+    database: SceneCollectorDatabase | None,
 ) -> CandidateSearchResult:
-    response = nadeshiko_client.search(
-        query=SearchQuery(search=candidate.japanese),
+    response = _search_nadeshiko(
+        candidate.japanese,
+        exact_match=False,
         take=settings.search.nadeshiko_take,
+        nadeshiko_client=nadeshiko_client,
+        database=database,
     )
     exact_segments = _surface_segments(response, candidate.japanese)
     exact_match_response = None
 
     if not exact_segments:
-        exact_match_response = nadeshiko_client.search(
-            query=SearchQuery(search=candidate.japanese, exact_match=True),
+        exact_match_response = _search_nadeshiko(
+            candidate.japanese,
+            exact_match=True,
             take=settings.search.nadeshiko_take,
+            nadeshiko_client=nadeshiko_client,
+            database=database,
         )
         exact_segments = _surface_segments(exact_match_response, candidate.japanese)
 
@@ -95,6 +140,37 @@ def _search_candidate(
         exact_match_response=exact_match_response,
         exact_segments=exact_segments,
     )
+
+
+def _search_nadeshiko(
+    search_text: str,
+    *,
+    exact_match: bool,
+    take: int,
+    nadeshiko_client: Nadeshiko,
+    database: SceneCollectorDatabase | None,
+) -> SearchResponse:
+    if database is not None:
+        cached = database.get_nadeshiko_search_cache(
+            search_text=search_text,
+            exact_match=exact_match,
+            take=take,
+        )
+        if cached is not None:
+            return cached
+
+    response = nadeshiko_client.search(
+        query=SearchQuery(search=search_text, exact_match=exact_match),
+        take=take,
+    )
+    if database is not None:
+        database.put_nadeshiko_search_cache(
+            search_text=search_text,
+            exact_match=exact_match,
+            take=take,
+            response=response,
+        )
+    return response
 
 
 def _surface_segments(response: SearchResponse, primary_surface: str) -> tuple[Segment, ...]:

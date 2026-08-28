@@ -2,7 +2,7 @@
 
 한국어로 찾고 싶은 뜻에서 출발해 실제 애니 표현 장면을 수집하기 위한 Windows 로컬 도구다.
 
-현재 브랜치에는 **작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**, **작업 3 — AI 실제 연결 확인**, **작업 4 — 한국어 표현 찾기**가 완료되어 있다. **작업 5 — 정확 동일표현 검사**에서는 Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남긴다. 저장·화면 기능은 아직 없다.
+현재 브랜치에는 **작업 0 — 개발 골격**부터 **작업 6 — 저장·캐시·자료구조 버전**까지 완료되어 있다. Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남기고, 검색·검수 상태와 외부 요청 캐시를 작업 데이터 위치의 SQLite DB에 저장한다. 화면 기능은 아직 없다.
 
 ## 개발 환경
 
@@ -119,9 +119,25 @@ uv run pytest --run-surface-live -m surface_live -ra
 
 보고서에는 fetch 수·추정 전체 수·token 제공 수, 제거된 대표 원문과 채택된 대표 원문만 기록한다. API 키·사용자 정보·segment/media ID는 기록하지 않는다. 일반 `uv run pytest`에서는 이 시험이 항상 건너뛰어진다.
 
+## 로컬 저장과 캐시
+
+`SceneCollectorDatabase.open(settings)`는 새 경로 설정을 요구하지 않고 다음 파일을 관리한다.
+
+```text
+<storage.work_data_dir>/scene_collector.sqlite3
+```
+
+DB에는 `media`, `search_runs`, `expressions`, `segments`, `expression_segments`, `reviews`, `ai_cache`, `nadeshiko_search_cache`가 있다. 같은 Nadeshiko segment를 여러 표현과 검색에 연결할 수 있도록 `expression_segments`를 두고, 원본 segment JSON은 한 번만 저장한다. review 판정은 `채택`, `예비`, `제외`이며 번역·쓰임·메모는 비워 둘 수 있다.
+
+`search_expressions(..., database=database)`처럼 열린 DB를 전달하면 검색 완료 결과를 한 transaction으로 저장한다. AI cache는 서비스·모델·지시문 버전·실제 입력의 canonical hash가 모두 같은 경우에만 사용하고, JSON을 요청한 Pydantic 자료형으로 다시 검증한다. Nadeshiko cache는 검색 문자열·`exact_match`·`take`·검색 조건을 구분해 SDK의 원본 `SearchResponse`를 저장하며, 복원된 응답에도 현재 로컬 surface matcher를 다시 적용한다.
+
+현재 schema는 `SCHEMA_VERSION = 1`이며 `PRAGMA user_version`으로 확인한다. 현재 코드보다 높은 version은 데이터를 변경하지 않고 거부한다. 각 연결에서 foreign key 검사를 명시적으로 켜고, WAL은 활성화하지 않아 SQLite 기본 rollback journal을 유지한다. 향후 실제 schema 변경 전에는 `backup_before_schema_change()`가 같은 작업 데이터 위치에 고유한 파일명으로 `sqlite3.Connection.backup()` 사본을 만든다.
+
+작업 6 자동시험은 파일 기반 임시 DB와 fake provider를 사용한다. 일반 `uv run pytest`에서 인터넷이나 실제 AI/Nadeshiko API를 호출하지 않는다.
+
 ## 아직 없는 기능
 
 - 영어 검색 fallback과 선호 작품 필터
-- SQLite 저장과 캐시
+- 선호 작품 관리와 한국어 장면 번역
 - 사용자 화면
 - 영상 저장과 내보내기
