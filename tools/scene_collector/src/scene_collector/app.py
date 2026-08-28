@@ -420,10 +420,11 @@ async def main_page() -> None:
             _notify_error(error)
             await refresh_curated()
             return
+        # 재렌더가 이 체크박스를 제거하기 전에 알림을 먼저 보낸다.
+        ui.notify(f"{item.korean_title}: {'활성화' if active else '비활성화'}했습니다.")
         await refresh_media_state()
         await refresh_curated()
         render_media_list()
-        ui.notify(f"{item.korean_title}: {'활성화' if active else '비활성화'}했습니다.")
 
     def render_curated() -> None:
         curated_box.clear()
