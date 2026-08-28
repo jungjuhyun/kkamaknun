@@ -2,7 +2,7 @@
 
 한국어로 찾고 싶은 뜻에서 출발해 실제 애니 표현 장면을 수집하기 위한 Windows 로컬 도구다.
 
-현재 브랜치에는 **작업 0 — 개발 골격**부터 **작업 8 — 한국어 장면 번역**까지 완료되어 있다. Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남기고, 검색·검수 상태와 외부 요청 캐시를 작업 데이터 위치의 SQLite DB에 저장한다. 사용자 선호 작품은 Nadeshiko public ID 기준으로 관리하며, DB가 연결된 제품 검색은 활성 선호작만 공식 media filter로 검색한다. 정확 후보 장면에는 앞뒤 문맥을 조회해 AI가 직접 의미·자연스러운 한국어·장면 쓰임을 구조화 반환하고 재시작 후 재사용한다. 화면 기능은 아직 없다.
+현재 브랜치에는 **작업 0 — 개발 골격**부터 **작업 9 — 화면 기술 확인**까지 완료되어 있다. Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남기고, 검색·검수 상태와 외부 요청 캐시를 작업 데이터 위치의 SQLite DB에 저장한다. 사용자 선호 작품은 Nadeshiko public ID 기준으로 관리하며, DB가 연결된 제품 검색은 활성 선호작만 공식 media filter로 검색한다. 정확 후보 장면에는 앞뒤 문맥을 조회해 AI가 직접 의미·자연스러운 한국어·장면 쓰임을 구조화 반환하고 재시작 후 재사용한다. 화면 기술은 Windows 실측 비교로 **NiceGUI(native mode)**를 선택했고, 실제 제품 화면(Task 10)은 아직 없다.
 
 ## 개발 환경
 
@@ -174,6 +174,28 @@ DB에는 `media`, `search_runs`, `expressions`, `segments`, `expression_segments
 현재 schema는 `SCHEMA_VERSION = 2`이며 `PRAGMA user_version`으로 확인한다. Task 8에서 `reviews.decision`을 nullable로 바꾸고 번역 provenance column과 `nadeshiko_context_cache`를 추가했다. 기존 v1 파일 DB는 열 때 `backup_before_schema_change()`로 같은 작업 데이터 위치에 `.pre-schema-v1.` 사본을 만든 뒤 한 transaction에서 v2로 migration하며, 실패하면 원본 v1 데이터를 그대로 유지한다. 현재 코드보다 높은 version은 데이터를 변경하지 않고 거부한다. 각 연결에서 foreign key 검사를 명시적으로 켜고, WAL은 활성화하지 않아 SQLite 기본 rollback journal을 유지한다.
 
 작업 6 자동시험은 파일 기반 임시 DB와 fake provider를 사용한다. 일반 `uv run pytest`에서 인터넷이나 실제 AI/Nadeshiko API를 호출하지 않는다.
+
+## 화면 기술 — Task 9 선택 결과
+
+Windows 11 + WebView2 Runtime에서 NiceGUI 3.16.0(native mode)과 pywebview 6.2.1을 같은 조건(같은 영상 목록·같은 창 구성·같은 EdgeChromium/WebView2 backend)의 작은 probe로 실측 비교해 **NiceGUI를 선택**했다.
+
+실측에서 확인된 사실:
+
+- 두 기술 모두 WebView2(EdgeChromium) renderer를 사용했고(user-agent `Edg/151` 확인) 영상 재생 능력 자체는 동일했다. NiceGUI native는 내부적으로 pywebview를 사용한다.
+- **Nadeshiko sentence video asset은 "정지 frame 1장 + 대사 audio" 형식의 MP4다.** ffprobe와 frame 픽셀 비교로 확인했다(시간대별 frame이 인코딩 노이즈 수준으로 동일). 따라서 검수 화면에서 Nadeshiko 영상은 정지 화면 + 음성으로 재생되는 것이 정상이며, 움직이는 MP4 재생 검증은 ffmpeg로 생성한 로컬 테스트 영상으로 별도 수행했다.
+- NiceGUI는 정지 자산 20개와 움직이는 테스트 MP4 20개 모두에서 순방향/역방향/재방문 100회 이상의 연속 source 전환을 오류·hang 없이 통과했고 사용자가 실제 frame 움직임과 clip별 소리 차이를 확인했다.
+- pywebview도 수정판 probe에서 같은 수준으로 동작했지만, 첫 움직이는 영상 시험에서 js_api 객체의 public 속성(창 객체)이 JS로 재귀 노출되는 설계 때문에 실제 "(응답 없음)" hang이 발생했다. 3줄 수정으로 해결되는 문제였으나, Task 10의 다섯 화면을 직접 HTML/JS + bridge로 만들 때 같은 계열의 실수가 반복될 위험과 코드량 증가를 근거로 NiceGUI를 선택했다.
+
+선택하지 않은 pywebview probe 코드와 직접 dependency는 제거했다. pywebview는 `nicegui[native]`의 transitive dependency로만 남는다.
+
+`experiments/ui_probe/`에는 선택된 NiceGUI probe와 실제 Nadeshiko 영상 목록 생성 스크립트를 남겨 둔다. 재실행은 API 사용량이 발생하는 fetch 단계를 포함하므로 명시적으로만 한다.
+
+```powershell
+$env:SCENE_COLLECTOR_UI_PROBE_DATA = (Join-Path $env:TEMP "ui_probe_segments.json")
+$env:SCENE_COLLECTOR_UI_PROBE_LOG = (Join-Path $env:TEMP "ui_probe.log")
+uv run python experiments/ui_probe/fetch_probe_segments.py $env:SCENE_COLLECTOR_UI_PROBE_DATA
+uv run python experiments/ui_probe/nicegui_probe.py
+```
 
 ## 아직 없는 기능
 

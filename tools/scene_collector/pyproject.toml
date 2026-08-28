@@ -7,6 +7,7 @@ requires-python = ">=3.11"
 dependencies = [
     "instructor[google-genai]==1.15.4",
     "nadeshiko-sdk==2.3.7",
+    "nicegui[native]==3.16.0",
     "pydantic",
     "pydantic-settings",
 ]
