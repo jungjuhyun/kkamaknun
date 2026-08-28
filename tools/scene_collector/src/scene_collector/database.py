@@ -112,6 +112,32 @@ class StoredExpression:
 
 
 @dataclass(frozen=True)
+class AcceptedSceneExportRow:
+    """제작 export용으로 조립한 채택(decision='채택') 표현-장면 관계 한 건."""
+
+    search_run_id: int
+    korean_intent: str
+    expression_id: int
+    japanese: str
+    reading: str
+    meaning_ko: str
+    register: str
+    segment_public_id: str
+    media_public_id: str | None
+    media_display_name: str | None
+    episode: int
+    start_time_ms: int
+    end_time_ms: int
+    japanese_text: str
+    video_url: str
+    direct_meaning: str | None
+    natural_translation: str | None
+    scene_usage: str | None
+    notes: str | None
+    decision: str
+
+
+@dataclass(frozen=True)
 class StoredSearchRun:
     """한 번의 한국어 검색과 저장된 표현·장면 묶음."""
 
@@ -952,6 +978,70 @@ class SceneCollectorDatabase:
         ).fetchone()
         if relation is None:
             raise DatabaseError("검수할 표현과 장면의 연결을 찾을 수 없습니다.")
+
+    def list_accepted_scenes(self) -> tuple[AcceptedSceneExportRow, ...]:
+        """decision='채택'인 표현-장면 관계 전체를 export용으로 읽는다.
+
+        영상 identity(segment_public_id)와 metadata identity(표현-장면 관계)를
+        구분하기 위해 같은 장면이 여러 표현에서 채택되면 여러 row로 반환한다.
+        """
+        rows = self.connection.execute(
+            """
+            SELECT
+                search_runs.id AS search_run_id,
+                search_runs.korean_intent,
+                expressions.id AS expression_id,
+                expressions.japanese,
+                expressions.reading,
+                expressions.meaning_ko,
+                expressions.register_text,
+                segments.nadeshiko_segment_id,
+                media.nadeshiko_media_id,
+                media.display_name,
+                segments.episode,
+                segments.start_time_ms,
+                segments.end_time_ms,
+                segments.japanese_text,
+                segments.video_url,
+                reviews.direct_meaning,
+                reviews.natural_translation,
+                reviews.scene_usage,
+                reviews.notes,
+                reviews.decision
+            FROM reviews
+            JOIN expressions ON expressions.id = reviews.expression_id
+            JOIN search_runs ON search_runs.id = expressions.search_run_id
+            JOIN segments ON segments.id = reviews.segment_id
+            JOIN media ON media.id = segments.media_id
+            WHERE reviews.decision = '채택'
+            ORDER BY search_runs.id, expressions.id, segments.id
+            """
+        ).fetchall()
+        return tuple(
+            AcceptedSceneExportRow(
+                search_run_id=int(row["search_run_id"]),
+                korean_intent=row["korean_intent"],
+                expression_id=int(row["expression_id"]),
+                japanese=row["japanese"],
+                reading=row["reading"],
+                meaning_ko=row["meaning_ko"],
+                register=row["register_text"],
+                segment_public_id=row["nadeshiko_segment_id"],
+                media_public_id=row["nadeshiko_media_id"],
+                media_display_name=row["display_name"],
+                episode=int(row["episode"]),
+                start_time_ms=int(row["start_time_ms"]),
+                end_time_ms=int(row["end_time_ms"]),
+                japanese_text=row["japanese_text"],
+                video_url=row["video_url"],
+                direct_meaning=row["direct_meaning"],
+                natural_translation=row["natural_translation"],
+                scene_usage=row["scene_usage"],
+                notes=row["notes"],
+                decision=row["decision"],
+            )
+            for row in rows
+        )
 
     def get_review(self, expression_id: int, segment_id: int) -> StoredReview | None:
         """표현-장면 관계의 번역과 검수 상태를 읽는다."""

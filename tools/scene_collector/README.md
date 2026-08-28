@@ -229,6 +229,7 @@ uv run python -m scene_collector.app
 4. **일본어 표현 선택** 탭에서 corpus-backed 후보(일본어/읽기/의미/말투) 하나를 선택한다.
 5. **장면 검수** 탭에서 Nadeshiko 장면은 영상·원문을 확인하고, 필요할 때 `문맥 조회 + 한국어 번역`을 실행한 뒤 채택/예비/제외를 저장한다. 로컬 자막 장면은 작품명·화수·타임코드·대사만 표시하며 영상 미리보기는 원래 없다.
 6. 프로그램을 종료 후 다시 실행하면 장면이 남아 있는 가장 최근 검색·선택·판정 상태가 복원된다.
+7. **장면 검수** 탭의 `채택 장면 내보내기` 버튼은 현재 DB의 채택(`채택` 판정) Nadeshiko 장면 전체를 `<작업 데이터 위치>/exports/`로 내보낸다. 영상은 `exports/videos/<segment_public_id>.mp4` 하나로 저장되어 같은 장면이 여러 표현에서 채택돼도 다시 다운로드하지 않으며(정상 파일 존재 시 재사용), metadata는 표현-장면 관계별로 `accepted_scenes.json`(UTF-8)과 `accepted_scenes.csv`(Excel용 BOM 포함 UTF-8)에 기록된다. `video_file`은 exports 기준 상대경로라 SSD를 옮겨도 유지된다. 로컬 자막 장면 영상 내보내기는 아직 지원하지 않는다.
 
 검색·번역·판정 저장은 기존 검증된 `search_expressions`·`translate_expression_scenes`·`set_review_decision` 경로를 그대로 사용하고, 화면 상태(검색 결과·선택)는 창(클라이언트)별로 분리되어 다른 창의 조작이 내 화면을 바꾸지 않는다. DB·네트워크 호출은 단일 작업 thread에서만 실행한다.
 

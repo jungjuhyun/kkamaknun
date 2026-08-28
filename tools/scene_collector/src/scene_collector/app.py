@@ -27,6 +27,7 @@ from scene_collector.database import (
     StoredExpression,
     StoredMedia,
 )
+from scene_collector.export import export_accepted_scenes
 from scene_collector.media import media_display_name, search_media, store_media
 from scene_collector.nadeshiko import create_nadeshiko_client
 from scene_collector.search import NoActiveMediaError
@@ -226,6 +227,14 @@ async def main_page() -> None:
             candidates_box = ui.column().classes("w-full")
 
         with ui.tab_panel(scenes_tab):
+            with ui.row().classes("items-center"):
+                export_button = ui.button("채택 장면 내보내기", on_click=lambda: do_export())
+                export_status = ui.label("")
+            ui.label(
+                "Nadeshiko 채택 장면만 영상 내보내기를 지원합니다. "
+                "로컬 자막 장면 영상 내보내기는 아직 지원하지 않습니다."
+            ).style("color: #666; font-size: 0.85rem")
+            ui.separator()
             scenes_box = ui.column().classes("w-full")
 
         with ui.tab_panel(media_tab):
@@ -403,6 +412,37 @@ async def main_page() -> None:
                     ui.label(ui_controller.local_scene_line(scene))
             elif not item.expression.segments:
                 ui.label("이 표현에는 표시할 장면이 없습니다.")
+
+    async def do_export() -> None:
+        export_button.disable()
+        export_status.set_text("내보내는 중... (채택 장면 조회 + 영상 다운로드)")
+        try:
+            result = await context.call(lambda: export_accepted_scenes(settings, database))
+        except _USER_ERRORS as error:
+            export_status.set_text(f"내보내기 실패: {error}")
+            _notify_error(error)
+            return
+        finally:
+            export_button.enable()
+        if not result.has_scenes:
+            export_status.set_text(
+                "채택 장면이 없습니다. 장면 검수에서 먼저 채택 판정을 저장하세요."
+            )
+            return
+        export_status.set_text(
+            f"채택 관계 {result.relation_count}개 · 고유 영상 {result.unique_video_count}개 · "
+            f"새로 받음 {result.downloaded_count}개 · 기존 재사용 {result.reused_count}개 · "
+            f"실패 {result.failed_count}개 — JSON: {result.json_path} · CSV: {result.csv_path}"
+        )
+        if result.failures:
+            first_id, first_error = result.failures[0]
+            ui.notify(
+                f"일부 영상 다운로드에 실패했습니다 ({first_id}: {first_error})",
+                type="warning",
+                multi_line=True,
+            )
+        else:
+            ui.notify("채택 장면 내보내기를 완료했습니다.")
 
     async def refresh_curated() -> None:
         nonlocal curated_view_rows
