@@ -198,7 +198,7 @@ Windows 11 + WebView2 Runtime에서 NiceGUI 3.16.0(native mode)과 pywebview 6.2
 실측에서 확인된 사실:
 
 - 두 기술 모두 WebView2(EdgeChromium) renderer를 사용했고(user-agent `Edg/151` 확인) 영상 재생 능력 자체는 동일했다. NiceGUI native는 내부적으로 pywebview를 사용한다.
-- **Nadeshiko sentence video asset은 "정지 frame 1장 + 대사 audio" 형식의 MP4다.** ffprobe와 frame 픽셀 비교로 확인했다(시간대별 frame이 인코딩 노이즈 수준으로 동일). 따라서 검수 화면에서 Nadeshiko 영상은 정지 화면 + 음성으로 재생되는 것이 정상이며, 움직이는 MP4 재생 검증은 ffmpeg로 생성한 로컬 테스트 영상으로 별도 수행했다.
+- **이번 Task 9에서 샘플링한 Nadeshiko sentence video_url 자산 20개는 시간대별 frame 차이가 인코딩 노이즈 수준이어서 실질적으로 "정지 화면 + 대사 음성" 형태의 MP4로 확인됐다.** ffprobe와 frame 픽셀 비교로 확인했으며, 이 결과를 Nadeshiko 전체 corpus의 모든 video_url 자산으로 일반화하지 않는다. 따라서 검수 화면에서 이런 자산이 정지 화면 + 음성으로 재생되는 것은 정상이며, 움직이는 MP4 재생 검증은 ffmpeg로 생성한 로컬 테스트 영상으로 별도 수행했다.
 - NiceGUI는 정지 자산 20개와 움직이는 테스트 MP4 20개 모두에서 순방향/역방향/재방문 100회 이상의 연속 source 전환을 오류·hang 없이 통과했고 사용자가 실제 frame 움직임과 clip별 소리 차이를 확인했다.
 - pywebview도 수정판 probe에서 같은 수준으로 동작했지만, 첫 움직이는 영상 시험에서 js_api 객체의 public 속성(창 객체)이 JS로 재귀 노출되는 설계 때문에 실제 "(응답 없음)" hang이 발생했다. 3줄 수정으로 해결되는 문제였으나, Task 10의 다섯 화면을 직접 HTML/JS + bridge로 만들 때 같은 계열의 실수가 반복될 위험과 코드량 증가를 근거로 NiceGUI를 선택했다.
 
