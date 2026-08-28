@@ -165,7 +165,7 @@ Nadeshiko 수록 범위가 실제 병목이 되면 그때 기존 오픈소스/�
 문제가 생기기 전에 대체 계층을 미리 만들지 않는다.
 
 장면 수집기 개발은 앱 전체를 한 번에 생성하지 않고 **작업 0~13의 작은 작업 단위**로 진행한다.
-**작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**, **작업 3 — AI 실제 연결 확인**, **작업 4 — 한국어 표현 찾기**, **작업 5 — 정확 동일표현 검사**, **작업 6 — 저장·캐시·자료구조 버전**, **작업 7 — 선호 애니 관리**는 완료되어 `main`에 반영됐다.
+**작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**, **작업 3 — AI 실제 연결 확인**, **작업 4 — 한국어 표현 찾기**, **작업 5 — 정확 동일표현 검사**, **작업 6 — 저장·캐시·자료구조 버전**, **작업 7 — 선호 애니 관리**, **작업 8 — 한국어 장면 번역**은 완료되어 `main`에 반영됐다.
 작업 2 live test는 **9 passed, 0 failed**로 인증·`get_me` 사용자/사용량·작품 조회·검색·`iter_search` 페이지 순회·앞뒤 문맥·image/audio/video URL을 실제 연결로 확인했다. `get_me`에는 `READ_PROFILE` 권한이 필요하다.
 작업 3 live test는 **2 passed, 0 failed**로 OpenAI `gpt-5.4-nano`와 Google `gemini-3.6-flash`를 실제 호출해 같은 `ConnectivityProbe` Pydantic 자료형이 반환되는 것을 확인했다. provider 교체는 설정의 service/model 변경만으로 검증됐다.
 작업 4 live 품질 시험은 Google `gemini-3.6-flash`로 한국어 의도 10개를 실행했고 **10/10에서 corpus-backed 후보가 하나 이상 회수**됐다. 전체 AI 후보 50개 중 Nadeshiko 일반 검색 결과가 있는 후보는 44개였다.
@@ -173,7 +173,8 @@ Nadeshiko 수록 범위가 실제 병목이 되면 그때 기존 오픈소스/�
 작업 6 진입 전 검색 recall 검증도 완료했다. `ほんとそれ`, `ん？なんて？`, `今、何してるんですか？`를 각각 상위 200 segment까지 pagination했지만 정확 surface는 0건이었다. 반면 `大丈夫ですか？`는 첫 페이지 20건에서 17건, `もう一回言って。`는 전체 17건에서 2건의 정확 surface를 회수했다. 따라서 pagination 자체는 정상이나 세 문제 target의 회수를 개선하지 못했고, **제품 코드에는 pagination을 추가하지 않는다.** 남은 검색 위험은 rank 200 이후 존재 가능성, corpus 부족, AI 후보가 지나치게 길거나 희귀한 문제, 향후 영어 fallback 필요 가능성으로 남긴다.
 작업 6은 **72 passed, 13 skipped**, Ruff와 `git diff --check` PASS로 완료됐다. Python 표준 `sqlite3` 기반 v1 schema를 `work_data_dir/scene_collector.sqlite3`에 두고 `PRAGMA user_version=1`, foreign key, 명시적 transaction/rollback, `Connection.backup()` 기반 구조 변경 전 백업을 구현했다. 검색 run·표현·장면·검수 상태를 파일 DB에 저장하고 재시작 후 복원했으며, AI 구조화 응답과 Nadeshiko 원본 검색 응답 cache가 실제 코드 경로에서 hit되어 동일 fake provider/search 재호출이 발생하지 않는 것을 확인했다. 별도 ORM·WAL·새 dependency는 추가하지 않았다.
 작업 7은 **84 passed, 14 skipped**, Ruff와 `git diff --check` PASS, Nadeshiko media live **1 passed**로 완료됐다. 공식 SDK의 `search_media`·`get_media`와 `SearchFilters.media.include`를 사용해 Nadeshiko public media ID 기반 선호작 저장·metadata 갱신·preference/content_group/is_active 관리를 구현했고, DB가 연결된 기본 검색은 활성 선호작이 없으면 global corpus로 자동 확대하지 않는다. 활성 작품 ID 집합은 실제 Nadeshiko 검색 조건과 cache identity에 함께 들어가며, 동일 조건 cache hit·다른 작품 조건 cache miss·기존 조건 없는 cache와의 분리를 offline/live로 확인했다. DB schema는 v1을 그대로 유지했고 새 dependency는 추가하지 않았다.
-선호작으로 좁힌 corpus에서는 일부 표현 recall이 전 corpus보다 더 줄 수 있다는 제한은 남아 있으며, 실제 사용에서 병목으로 확인될 때만 영어 fallback이나 후보 튜닝을 다시 검토한다.
+작업 8은 **100 passed, 15 skipped**, Ruff와 `git diff --check` PASS, translation live **1 passed**로 완료됐다. 정확 후보에만 `get_segment_context(take=2)`를 호출하고 같은 작품·화에서 가장 가까운 앞/뒤 대사를 선택한다. 원본 context는 `(segment_public_id, take)` 기준으로 SQLite에 캐시하며 여러 장면을 한 Instructor 구조화 요청으로 번역한다. AI 출력 scene key의 중복·누락·미지 ID를 저장 전에 거부하고, 기존 AI cache를 service/model/지시문 버전/실제 입력 기준으로 재사용한다. 번역이 사용자 판정보다 먼저 존재할 수 있도록 DB schema를 v2로 올려 `reviews.decision`을 nullable로 만들고 번역 provenance를 추가했으며, 기존 v1 DB는 `Connection.backup()` 후 transaction에서 v2로 migration한다. 번역 저장은 사용자 decision/notes를 보존하고 decision 변경은 기존 번역을 지우지 않는다. 실제 Google `gemini-3.6-flash` live에서는 세 장면을 한 batch로 번역했고 같은 DB 재실행과 reopen 후 Nadeshiko context·AI provider 추가 호출이 발생하지 않았다.
+선호작으로 좁힌 corpus에서는 일부 표현 recall이 전 corpus보다 더 줄 수 있다는 제한은 남아 있으며, 실제 사용에서 병목으로 확인될 때만 영어 fallback이나 후보 튜닝을 다시 검토한다. Task 8의 짧은 `大丈夫` 샘플에서는 직접 의미와 자연번역이 거의 같게 나왔지만 자연스러운 결과였고, 더 복잡한 생략·간접 표현에서의 번역 품질은 실제 사용에서 필요할 때 재확인한다.
 
 상세 구현 계획·자료구조·통과 기준·오류 시험·개발량 추정은 `SCENE_COLLECTOR_PLAN.md`가 실행 계획이다.
 
@@ -182,11 +183,11 @@ Nadeshiko 수록 범위가 실제 병목이 되면 그때 기존 오픈소스/�
 - 기준 약 52시간
 - Windows/영상/AI 호환 문제가 여러 번 발생하면 약 65~75시간
 
-이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. 작업 0~7의 핵심 검색·저장·캐시·선호작 관리 검증과 검색 recall 검증은 완료됐으며, 이제 기존 계획의 작업 8로 넘어간다.
+이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. 작업 0~8의 핵심 검색·저장·캐시·선호작·번역 검증과 검색 recall 검증은 완료됐으며, 이제 기존 계획의 작업 9로 넘어간다.
 
 ## 지금 딱 한 단계
 
-**0화 구성은 계속 유지하면서, 장면 수집기의 작업 8 — 한국어 장면 번역을 진행한다.**
+**0화 구성은 계속 유지하면서, 장면 수집기의 작업 9 — 화면 기술 확인을 진행한다.**
 
 현재 목표 순서:
 1. 확보된 촬영물에서 0화에 들어갈 실제 사건/반응 후보를 선별해 0화를 구성한다.
@@ -200,10 +201,11 @@ Nadeshiko 수록 범위가 실제 병목이 되면 그때 기존 오픈소스/�
 9. Nadeshiko pagination을 이용한 정확 surface recall 검증: **완료 — 상위 200까지 세 문제 target 0건, 제품 pagination 미적용**.
 10. 작업 6 — SQLite·캐시·자료구조 버전: **완료**.
 11. 작업 7 — 선호 애니 관리: **완료**.
-12. 작업 8 — 한국어 장면 번역: **다음 작업**.
-13. 실제 검수 흐름과 영상/UI 병목이 확인된 뒤에만 화면과 추가 자동화를 붙인다.
+12. 작업 8 — 한국어 장면 번역: **완료**.
+13. 작업 9 — NiceGUI / pywebview Windows MP4 연속 재생 비교: **다음 작업**.
+14. 실제 Windows 영상/UI 시험 결과로 하나의 화면 기술만 선택한 뒤 기존 검증 기능을 UI에 연결한다.
 
-즉 현재 우선순위는 새로운 검색 시스템이나 저장 계층을 더 만드는 것이 아니라 **0화 구성 + 활성 선호작에서 살아남은 정확 후보에 필요한 앞뒤 문맥을 조회하고 한국어 번역·쓰임을 저장·재사용하는 것**이다.
+즉 현재 우선순위는 새로운 검색·번역 알고리즘을 더 만드는 것이 아니라 **0화 구성 + NiceGUI와 pywebview를 작은 Windows MP4 시험으로 실제 비교해 화면 기술 하나를 선택하는 것**이다.
 
 ## 운영 원칙
 
