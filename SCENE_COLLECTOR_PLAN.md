@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6 완료 / 다음 작업 7**
+상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6·7 완료 / 다음 작업 8**
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -59,7 +59,7 @@ Nadeshiko 수록 범위가 실제 병목으로 확인되기 전에는 로컬 자
 - API 키 인증
 - `search`
 - `iter_search`를 통한 페이지 자동 순회
-- `get_media`, `list_media`
+- `search_media`, `get_media`, `list_media`
 - `get_segment`
 - `get_segment_context`
 - `get_me`를 통한 사용자/사용량 확인
@@ -251,12 +251,12 @@ AI가 만든 일본어 표현이 실제 애니에 존재한다고 가정하지 �
 ## 8. 사용자 선호 작품
 
 작품 이름 문자열을 내부 식별자로 사용하지 않는다.
-Nadeshiko의 작품 ID를 저장한다.
+Nadeshiko의 작품 public ID를 저장한다.
 
 최소 저장 항목:
 
 ```text
-Nadeshiko 작품 ID
+Nadeshiko 작품 public ID
 표시 작품명
 선호도
 사용자 콘텐츠 묶음
@@ -267,6 +267,12 @@ Nadeshiko 작품 ID
 미시청·무관심 작품으로 자동 확대하지 않는다.
 
 `극장판`, `TV 소년만화` 같은 묶음은 단순 기술 분류와 분리된 **사용자 편성 기준**으로 저장한다.
+
+작업 7에서 공식 SDK의 `search_media`·`get_media`로 작품 metadata를 조회하고 기존 SQLite v1 `media` table을 그대로 재사용했다. 내부 식별자는 Nadeshiko public media ID이며 표시명은 metadata다. preference는 nullable integer, content group은 자유 문자열/None, `is_active`가 기본 검색 포함 여부를 결정한다.
+
+DB가 연결된 제품 검색에서는 활성 작품 ID를 `SearchFilters.media.include`로 Nadeshiko 요청 자체에 전달한다. 활성 작품이 하나도 없으면 global corpus로 자동 fallback하지 않고 명확한 오류를 낸다. 활성 작품 ID 집합은 정렬된 canonical 조건으로 Nadeshiko search cache identity에도 포함해 조건 없는 기존 cache나 다른 작품 조건과 섞이지 않게 한다.
+
+작업 7 전체 pytest는 **84 passed, 14 skipped**, Ruff·`git diff --check` PASS, media live **1 passed**다. 실제 metadata 조회와 media-filtered 대사 검색, 동일 조건 cache hit를 확인했고 DB schema·dependency는 변경하지 않았다.
 
 ## 9. Nadeshiko 요청량 줄이기
 
@@ -291,7 +297,8 @@ Nadeshiko 사용량은 프로그램 시작 시 기억한 숫자를 믿지 않고
 
 작업 6 진입 전 recall 검증에서 `ほんとそれ`, `ん？なんて？`, `今、何してるんですか？`를 각각 상위 200 segment까지 cursor pagination으로 확인했지만 정확 surface는 0건이었다. `大丈夫ですか？`는 첫 20건에서 17건, `もう一回言って。`는 전체 17건에서 2건을 회수했다. pagination은 기술적으로 정상이나 세 문제 target의 recall을 개선하지 못했으므로 **제품 검색에는 추가 pagination을 넣지 않는다.** 이 제한은 corpus 부족·희귀/긴 AI 후보·rank 200 이후 존재 가능성·향후 영어 fallback 필요 가능성으로 기록하고 실제 사용에서 재평가한다.
 
-작업 6에서는 Nadeshiko 원본 `SearchResponse`를 SQLite에 별도 cache하고 복원 후에도 기존 local surface matcher를 다시 적용하도록 구현했다. cache identity는 검색 문자열·`exact_match`·`take`·검색 조건을 구분할 수 있게 두었고, Task 7에서 작품 필터가 실제 검색 조건으로 들어가면 그 조건도 같은 identity에 포함한다.
+작업 6에서는 Nadeshiko 원본 `SearchResponse`를 SQLite에 별도 cache하고 복원 후에도 기존 local surface matcher를 다시 적용하도록 구현했다. cache identity는 검색 문자열·`exact_match`·`take`·검색 조건을 구분한다.
+작업 7부터 활성 media ID 집합도 검색 조건 JSON에 포함되며, 같은 작품 집합은 cache hit하고 다른 작품 조건이나 조건 없는 기존 cache는 재사용하지 않는다.
 
 ## 10. 한국어 번역
 
@@ -326,6 +333,8 @@ Nadeshiko 번역 정보
 - 입력 내용 해시
 
 같은 입력·모델·지시문 버전이면 저장된 결과를 우선 재사용한다.
+
+Task 8에서는 이미 정확 surface와 활성 선호작 필터를 통과한 후보만 대상으로 `get_segment_context`를 호출한다. 앞/현재/뒤 문맥과 Nadeshiko 번역 정보를 구조화 입력으로 묶고, 가능한 범위에서 여러 장면을 한 AI 요청으로 번역한다. Task 6의 AI cache를 재사용해 service/model/지시문 버전/실제 입력 내용이 같을 때만 결과를 재사용하며, 번역 결과는 기존 review의 직접 의미·자연번역·장면 쓰임 필드에 저장할 수 있게 연결한다.
 
 ## 11. 설정과 이동식 SSD
 
@@ -432,6 +441,8 @@ Task 6 구현 원칙:
 - 향후 실제 schema 변경 전 `sqlite3.Connection.backup()`으로 같은 작업 데이터 위치에 백업
 - WAL은 기본 활성화하지 않고 rollback journal 유지
 - 새 ORM·migration framework·DB dependency는 추가하지 않음
+
+Task 7은 기존 v1 `media` column으로 충분해 schema version을 올리지 않았다.
 
 ## 13. 영상 저장과 내보내기
 
@@ -542,10 +553,10 @@ NiceGUI는 현재 native mode와 PyInstaller 기반 패키징을 공식 지원�
 
 목표는 오류 자체를 숨기는 것이 아니라 **사용자 작업 데이터를 잃지 않고 원인을 알 수 있게 하는 것**이다.
 
-## 17. Codex 개발 방식
+## 17. 개발 방식
 
-Codex에게 앱 전체를 한 번에 생성하지 않는다.
-OpenAI의 현재 Codex 권장 방식처럼 작업을 GitHub Issue 수준으로 좁히고, 반복 규칙은 작업 폴더 안의 `AGENTS.md`로 제공한다.
+앱 전체를 한 번에 생성하지 않는다.
+작업을 GitHub Issue 수준으로 좁히고, 반복 규칙은 작업 폴더 안의 `AGENTS.md`로 제공한다. Codex나 Claude Code 등 실제 구현 도구가 달라져도 current truth와 저장소 규칙은 동일하다.
 
 구현 시작 시 예상 위치:
 
@@ -585,7 +596,7 @@ tools/
 - 작업 완료 후 `uv run pytest`, `uv run ruff check .`
 - 현재 작업 범위 밖의 개선을 같은 변경에 끼워 넣지 않음
 
-## 18. Codex 작업 단위
+## 18. 개발 작업 단위
 
 ### 작업 0 — 개발 골격
 
@@ -690,7 +701,9 @@ Instructor 사용.
 
 Nadeshiko 작품 검색 → 작품 ID 저장 → 선호도·콘텐츠 묶음·활성 여부.
 
-Task 6 현재 DB는 search 결과에서 Nadeshiko 작품 ID를 `media`에 저장하지만 표시 작품명·선호도·콘텐츠 묶음은 아직 채우지 않는다. Task 7에서는 공식 SDK 작품 metadata로 `media`를 채우고 사용자가 활성화한 선호작 조건을 기본 검색에 적용한다. 작품 조건이 검색 결과에 영향을 주므로 Nadeshiko search cache identity에도 같은 조건을 포함해야 한다.
+상태: **완료**. 공식 `nadeshiko-sdk==2.3.7`의 `search_media`·`get_media`·`SearchFilters.media.include`를 사용해 Nadeshiko public media ID 기반 작품 관리와 활성 선호작 검색을 연결했다. 기존 SQLite v1 `media` table을 재사용해 preference/content_group/is_active를 보존하며 metadata를 갱신하고, DB가 연결된 제품 검색은 활성 작품이 없을 때 global corpus로 자동 fallback하지 않는다. 활성 media ID 집합은 Nadeshiko search cache 조건에도 포함한다. 전체 pytest **84 passed, 14 skipped**, Ruff·`git diff --check` PASS, media live **1 passed**를 확인했고 schema와 dependency는 변경하지 않았다.
+
+현재 제한: 실제 사용자 선호작 목록은 UI 전이라 아직 직접 등록 경로가 필요하고, 선호작 corpus로 좁힐수록 일부 표현 recall이 더 낮아질 수 있다. 이 제한은 실사용에서 확인된 경우에만 검색 전략을 다시 연다.
 
 ### 작업 8 — 한국어 장면 번역
 
@@ -731,9 +744,9 @@ Nadeshiko MP4 연속 재생과 Windows 실행이 더 안정적인 쪽 하나만 
 - Windows/영상/AI 호환 문제가 여러 번 발생: 약 **65~75시간**
 
 확정 계약 시간이 아니라 불확실성 관리용 추정이다.
-작업 0~6의 핵심 검색·연결·저장·캐시 검증과 검색 recall 검증은 완료됐으며, 남은 개발은 기존 작업 7~13 기준으로 이어간다.
+작업 0~7의 핵심 검색·연결·저장·캐시·선호작 관리 검증과 검색 recall 검증은 완료됐으며, 남은 개발은 기존 작업 8~13 기준으로 이어간다.
 
-Codex 사용으로 코드 작성 시간은 줄 수 있지만 실제 API 동작, Windows 영상 재생, SSD 이동, 사용자 작업 흐름 검증 시간까지 자동으로 사라진다고 가정하지 않는다.
+AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작, Windows 영상 재생, SSD 이동, 사용자 작업 흐름 검증 시간까지 자동으로 사라진다고 가정하지 않는다.
 
 ## 20. 경력 10년차 협업 개발자 관점 검토 결과
 
@@ -836,10 +849,11 @@ Codex 사용으로 코드 작성 시간은 줄 수 있지만 실제 API 동작, 
 
 ## 24. 바로 다음 작업
 
-**Codex 작업 7 — 선호 애니 관리**부터 진행한다.
+**작업 8 — 한국어 장면 번역**부터 진행한다.
 
-작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전은 완료되어 `main`에 반영됐다.
+작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전, 작업 7 — 선호 애니 관리는 완료되어 `main`에 반영됐다.
 검색 recall 검증도 닫았다. 세 문제 target을 상위 200건까지 확인해도 정확 surface가 없었고 pagination의 제품 적용 이득이 확인되지 않았으므로 검색 계층을 더 늘리지 않는다.
 Task 6에서는 SQLite v1 schema, 파일 DB 재시작 복원, review, AI cache, Nadeshiko raw search cache, foreign key, 명시적 transaction/rollback, `PRAGMA user_version`, 구조 변경 전 backup까지 offline으로 검증했다.
-다음 Task 7에서는 기존 `media` table을 재사용해 Nadeshiko 공식 작품 metadata를 채우고 선호도·콘텐츠 묶음·활성 여부를 관리한다. 기본 검색은 활성 선호작 조건을 사용하게 하고, 같은 작품 조건을 Nadeshiko cache identity에도 전달한다.
-번역, UI, 영상 저장, 추가 검색 알고리즘은 작업 7에 섞지 않는다.
+Task 7에서는 Nadeshiko public media ID 기반 선호작 관리와 `SearchFilters.media.include` 기반 활성 작품 검색을 구현했다. media 조건은 Nadeshiko cache identity에도 포함되며 활성 작품이 없으면 global corpus로 자동 확대하지 않는다.
+다음 Task 8에서는 정확 surface와 활성 선호작 필터를 통과한 후보에만 앞뒤 문맥을 조회하고, 앞/현재/뒤 일본어와 Nadeshiko 번역 정보를 묶어 AI가 직접 의미·자연스러운 한국어·장면 쓰임을 구조화 반환하게 한다. 여러 장면을 가능한 범위에서 묶고 Task 6 AI cache를 재사용하며, 결과는 기존 review 저장 구조에 연결한다.
+UI, 영상 저장, 추가 검색 알고리즘은 작업 8에 섞지 않는다.
