@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 진행 중 / 작업 0·1·2·3·4·5 완료 / 다음 작업 6**
+상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6 완료 / 다음 작업 7**
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -291,6 +291,8 @@ Nadeshiko 사용량은 프로그램 시작 시 기억한 숫자를 믿지 않고
 
 작업 6 진입 전 recall 검증에서 `ほんとそれ`, `ん？なんて？`, `今、何してるんですか？`를 각각 상위 200 segment까지 cursor pagination으로 확인했지만 정확 surface는 0건이었다. `大丈夫ですか？`는 첫 20건에서 17건, `もう一回言って。`는 전체 17건에서 2건을 회수했다. pagination은 기술적으로 정상이나 세 문제 target의 recall을 개선하지 못했으므로 **제품 검색에는 추가 pagination을 넣지 않는다.** 이 제한은 corpus 부족·희귀/긴 AI 후보·rank 200 이후 존재 가능성·향후 영어 fallback 필요 가능성으로 기록하고 실제 사용에서 재평가한다.
 
+작업 6에서는 Nadeshiko 원본 `SearchResponse`를 SQLite에 별도 cache하고 복원 후에도 기존 local surface matcher를 다시 적용하도록 구현했다. cache identity는 검색 문자열·`exact_match`·`take`·검색 조건을 구분할 수 있게 두었고, Task 7에서 작품 필터가 실제 검색 조건으로 들어가면 그 조건도 같은 identity에 포함한다.
+
 ## 10. 한국어 번역
 
 Nadeshiko의 영어 번역을 그대로 최종 한국어 번역으로 사용하지 않는다.
@@ -350,7 +352,9 @@ Nadeshiko 번역 정보
 
 ## 12. SQLite 자료 구조
 
-첫 버전 최소 테이블:
+Task 6에서 첫 실제 schema v1을 구현했다. DB는 `<work_data_dir>/scene_collector.sqlite3`에 두고 Python 표준 `sqlite3`만 사용한다.
+
+현재 table:
 
 ### media
 - 내부 ID
@@ -370,6 +374,7 @@ Nadeshiko 번역 정보
 ### expressions
 - 표현 ID
 - 검색 ID
+- 후보 순서
 - 일본어
 - 읽기
 - 한국어 의미
@@ -377,31 +382,56 @@ Nadeshiko 번역 정보
 - 선택 여부
 
 ### segments
+- 내부 ID
 - Nadeshiko 장면 ID
-- 작품 ID
-- 화수
-- 시작/종료 시각
+- 작품 연결
+- 위치/화수/시작·종료 시각
 - 일본어 원문
 - 영상/음성/이미지 주소
-- 원문 응답 저장값
+- Nadeshiko 원문 응답 JSON
+
+### expression_segments
+- 표현 ID
+- 장면 ID
+- 표현 안의 장면 순서
+
+같은 Nadeshiko segment를 여러 검색·표현이 공유할 수 있으므로 segment 원문을 중복 저장하지 않고 관계 table로 연결한다.
 
 ### reviews
-- 장면 ID
+- 표현 ID + 장면 ID
 - 판정: `채택 / 예비 / 제외`
 - 직접 의미
 - 자연번역
 - 장면 쓰임
 - 메모
+- 갱신 시각
 
 ### ai_cache
 - 요청 해시
+- 입력 해시
 - 서비스/모델
 - 지시문 버전
 - 반환 JSON
 - 생성 시각
 
-첫 버전에서는 별도 DB 이전 도구를 넣지 않는다.
-`PRAGMA user_version`으로 자료구조 버전을 관리하고, 구조 변경 전 DB 백업 → 변경 → 성공 확인 순서를 지킨다.
+### nadeshiko_search_cache
+- 요청 해시
+- 검색 문자열
+- exact 여부
+- take
+- 검색 조건 JSON
+- 원본 `SearchResponse` JSON
+- 생성 시각
+
+Task 6 구현 원칙:
+- `SCHEMA_VERSION = 1`
+- `PRAGMA user_version`으로 자료구조 버전 관리
+- 모든 연결에서 foreign key 활성화와 실제 활성 여부 확인
+- 명시적 transaction/rollback
+- 현재 코드보다 높은 미래 schema는 write 없이 거부
+- 향후 실제 schema 변경 전 `sqlite3.Connection.backup()`으로 같은 작업 데이터 위치에 백업
+- WAL은 기본 활성화하지 않고 rollback journal 유지
+- 새 ORM·migration framework·DB dependency는 추가하지 않음
 
 ## 13. 영상 저장과 내보내기
 
@@ -654,9 +684,13 @@ Instructor 사용.
 - `PRAGMA user_version`
 - 구조 변경 전 백업
 
+상태: **완료**. Python 표준 `sqlite3`만 사용해 v1 schema를 구현했고 전체 pytest **72 passed, 13 skipped**, Ruff·`git diff --check` PASS를 확인했다. 파일 DB 재개방 후 검색·표현·공유 segment·review·AI/Nadeshiko cache가 유지되는 것을 검증했다. AI cache와 Nadeshiko raw search cache는 실제 코드 경로에 연결해 동일 fake 외부 호출이 재실행되지 않는 것을 확인했다. `PRAGMA user_version=1`, foreign key, 명시적 transaction/rollback, `Connection.backup()` 기반 구조 변경 전 백업을 적용했고 WAL·ORM·새 dependency는 추가하지 않았다.
+
 ### 작업 7 — 선호 애니 관리
 
 Nadeshiko 작품 검색 → 작품 ID 저장 → 선호도·콘텐츠 묶음·활성 여부.
+
+Task 6 현재 DB는 search 결과에서 Nadeshiko 작품 ID를 `media`에 저장하지만 표시 작품명·선호도·콘텐츠 묶음은 아직 채우지 않는다. Task 7에서는 공식 SDK 작품 metadata로 `media`를 채우고 사용자가 활성화한 선호작 조건을 기본 검색에 적용한다. 작품 조건이 검색 결과에 영향을 주므로 Nadeshiko search cache identity에도 같은 조건을 포함해야 한다.
 
 ### 작업 8 — 한국어 장면 번역
 
@@ -697,7 +731,7 @@ Nadeshiko MP4 연속 재생과 Windows 실행이 더 안정적인 쪽 하나만 
 - Windows/영상/AI 호환 문제가 여러 번 발생: 약 **65~75시간**
 
 확정 계약 시간이 아니라 불확실성 관리용 추정이다.
-작업 0~5의 핵심 검색·연결 기술 검증과 검색 recall 검증은 완료됐으며, 남은 개발량은 기존 작업 6~13 기준으로 이어간다.
+작업 0~6의 핵심 검색·연결·저장·캐시 검증과 검색 recall 검증은 완료됐으며, 남은 개발은 기존 작업 7~13 기준으로 이어간다.
 
 Codex 사용으로 코드 작성 시간은 줄 수 있지만 실제 API 동작, Windows 영상 재생, SSD 이동, 사용자 작업 흐름 검증 시간까지 자동으로 사라진다고 가정하지 않는다.
 
@@ -802,9 +836,10 @@ Codex 사용으로 코드 작성 시간은 줄 수 있지만 실제 API 동작, 
 
 ## 24. 바로 다음 작업
 
-**Codex 작업 6 — 저장·캐시·자료구조 버전**부터 진행한다.
+**Codex 작업 7 — 선호 애니 관리**부터 진행한다.
 
-작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사는 완료되어 `main`에 반영됐다.
-작업 6 진입 전 recall 검증도 완료했다. `ほんとそれ`, `ん？なんて？`, `今、何してるんですか？`를 각각 상위 200건까지 확인했지만 정확 surface는 0건이었다. pagination은 정상이나 회수 개선 효과가 확인되지 않아 제품 코드에는 넣지 않는다. 이 결과는 검색 제한으로 남기고 별도 검색 시스템을 추가하지 않는다.
-다음 작업 6에서는 지금까지 검증된 검색 흐름을 재설계하지 않고, SQLite에 검색 기록·표현·장면·검수 상태를 저장하고 같은 AI/Nadeshiko 요청의 불필요한 반복 호출을 줄이는 캐시를 최소 구현한다. `PRAGMA user_version`과 구조 변경 전 백업 원칙도 함께 적용한다.
-선호작 관리, 번역, UI, 영상 저장, 추가 검색 알고리즘은 작업 6에 섞지 않는다.
+작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전은 완료되어 `main`에 반영됐다.
+검색 recall 검증도 닫았다. 세 문제 target을 상위 200건까지 확인해도 정확 surface가 없었고 pagination의 제품 적용 이득이 확인되지 않았으므로 검색 계층을 더 늘리지 않는다.
+Task 6에서는 SQLite v1 schema, 파일 DB 재시작 복원, review, AI cache, Nadeshiko raw search cache, foreign key, 명시적 transaction/rollback, `PRAGMA user_version`, 구조 변경 전 backup까지 offline으로 검증했다.
+다음 Task 7에서는 기존 `media` table을 재사용해 Nadeshiko 공식 작품 metadata를 채우고 선호도·콘텐츠 묶음·활성 여부를 관리한다. 기본 검색은 활성 선호작 조건을 사용하게 하고, 같은 작품 조건을 Nadeshiko cache identity에도 전달한다.
+번역, UI, 영상 저장, 추가 검색 알고리즘은 작업 7에 섞지 않는다.
