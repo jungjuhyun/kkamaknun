@@ -156,13 +156,14 @@ OBS 멀티트랙 저장 기술 검증은 **완료**했다.
 - 의미 임베딩·자동 군집화
 - Jiten/AniList 자동 점수
 - FiftyOne
-- Jimaku 자동 대체 검색
-- 로컬 전체 자막 색인
-- FFmpeg 자동 재편집
+- Jimaku 자동 대체 검색·자동 다운로드
+- 로컬 애니 라이브러리 전체 자동 색인 (사용자가 직접 확보한 자막의 작품 단위 fallback 색인은 아래 병목 확인 후 도입)
+- STT(Whisper 등) 기반 대사 추출
+- FFmpeg 자동 재편집·자동 클리핑
 - 자동 영상 제작
 
-Nadeshiko 수록 범위가 실제 병목이 되면 그때 기존 오픈소스/도구를 다시 평가한다.
-문제가 생기기 전에 대체 계층을 미리 만들지 않는다.
+`문제가 생기기 전에 대체 계층을 미리 만들지 않는다`는 원칙은 유지했고, 실제로 병목이 확인될 때까지 로컬 자막 경로를 만들지 않았다.
+2026-08-28 실제 제작 대상 작품군에서 Nadeshiko 미수록 작품이 확인되어 병목 조건이 충족됐고, 그에 따라 **local timed Japanese subtitle fallback**을 도입했다. 원칙 폐기가 아니라 원칙이 정한 진입 조건이 충족되어 다음 단계로 넘어간 것이다.
 
 장면 수집기 개발은 앱 전체를 한 번에 생성하지 않고 **작업 0~13의 작은 작업 단위**로 진행한다.
 **작업 0 — 개발 골격**, **작업 1 — 설정**, **작업 2 — Nadeshiko 실제 연결 확인**, **작업 3 — AI 실제 연결 확인**, **작업 4 — 한국어 표현 찾기**, **작업 5 — 정확 동일표현 검사**, **작업 6 — 저장·캐시·자료구조 버전**, **작업 7 — 선호 애니 관리**, **작업 8 — 한국어 장면 번역**은 완료되어 `main`에 반영됐다.
@@ -176,6 +177,16 @@ Nadeshiko 수록 범위가 실제 병목이 되면 그때 기존 오픈소스/�
 작업 8은 **100 passed, 15 skipped**, Ruff와 `git diff --check` PASS, translation live **1 passed**로 완료됐다. 정확 후보에만 `get_segment_context(take=2)`를 호출하고 같은 작품·화에서 가장 가까운 앞/뒤 대사를 선택한다. 원본 context는 `(segment_public_id, take)` 기준으로 SQLite에 캐시하며 여러 장면을 한 Instructor 구조화 요청으로 번역한다. AI 출력 scene key의 중복·누락·미지 ID를 저장 전에 거부하고, 기존 AI cache를 service/model/지시문 버전/실제 입력 기준으로 재사용한다. 번역이 사용자 판정보다 먼저 존재할 수 있도록 DB schema를 v2로 올려 `reviews.decision`을 nullable로 만들고 번역 provenance를 추가했으며, 기존 v1 DB는 `Connection.backup()` 후 transaction에서 v2로 migration한다. 번역 저장은 사용자 decision/notes를 보존하고 decision 변경은 기존 번역을 지우지 않는다. 실제 Google `gemini-3.6-flash` live에서는 세 장면을 한 batch로 번역했고 같은 DB 재실행과 reopen 후 Nadeshiko context·AI provider 추가 호출이 발생하지 않았다.
 선호작으로 좁힌 corpus에서는 일부 표현 recall이 전 corpus보다 더 줄 수 있다는 제한은 남아 있으며, 실제 사용에서 병목으로 확인될 때만 영어 fallback이나 후보 튜닝을 다시 검토한다. Task 8의 짧은 `大丈夫` 샘플에서는 직접 의미와 자연번역이 거의 같게 나왔지만 자연스러운 결과였고, 더 복잡한 생략·간접 표현에서의 번역 품질은 실제 사용에서 필요할 때 재확인한다.
 
+## 로컬 자막 fallback — 검수 PASS, main merge 대기
+
+Nadeshiko 미수록 작품 병목이 실제로 확인된 뒤 진행한 확장이며, 현재 `claude/scene-collector-subtitle-poc` 브랜치(`be0574a`)에 있고 **아직 main에 merge되지 않았다.**
+
+- **POC 검증 완료**: 사용자가 직접 확보한 일본어 timed subtitle(SRT/ASS) 폴더에서 표현 → 화수 → 타임코드 → 실제 원본 장면 탐색 경로를 확인했다. 저장소 밖 진격의 거인 S1 5화 분량 fixture에서 1,559개 cue를 파싱해 시험 표현 5개 전부 실제 장면과 정확한 타임코드를 회수했다. 자막과 원본 판본 차이로 ±15초 안팎의 offset이 화마다 있을 수 있다.
+- **제품 통합 구현**: DB schema v3(`media.source`가 'nadeshiko'/'local'을 구분, 로컬 작품은 Nadeshiko ID 없음, `local_segments` 색인 table). 한 번의 한국어 검색이 활성 Nadeshiko 작품은 기존 공식 검색으로, 활성 로컬 작품은 색인 LIKE 1차 축소 후 기존 Task 5 surface matcher 최종 판정으로 함께 회수한다. 로컬 작품은 Nadeshiko media filter·cache 조건에 섞이지 않고, 활성 Nadeshiko 작품이 없으면 Nadeshiko API를 호출하지 않는다. 기존 v1/v2 DB는 단계별 백업 후 순차 migration한다.
+- **코드 검수 PASS** (2026-08-28): main 대비 변경이 `tools/scene_collector` 안으로 한정되고, pytest **112 passed, 15 skipped**(live 전부 skip, API 비용 0)·Ruff·`git diff --check` PASS, migration 실패 주입 시 원본 데이터 보존까지 확인했다.
+- **여전히 범위 밖**: Jimaku 자동 대체 검색·자동 다운로드, STT(Whisper 등), FFmpeg 자동 클리핑, UI, 로컬 장면의 번역·검수 저장 연결.
+- **다음 행동**: 사용자 승인 하에 main merge를 완료한다. merge 전에는 이 기능을 완료로 취급하지 않는다.
+
 상세 구현 계획·자료구조·통과 기준·오류 시험·개발량 추정은 `SCENE_COLLECTOR_PLAN.md`가 실행 계획이다.
 
 현재 개발량 추정은 사람 개발자 기준:
@@ -183,11 +194,11 @@ Nadeshiko 수록 범위가 실제 병목이 되면 그때 기존 오픈소스/�
 - 기준 약 52시간
 - Windows/영상/AI 호환 문제가 여러 번 발생하면 약 65~75시간
 
-이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. 작업 0~8의 핵심 검색·저장·캐시·선호작·번역 검증과 검색 recall 검증은 완료됐으며, 이제 기존 계획의 작업 9로 넘어간다.
+이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. 작업 0~8의 핵심 검색·저장·캐시·선호작·번역 검증과 검색 recall 검증은 완료됐고, 로컬 자막 fallback 확장은 검수 PASS 후 merge 대기다. 개발의 다음 작업은 기존 계획의 작업 9다.
 
 ## 지금 딱 한 단계
 
-**0화 구성은 계속 유지하면서, 장면 수집기의 작업 9 — 화면 기술 확인을 진행한다.**
+**로컬 자막 fallback 브랜치의 main merge를 사용자 승인 하에 마무리한 뒤, 0화 구성은 계속 유지하면서 장면 수집기의 작업 9 — 화면 기술 확인을 진행한다.**
 
 현재 목표 순서:
 1. 확보된 촬영물에서 0화에 들어갈 실제 사건/반응 후보를 선별해 0화를 구성한다.
@@ -202,8 +213,9 @@ Nadeshiko 수록 범위가 실제 병목이 되면 그때 기존 오픈소스/�
 10. 작업 6 — SQLite·캐시·자료구조 버전: **완료**.
 11. 작업 7 — 선호 애니 관리: **완료**.
 12. 작업 8 — 한국어 장면 번역: **완료**.
-13. 작업 9 — NiceGUI / pywebview Windows MP4 연속 재생 비교: **다음 작업**.
-14. 실제 Windows 영상/UI 시험 결과로 하나의 화면 기술만 선택한 뒤 기존 검증 기능을 UI에 연결한다.
+13. 로컬 timed subtitle fallback (POC + 제품 통합): **코드 검수 PASS — `claude/scene-collector-subtitle-poc`, main merge는 사용자 승인 대기**.
+14. 작업 9 — NiceGUI / pywebview Windows MP4 연속 재생 비교: **다음 개발 작업**.
+15. 실제 Windows 영상/UI 시험 결과로 하나의 화면 기술만 선택한 뒤 기존 검증 기능을 UI에 연결한다.
 
 즉 현재 우선순위는 새로운 검색·번역 알고리즘을 더 만드는 것이 아니라 **0화 구성 + NiceGUI와 pywebview를 작은 Windows MP4 시험으로 실제 비교해 화면 기술 하나를 선택하는 것**이다.
 

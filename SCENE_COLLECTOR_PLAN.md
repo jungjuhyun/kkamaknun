@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6·7·8 완료 / 다음 작업 9**
+상태: **개발 진행 중 / 작업 0·1·2·3·4·5·6·7·8 완료 / 로컬 자막 fallback 검수 PASS·main merge 대기 / 다음 개발 작업 9**
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -46,7 +46,9 @@
 - 자동 영상 편집
 - 서버·클라우드·계정·다중 사용자 기능
 
-Nadeshiko 수록 범위가 실제 병목으로 확인되기 전에는 로컬 자막 색인이나 Jimaku 대체 경로를 구현하지 않는다.
+`Nadeshiko 수록 범위가 실제 병목으로 확인되기 전에는 로컬 자막 색인이나 Jimaku 대체 경로를 구현하지 않는다`는 원칙은 그대로 지켜졌다.
+2026-08-28 실제 제작 대상 작품군에서 Nadeshiko 미수록 작품이 확인되어 이 진입 조건이 충족됐고, 그에 따라 **사용자가 직접 확보한 일본어 timed subtitle의 작품 단위 로컬 색인**만 fallback으로 도입했다(작업 8 이후 확장 참조). 원칙의 폐기가 아니라 원칙이 정한 조건 충족에 따른 진행이다.
+Jimaku 자동 대체 검색·자동 다운로드는 여전히 구현하지 않는다.
 후보를 사람이 검수하기 전에 자동 감정·음향 순위 시스템부터 만들지 않는다.
 
 ## 4. 조사 후 채택한 기존 해결책
@@ -736,6 +738,26 @@ Nadeshiko 작품 검색 → 작품 ID 저장 → 선호도·콘텐츠 묶음·�
 
 전체 pytest **100 passed, 15 skipped**, Ruff·`git diff --check` PASS, translation live **1 passed**를 확인했다. 실제 Google `gemini-3.6-flash`에서 세 장면을 한 batch로 번역했고 같은 DB 재실행과 reopen 후 Nadeshiko context·AI provider 추가 호출이 발생하지 않았다. 이번 짧은 샘플의 번역 품질은 자연스러웠으며, 복잡한 생략·간접 표현은 실제 사용에서 필요할 때 재평가한다.
 
+### 작업 8 이후 확장 — 로컬 timed subtitle fallback
+
+작업 번호를 새로 만들지 않은 확장이다. 3절의 진입 조건(`Nadeshiko 수록 범위의 실제 병목 확인`)이 2026-08-28 실제 제작 대상 작품군에서 충족되어 진행했다.
+
+배경: 실제 제작 대상 작품군에 Nadeshiko 미수록 작품이 있어, 사용자가 직접 확보한 일본어 timed subtitle(SRT/ASS)을 해당 작품의 검색 corpus로 쓴다. 자막 파일은 저장소 밖 사용자 위치에 두고 자동 다운로드는 없다.
+
+POC(`experiments/subtitle_poc/search_subtitles.py`): 자막 폴더를 pysubs2로 파싱하고 기존 Task 5 surface matcher를 그대로 재사용해 **표현 → 화수 → 타임코드 → 실제 원본 장면 탐색** 경로를 검증했다. 저장소 밖 진격의 거인 S1 5화 fixture에서 1,559개 cue를 파싱해 시험 표현 5개 전부 실제 장면과 정확한 타임코드를 회수했다. 화수는 범용 파일명 패턴만 사용하고 작품별 전용 로직은 없다. 자막과 원본 판본 차이로 ±15초 안팎의 offset이 화마다 있을 수 있다.
+
+제품 통합(`claude/scene-collector-subtitle-poc`, `be0574a`):
+- DB `SCHEMA_VERSION = 3`: `media.source`('nadeshiko'/'local')를 추가하고 로컬 작품의 `nadeshiko_media_id`를 NULL로 허용(CHECK로 연동)하며 `local_segments` 색인 table을 추가했다. media 재작성은 SQLite 공식 절차(transaction 밖 foreign key OFF, commit 전 `PRAGMA foreign_key_check`)를 따르고, 기존 v1/v2 DB는 단계별 `backup_before_schema_change()` 후 순차 migration한다.
+- `subtitles.py`: 자막 폴더 파싱·화수 추정·작품 단위 색인. 같은 작품 재색인은 기존 색인을 통째로 교체한다.
+- 통합 검색: 활성 Nadeshiko 작품은 기존 공식 검색·cache 그대로, 활성 로컬 작품은 정규화 LIKE 1차 축소 후 기존 surface matcher 최종 판정. 로컬 작품은 Nadeshiko media filter·cache 조건에 섞이지 않고, 활성 Nadeshiko 작품이 없으면 Nadeshiko API를 호출하지 않는다(`response=None`).
+- 새 dependency는 검증된 `pysubs2==1.8.1` 하나만 고정 추가했다.
+
+코드 검수(2026-08-28): **PASS**. main 대비 변경이 `tools/scene_collector` 안으로 한정되고, 전체 pytest **112 passed, 15 skipped**(live 전부 skip, API 비용 0)·Ruff·`git diff --check` PASS를 확인했다. migration은 실제 시드된 v1/v2 DB로 데이터·참조 보존과 실패 주입 시 rollback까지 검증됐다.
+
+상태: **코드 검수 PASS — main merge는 사용자 승인 대기.** merge 전에는 완료로 취급하지 않는다.
+
+여전히 범위 밖: Jimaku 자동 대체 검색·자동 다운로드, STT(Whisper 등), FFmpeg 자동 클리핑, UI, 로컬 장면의 번역·검수 저장 연결. 로컬 장면의 번역·검수 연결은 실사용에서 필요가 확인될 때 별도 작업으로 연다.
+
 ### 작업 9 — 화면 기술 확인
 
 NiceGUI / pywebview를 작은 시험으로 비교.
@@ -852,9 +874,9 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 - 의미 임베딩/자동 군집화
 - Jiten 자동 점수
 - AniList 인기 점수
-- Jimaku 자동 검색
-- 로컬 애니 전체 자막 색인
-- Whisper
+- Jimaku 자동 검색·자동 다운로드
+- 로컬 애니 라이브러리 전체 자동 색인 (사용자가 직접 확보한 자막의 작품 단위 fallback 색인은 병목 확인 후 도입 — 작업 8 이후 확장 참조)
+- Whisper 등 STT 대사 추출
 - FFmpeg 자동 재편집
 - 자동 영상 제작
 - Anki 연동
@@ -875,12 +897,13 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 
 ## 24. 바로 다음 작업
 
-**작업 9 — 화면 기술 확인**부터 진행한다.
+**로컬 timed subtitle fallback 브랜치의 main merge(사용자 승인 필요)를 마무리한 뒤, 작업 9 — 화면 기술 확인**을 진행한다.
 
 작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전, 작업 7 — 선호 애니 관리, 작업 8 — 한국어 장면 번역은 완료되어 `main`에 반영됐다.
 검색 recall 검증도 닫았다. 세 문제 target을 상위 200건까지 확인해도 정확 surface가 없었고 pagination의 제품 적용 이득이 확인되지 않았으므로 검색 계층을 더 늘리지 않는다.
 Task 6에서는 SQLite v1 schema, 파일 DB 재시작 복원, review, AI cache, Nadeshiko raw search cache, foreign key, 명시적 transaction/rollback, `PRAGMA user_version`, 구조 변경 전 backup까지 offline으로 검증했다.
 Task 7에서는 Nadeshiko public media ID 기반 선호작 관리와 `SearchFilters.media.include` 기반 활성 작품 검색을 구현했다. media 조건은 Nadeshiko cache identity에도 포함되며 활성 작품이 없으면 global corpus로 자동 확대하지 않는다.
 Task 8에서는 정확 후보에만 앞뒤 문맥을 조회하고 여러 장면을 한 AI 구조화 요청으로 한국어 번역한다. context cache와 기존 AI cache를 재사용하며, DB schema v2에서 번역-before-review 상태와 provenance를 저장하고 v1 → v2 backup/migration을 검증했다.
+작업 8 이후 확장으로 Nadeshiko 미수록 작품 병목이 실제 확인되어 로컬 timed subtitle fallback(POC + 제품 통합, DB schema v3)을 구현했고 코드 검수 PASS를 받았다. 이 확장은 `claude/scene-collector-subtitle-poc` 브랜치에 있으며 **사용자 승인 하의 main merge가 남은 유일한 절차**다. merge 완료 후 이 문단과 상태 표기를 갱신한다.
 다음 Task 9에서는 **NiceGUI와 pywebview를 제품 전체 구현 전에 작은 Windows 시험으로 직접 비교**한다. 실제 Nadeshiko MP4의 연속 탐색·재생/일시정지·다음/이전 전환·한글/일본어 표시·Windows 실행을 확인해 더 안정적인 하나만 남기고 선택하지 않은 시험 코드는 제거한다.
 Task 9에서는 기존 검색·번역 알고리즘이나 실제 사용자 화면 전체를 구현하지 않는다.
