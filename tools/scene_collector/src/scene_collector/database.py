@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Literal, TypeVar
 from uuid import uuid4
 
-from nadeshiko.models import SearchResponse, Segment
+from nadeshiko.models import SearchResponse, Segment, SegmentContextResponse
 from pydantic import BaseModel, ValidationError
 
 from scene_collector.config import AppSettings
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
     from scene_collector.search import ExpressionSearchResult
 
 DATABASE_FILENAME = "scene_collector.sqlite3"
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 ReviewDecision = Literal["채택", "예비", "제외"]
 CachedResponse = TypeVar("CachedResponse", bound=BaseModel)
@@ -51,13 +51,22 @@ class StoredMedia:
 
 @dataclass(frozen=True)
 class StoredReview:
-    """표현에 연결된 장면의 사용자 검수 상태."""
+    """표현에 연결된 장면의 AI 번역과 사용자 검수 상태.
 
-    decision: ReviewDecision
+    decision이 None이면 번역은 존재하지만 사용자가 아직 판정하지 않은
+    상태다. translation_* provenance는 AI가 생성한 번역에만 채워진다.
+    """
+
+    decision: ReviewDecision | None
     direct_meaning: str | None
     natural_translation: str | None
     scene_usage: str | None
     notes: str | None
+    translation_ai_service: str | None
+    translation_ai_model: str | None
+    translation_instruction_version: str | None
+    translation_input_hash: str | None
+    translated_at: str | None
     updated_at: str
 
 
@@ -91,6 +100,41 @@ class StoredSearchRun:
     ai_model: str
     instruction_version: str
     expressions: tuple[StoredExpression, ...]
+
+
+def _reviews_table_ddl(table_name: str) -> str:
+    """새로 생성하는 v2 reviews와 migration 중간 table이 같은 구조를 쓰게 한다."""
+    return f"""
+    CREATE TABLE {table_name} (
+        expression_id INTEGER NOT NULL,
+        segment_id INTEGER NOT NULL,
+        decision TEXT CHECK (decision IN ('채택', '예비', '제외')),
+        direct_meaning TEXT,
+        natural_translation TEXT,
+        scene_usage TEXT,
+        notes TEXT,
+        translation_ai_service TEXT,
+        translation_ai_model TEXT,
+        translation_instruction_version TEXT,
+        translation_input_hash TEXT,
+        translated_at TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (expression_id, segment_id),
+        FOREIGN KEY (expression_id, segment_id)
+            REFERENCES expression_segments(expression_id, segment_id) ON DELETE CASCADE
+    )
+    """
+
+
+_CONTEXT_CACHE_TABLE_DDL = """
+    CREATE TABLE nadeshiko_context_cache (
+        segment_public_id TEXT NOT NULL,
+        context_take INTEGER NOT NULL CHECK (context_take > 0),
+        response_json TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        PRIMARY KEY (segment_public_id, context_take)
+    )
+    """
 
 
 _SCHEMA_STATEMENTS = (
@@ -156,21 +200,7 @@ _SCHEMA_STATEMENTS = (
         FOREIGN KEY (segment_id) REFERENCES segments(id)
     )
     """,
-    """
-    CREATE TABLE reviews (
-        expression_id INTEGER NOT NULL,
-        segment_id INTEGER NOT NULL,
-        decision TEXT NOT NULL CHECK (decision IN ('채택', '예비', '제외')),
-        direct_meaning TEXT,
-        natural_translation TEXT,
-        scene_usage TEXT,
-        notes TEXT,
-        updated_at TEXT NOT NULL,
-        PRIMARY KEY (expression_id, segment_id),
-        FOREIGN KEY (expression_id, segment_id)
-            REFERENCES expression_segments(expression_id, segment_id) ON DELETE CASCADE
-    )
-    """,
+    _reviews_table_ddl("reviews"),
     """
     CREATE TABLE ai_cache (
         request_hash TEXT PRIMARY KEY,
@@ -194,8 +224,26 @@ _SCHEMA_STATEMENTS = (
         created_at TEXT NOT NULL
     )
     """,
+    _CONTEXT_CACHE_TABLE_DDL,
     "CREATE INDEX expressions_search_run_idx ON expressions(search_run_id)",
     "CREATE INDEX expression_segments_segment_idx ON expression_segments(segment_id)",
+)
+
+_V1_TO_V2_STATEMENTS = (
+    _reviews_table_ddl("reviews_v2"),
+    """
+    INSERT INTO reviews_v2 (
+        expression_id, segment_id, decision, direct_meaning,
+        natural_translation, scene_usage, notes, updated_at
+    )
+    SELECT
+        expression_id, segment_id, decision, direct_meaning,
+        natural_translation, scene_usage, notes, updated_at
+    FROM reviews
+    """,
+    "DROP TABLE reviews",
+    "ALTER TABLE reviews_v2 RENAME TO reviews",
+    _CONTEXT_CACHE_TABLE_DDL,
 )
 
 _EXPECTED_TABLES = frozenset(
@@ -208,10 +256,16 @@ _EXPECTED_TABLES = frozenset(
         "reviews",
         "ai_cache",
         "nadeshiko_search_cache",
+        "nadeshiko_context_cache",
     }
 )
 _REVIEW_DECISIONS = frozenset({"채택", "예비", "제외"})
 _MEDIA_COLUMNS = "id, nadeshiko_media_id, display_name, preference, content_group, is_active"
+_REVIEW_COLUMNS = (
+    "decision, direct_meaning, natural_translation, scene_usage, notes, "
+    "translation_ai_service, translation_ai_model, translation_instruction_version, "
+    "translation_input_hash, translated_at, updated_at"
+)
 
 
 def database_path(settings: AppSettings) -> Path:
@@ -521,6 +575,18 @@ class SceneCollectorDatabase:
             expressions=expressions,
         )
 
+    def load_expression(self, expression_id: int) -> StoredExpression | None:
+        """표현 하나와 그 표현에 연결된 장면·검수 상태를 복원한다."""
+        row = self.connection.execute(
+            """
+            SELECT id, japanese, reading, meaning_ko, register_text, is_selected
+            FROM expressions
+            WHERE id = ?
+            """,
+            (expression_id,),
+        ).fetchone()
+        return self._load_expression(row) if row is not None else None
+
     def set_expression_selected(self, expression_id: int, selected: bool) -> None:
         """표현 후보의 사용자 선택 상태를 저장한다."""
         with self.transaction() as connection:
@@ -542,20 +608,17 @@ class SceneCollectorDatabase:
         scene_usage: str | None = None,
         notes: str | None = None,
     ) -> None:
-        """표현-장면 관계에 채택/예비/제외 검수 상태를 저장한다."""
+        """표현-장면 관계의 검수 상태 전체를 수동으로 다시 작성한다.
+
+        번역 필드까지 통째로 덮어쓰는 수동 경로이므로 AI 번역 provenance는
+        비운다. 사용자 판정만 바꿀 때는 set_review_decision을, AI 번역만
+        저장할 때는 save_scene_translation을 사용한다.
+        """
         if decision not in _REVIEW_DECISIONS:
             raise ValueError("검수 판정은 채택, 예비, 제외 중 하나여야 합니다.")
 
         with self.transaction() as connection:
-            relation = connection.execute(
-                """
-                SELECT 1 FROM expression_segments
-                WHERE expression_id = ? AND segment_id = ?
-                """,
-                (expression_id, segment_id),
-            ).fetchone()
-            if relation is None:
-                raise DatabaseError("검수할 표현과 장면의 연결을 찾을 수 없습니다.")
+            self._require_expression_segment(connection, expression_id, segment_id)
             connection.execute(
                 """
                 INSERT INTO reviews (
@@ -568,6 +631,11 @@ class SceneCollectorDatabase:
                     natural_translation = excluded.natural_translation,
                     scene_usage = excluded.scene_usage,
                     notes = excluded.notes,
+                    translation_ai_service = NULL,
+                    translation_ai_model = NULL,
+                    translation_instruction_version = NULL,
+                    translation_input_hash = NULL,
+                    translated_at = NULL,
                     updated_at = excluded.updated_at
                 """,
                 (
@@ -582,11 +650,100 @@ class SceneCollectorDatabase:
                 ),
             )
 
-    def get_review(self, expression_id: int, segment_id: int) -> StoredReview | None:
-        """표현-장면 관계의 검수 상태를 읽는다."""
-        row = self.connection.execute(
+    def set_review_decision(
+        self,
+        expression_id: int,
+        segment_id: int,
+        decision: ReviewDecision,
+    ) -> None:
+        """사용자 판정만 저장하고 기존 AI 번역과 notes는 보존한다."""
+        if decision not in _REVIEW_DECISIONS:
+            raise ValueError("검수 판정은 채택, 예비, 제외 중 하나여야 합니다.")
+
+        with self.transaction() as connection:
+            self._require_expression_segment(connection, expression_id, segment_id)
+            connection.execute(
+                """
+                INSERT INTO reviews (expression_id, segment_id, decision, updated_at)
+                VALUES (?, ?, ?, ?)
+                ON CONFLICT(expression_id, segment_id) DO UPDATE SET
+                    decision = excluded.decision,
+                    updated_at = excluded.updated_at
+                """,
+                (expression_id, segment_id, decision, _utc_now()),
+            )
+
+    def save_scene_translation(
+        self,
+        expression_id: int,
+        segment_id: int,
+        *,
+        direct_meaning: str,
+        natural_translation: str,
+        scene_usage: str,
+        ai_service: str,
+        ai_model: str,
+        instruction_version: str,
+        input_hash: str,
+    ) -> None:
+        """AI 장면 번역과 provenance만 저장하고 사용자 decision/notes는 보존한다."""
+        with self.transaction() as connection:
+            self._require_expression_segment(connection, expression_id, segment_id)
+            connection.execute(
+                """
+                INSERT INTO reviews (
+                    expression_id, segment_id, direct_meaning, natural_translation,
+                    scene_usage, translation_ai_service, translation_ai_model,
+                    translation_instruction_version, translation_input_hash,
+                    translated_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(expression_id, segment_id) DO UPDATE SET
+                    direct_meaning = excluded.direct_meaning,
+                    natural_translation = excluded.natural_translation,
+                    scene_usage = excluded.scene_usage,
+                    translation_ai_service = excluded.translation_ai_service,
+                    translation_ai_model = excluded.translation_ai_model,
+                    translation_instruction_version = excluded.translation_instruction_version,
+                    translation_input_hash = excluded.translation_input_hash,
+                    translated_at = excluded.translated_at,
+                    updated_at = excluded.updated_at
+                """,
+                (
+                    expression_id,
+                    segment_id,
+                    direct_meaning,
+                    natural_translation,
+                    scene_usage,
+                    ai_service,
+                    ai_model,
+                    instruction_version,
+                    input_hash,
+                    _utc_now(),
+                    _utc_now(),
+                ),
+            )
+
+    def _require_expression_segment(
+        self,
+        connection: sqlite3.Connection,
+        expression_id: int,
+        segment_id: int,
+    ) -> None:
+        relation = connection.execute(
             """
-            SELECT decision, direct_meaning, natural_translation, scene_usage, notes, updated_at
+            SELECT 1 FROM expression_segments
+            WHERE expression_id = ? AND segment_id = ?
+            """,
+            (expression_id, segment_id),
+        ).fetchone()
+        if relation is None:
+            raise DatabaseError("검수할 표현과 장면의 연결을 찾을 수 없습니다.")
+
+    def get_review(self, expression_id: int, segment_id: int) -> StoredReview | None:
+        """표현-장면 관계의 번역과 검수 상태를 읽는다."""
+        row = self.connection.execute(
+            f"""
+            SELECT {_REVIEW_COLUMNS}
             FROM reviews
             WHERE expression_id = ? AND segment_id = ?
             """,
@@ -754,6 +911,56 @@ class SceneCollectorDatabase:
                 ),
             )
 
+    def get_nadeshiko_context_cache(
+        self,
+        *,
+        segment_public_id: str,
+        take: int,
+    ) -> SegmentContextResponse | None:
+        """같은 장면·같은 범위의 앞뒤 문맥 원본 응답을 복원한다."""
+        if take <= 0:
+            raise ValueError("Nadeshiko context cache의 take는 1 이상이어야 합니다.")
+        row = self.connection.execute(
+            """
+            SELECT response_json FROM nadeshiko_context_cache
+            WHERE segment_public_id = ? AND context_take = ?
+            """,
+            (segment_public_id, take),
+        ).fetchone()
+        if row is None:
+            return None
+        try:
+            payload = json.loads(row["response_json"])
+            if not isinstance(payload, dict):
+                return None
+            return SegmentContextResponse.from_dict(payload)
+        except (json.JSONDecodeError, KeyError, TypeError, ValueError, AttributeError):
+            return None
+
+    def put_nadeshiko_context_cache(
+        self,
+        *,
+        segment_public_id: str,
+        take: int,
+        response: SegmentContextResponse,
+    ) -> None:
+        """Nadeshiko 앞뒤 문맥 원본 응답을 SDK 직렬화 그대로 저장한다."""
+        if take <= 0:
+            raise ValueError("Nadeshiko context cache의 take는 1 이상이어야 합니다.")
+        response_json = _canonical_json(response.to_dict())
+        with self.transaction() as connection:
+            connection.execute(
+                """
+                INSERT INTO nadeshiko_context_cache (
+                    segment_public_id, context_take, response_json, created_at
+                ) VALUES (?, ?, ?, ?)
+                ON CONFLICT(segment_public_id, context_take) DO UPDATE SET
+                    response_json = excluded.response_json,
+                    created_at = excluded.created_at
+                """,
+                (segment_public_id, take, response_json, _utc_now()),
+            )
+
     def _ensure_schema(self) -> None:
         version = self.schema_version
         if version > SCHEMA_VERSION:
@@ -764,6 +971,9 @@ class SceneCollectorDatabase:
         if version == SCHEMA_VERSION:
             self._verify_schema()
             return
+        if version == 1:
+            self._migrate_v1_to_v2()
+            return
 
         existing_tables = self._application_tables()
         if existing_tables:
@@ -772,6 +982,24 @@ class SceneCollectorDatabase:
                 "명시적인 migration이 필요합니다."
             )
         self._initialize_schema()
+
+    def _migrate_v1_to_v2(self) -> None:
+        """기존 v1 DB를 백업한 뒤 한 transaction에서 v2 구조로 옮긴다."""
+        self.backup_before_schema_change()
+        try:
+            with self.transaction() as connection:
+                for statement in _V1_TO_V2_STATEMENTS:
+                    connection.execute(statement)
+                connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+                self._verify_schema()
+        except sqlite3.Error as error:
+            raise DatabaseError(
+                "SQLite v1 → v2 migration에 실패했습니다. "
+                "원본 데이터는 변경 전 상태로 유지됩니다."
+            ) from error
+
+        if self.schema_version != SCHEMA_VERSION:
+            raise DatabaseError("SQLite v2 schema version 저장을 확인할 수 없습니다.")
 
     def _initialize_schema(self) -> None:
         try:
@@ -872,6 +1100,11 @@ class SceneCollectorDatabase:
                 reviews.natural_translation,
                 reviews.scene_usage,
                 reviews.notes,
+                reviews.translation_ai_service,
+                reviews.translation_ai_model,
+                reviews.translation_instruction_version,
+                reviews.translation_input_hash,
+                reviews.translated_at,
                 reviews.updated_at
             FROM expression_segments
             JOIN segments ON segments.id = expression_segments.segment_id
@@ -923,7 +1156,7 @@ def _stored_segment(row: sqlite3.Row) -> StoredSegment:
     except (json.JSONDecodeError, KeyError, TypeError, ValueError, AttributeError) as error:
         raise DatabaseError("저장된 Nadeshiko 장면 JSON을 복원할 수 없습니다.") from error
 
-    review = _stored_review(row) if row["decision"] is not None else None
+    review = _stored_review(row) if row["updated_at"] is not None else None
     return StoredSegment(id=int(row["id"]), segment=segment, review=review)
 
 
@@ -934,6 +1167,11 @@ def _stored_review(row: sqlite3.Row) -> StoredReview:
         natural_translation=row["natural_translation"],
         scene_usage=row["scene_usage"],
         notes=row["notes"],
+        translation_ai_service=row["translation_ai_service"],
+        translation_ai_model=row["translation_ai_model"],
+        translation_instruction_version=row["translation_instruction_version"],
+        translation_input_hash=row["translation_input_hash"],
+        translated_at=row["translated_at"],
         updated_at=row["updated_at"],
     )
 

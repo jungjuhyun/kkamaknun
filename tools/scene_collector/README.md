@@ -2,7 +2,7 @@
 
 한국어로 찾고 싶은 뜻에서 출발해 실제 애니 표현 장면을 수집하기 위한 Windows 로컬 도구다.
 
-현재 브랜치에는 **작업 0 — 개발 골격**부터 **작업 7 — 선호 애니 관리**까지 완료되어 있다. Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남기고, 검색·검수 상태와 외부 요청 캐시를 작업 데이터 위치의 SQLite DB에 저장한다. 사용자 선호 작품은 Nadeshiko public ID 기준으로 관리하며, DB가 연결된 제품 검색은 활성 선호작만 공식 media filter로 검색한다. 화면 기능은 아직 없다.
+현재 브랜치에는 **작업 0 — 개발 골격**부터 **작업 8 — 한국어 장면 번역**까지 완료되어 있다. Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남기고, 검색·검수 상태와 외부 요청 캐시를 작업 데이터 위치의 SQLite DB에 저장한다. 사용자 선호 작품은 Nadeshiko public ID 기준으로 관리하며, DB가 연결된 제품 검색은 활성 선호작만 공식 media filter로 검색한다. 정확 후보 장면에는 앞뒤 문맥을 조회해 AI가 직접 의미·자연스러운 한국어·장면 쓰임을 구조화 반환하고 재시작 후 재사용한다. 화면 기능은 아직 없다.
 
 ## 개발 환경
 
@@ -138,6 +138,27 @@ uv run pytest --run-media-live -m media_live -ra
 
 이 시험은 공식 `list_media`/`search_media`/`get_media`로 실제 작품 public ID와 표시명을 얻고, temp SQLite DB에 저장한 선호작 상태의 재시작 복원과, 해당 작품으로 필터한 실제 대사 검색(기본 검색어 `大丈夫`, 필요할 때만 `SCENE_COLLECTOR_MEDIA_LIVE_QUERY`로 변경)과 반복 검색의 cache 동작을 확인한다.
 
+## 한국어 장면 번역
+
+`translate.translate_expression_scenes(settings, expression_id, nadeshiko_client=..., database=...)`가 Task 8의 제품 진입점이다. 사용자가 선택한 표현 하나의 정확 surface 장면들만 번역하며, 모든 search run의 모든 후보를 자동 번역하지 않는다.
+
+- 문맥은 이미 DB에 저장된 exact segment에만 공식 `get_segment_context(segment_public_id, take=2)`로 조회한다. 응답 리스트 순서를 믿지 않고 같은 `media_public_id`·같은 `episode` 중 position이 가장 가까운 앞/뒤 장면을 고르며, 첫/마지막 장면의 빈 문맥은 정상 상태다.
+- 문맥 원본 응답은 `nadeshiko_context_cache` table에 `(segment_public_id, take)` identity로 저장해 재시작 후에도 같은 조건이면 Nadeshiko를 다시 호출하지 않는다. 깨진 JSON은 cache miss로 처리한다.
+- 번역은 기존 `create_structured_response()` 경로와 `SceneTranslationBatch` Pydantic 자료형을 사용한다. 여러 장면을 canonical JSON으로 묶어 한 요청(내부 batch 크기 5)에 보내고, AI가 반환한 scene_key의 중복·누락·알 수 없는 ID를 검증한 뒤에만 저장한다. 배열 순서는 믿지 않는다.
+- 지시문 버전은 `scene-translation-v1`이며 Task 6 AI cache를 그대로 재사용한다. 같은 service/model/지시문/입력이면 provider를 다시 호출하지 않는다.
+- 번역 결과는 `reviews`의 번역 필드에 AI provenance(service/model/지시문 버전/입력 hash/생성 시각)와 함께 저장된다. `decision`이 NULL이면 번역은 있지만 사용자가 아직 판정하지 않은 상태다. `save_scene_translation()`은 decision/notes를 건드리지 않고, `set_review_decision()`은 번역을 건드리지 않는다. `save_review()`는 번역 필드까지 통째로 다시 쓰는 수동 경로이므로 AI provenance를 비운다.
+
+실제 Nadeshiko 문맥 + AI 번역 검증은 API 사용량이 발생하므로 명시적으로 실행한다. 루트 `.env`에서 `NADESHIKO_API_KEY`와 사용할 provider의 키만 현재 셸에 로드하고 값은 출력하지 않는다.
+
+```powershell
+$env:SCENE_COLLECTOR_TRANSLATION_LIVE_SERVICE = "google"
+$env:SCENE_COLLECTOR_TRANSLATION_LIVE_MODEL = "gemini-3.6-flash"
+$env:SCENE_COLLECTOR_TRANSLATION_LIVE_REPORT = (Join-Path $env:TEMP "scene-collector-translation-live.json")
+uv run pytest --run-translation-live -m translation_live -ra
+```
+
+이 시험은 실제 장면 2~3개를 한 AI batch로 번역하고, 같은 DB 재실행과 reopen 후 재실행에서 Nadeshiko 문맥·AI 호출이 다시 발생하지 않는 것을 확인한다. 검색어는 기본 `大丈夫`이며 필요할 때만 `SCENE_COLLECTOR_TRANSLATION_LIVE_QUERY`로 바꾼다. 보고서에는 장면 텍스트와 번역만 기록하고 key·사용자 정보·segment/media ID는 넣지 않는다.
+
 ## 로컬 저장과 캐시
 
 `SceneCollectorDatabase.open(settings)`는 새 경로 설정을 요구하지 않고 다음 파일을 관리한다.
@@ -146,17 +167,16 @@ uv run pytest --run-media-live -m media_live -ra
 <storage.work_data_dir>/scene_collector.sqlite3
 ```
 
-DB에는 `media`, `search_runs`, `expressions`, `segments`, `expression_segments`, `reviews`, `ai_cache`, `nadeshiko_search_cache`가 있다. 같은 Nadeshiko segment를 여러 표현과 검색에 연결할 수 있도록 `expression_segments`를 두고, 원본 segment JSON은 한 번만 저장한다. review 판정은 `채택`, `예비`, `제외`이며 번역·쓰임·메모는 비워 둘 수 있다.
+DB에는 `media`, `search_runs`, `expressions`, `segments`, `expression_segments`, `reviews`, `ai_cache`, `nadeshiko_search_cache`, `nadeshiko_context_cache`가 있다. 같은 Nadeshiko segment를 여러 표현과 검색에 연결할 수 있도록 `expression_segments`를 두고, 원본 segment JSON은 한 번만 저장한다. review 판정은 `채택`, `예비`, `제외`이며 판정 전의 AI 번역만 있는 상태는 `decision` NULL로 표현한다.
 
 `search_expressions(..., database=database)`처럼 열린 DB를 전달하면 검색 완료 결과를 한 transaction으로 저장한다. AI cache는 서비스·모델·지시문 버전·실제 입력의 canonical hash가 모두 같은 경우에만 사용하고, JSON을 요청한 Pydantic 자료형으로 다시 검증한다. Nadeshiko cache는 검색 문자열·`exact_match`·`take`·검색 조건을 구분해 SDK의 원본 `SearchResponse`를 저장하며, 복원된 응답에도 현재 로컬 surface matcher를 다시 적용한다.
 
-현재 schema는 `SCHEMA_VERSION = 1`이며 `PRAGMA user_version`으로 확인한다. 현재 코드보다 높은 version은 데이터를 변경하지 않고 거부한다. 각 연결에서 foreign key 검사를 명시적으로 켜고, WAL은 활성화하지 않아 SQLite 기본 rollback journal을 유지한다. 향후 실제 schema 변경 전에는 `backup_before_schema_change()`가 같은 작업 데이터 위치에 고유한 파일명으로 `sqlite3.Connection.backup()` 사본을 만든다.
+현재 schema는 `SCHEMA_VERSION = 2`이며 `PRAGMA user_version`으로 확인한다. Task 8에서 `reviews.decision`을 nullable로 바꾸고 번역 provenance column과 `nadeshiko_context_cache`를 추가했다. 기존 v1 파일 DB는 열 때 `backup_before_schema_change()`로 같은 작업 데이터 위치에 `.pre-schema-v1.` 사본을 만든 뒤 한 transaction에서 v2로 migration하며, 실패하면 원본 v1 데이터를 그대로 유지한다. 현재 코드보다 높은 version은 데이터를 변경하지 않고 거부한다. 각 연결에서 foreign key 검사를 명시적으로 켜고, WAL은 활성화하지 않아 SQLite 기본 rollback journal을 유지한다.
 
 작업 6 자동시험은 파일 기반 임시 DB와 fake provider를 사용한다. 일반 `uv run pytest`에서 인터넷이나 실제 AI/Nadeshiko API를 호출하지 않는다.
 
 ## 아직 없는 기능
 
 - 영어 검색 fallback
-- 한국어 장면 번역
 - 사용자 화면
 - 영상 저장과 내보내기

@@ -4,7 +4,12 @@ import sqlite3
 from pathlib import Path
 
 import pytest
-from nadeshiko.models import SearchFilters, SearchQuery, SearchResponse
+from nadeshiko.models import (
+    SearchFilters,
+    SearchQuery,
+    SearchResponse,
+    SegmentContextResponse,
+)
 from pydantic import BaseModel
 
 import scene_collector.ai as ai_module
@@ -32,11 +37,28 @@ EXPECTED_TABLES = {
     "expression_segments",
     "expressions",
     "media",
+    "nadeshiko_context_cache",
     "nadeshiko_search_cache",
     "reviews",
     "search_runs",
     "segments",
 }
+
+V1_REVIEWS_DDL = """
+    CREATE TABLE reviews (
+        expression_id INTEGER NOT NULL,
+        segment_id INTEGER NOT NULL,
+        decision TEXT NOT NULL CHECK (decision IN ('채택', '예비', '제외')),
+        direct_meaning TEXT,
+        natural_translation TEXT,
+        scene_usage TEXT,
+        notes TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (expression_id, segment_id),
+        FOREIGN KEY (expression_id, segment_id)
+            REFERENCES expression_segments(expression_id, segment_id) ON DELETE CASCADE
+    )
+    """
 
 
 class CacheProbe(BaseModel):
@@ -128,13 +150,13 @@ def _table_names(connection: sqlite3.Connection) -> set[str]:
     }
 
 
-def test_creates_file_database_v1_with_foreign_keys_and_default_journal(tmp_path: Path) -> None:
+def test_creates_file_database_with_foreign_keys_and_default_journal(tmp_path: Path) -> None:
     settings = _settings(tmp_path)
 
     with SceneCollectorDatabase.open(settings) as database:
         assert database.path == tmp_path / DATABASE_FILENAME
         assert database.path.is_file()
-        assert database.schema_version == SCHEMA_VERSION == 1
+        assert database.schema_version == SCHEMA_VERSION == 2
         assert _table_names(database.connection) == EXPECTED_TABLES
         assert database.connection.execute("PRAGMA foreign_keys").fetchone()[0] == 1
         assert database.connection.execute("PRAGMA journal_mode").fetchone()[0] == "delete"
@@ -181,7 +203,7 @@ def test_future_schema_version_is_rejected_without_writes(tmp_path: Path) -> Non
         SceneCollectorDatabase.open(_settings(tmp_path))
 
     with sqlite3.connect(path) as connection:
-        assert connection.execute("PRAGMA user_version").fetchone()[0] == 2
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION + 1
         assert connection.execute("SELECT value FROM sentinel").fetchone()[0] == "preserved"
         assert _table_names(connection) == {"sentinel"}
 
@@ -253,7 +275,7 @@ def test_search_review_and_shared_segment_survive_reopen(tmp_path: Path) -> None
         )
 
     with SceneCollectorDatabase.open(settings) as reopened:
-        assert reopened.schema_version == 1
+        assert reopened.schema_version == SCHEMA_VERSION
         restored = reopened.load_search_run(search_run_id)
         assert restored is not None
         assert restored.korean_intent == "다친 사람에게 괜찮냐고 묻는 말"
@@ -310,9 +332,9 @@ def test_connection_backup_preserves_sentinel_and_schema_version(tmp_path: Path)
 
     assert first_backup.parent == tmp_path
     assert first_backup != second_backup
-    assert ".pre-schema-v1." in first_backup.name
+    assert ".pre-schema-v2." in first_backup.name
     with sqlite3.connect(first_backup) as backup:
-        assert backup.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert backup.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION
         assert (
             backup.execute("SELECT korean_intent FROM search_runs").fetchone()[0]
             == "backup sentinel"
@@ -416,6 +438,179 @@ def test_ai_cache_hits_and_separates_service_model_version_and_input(
             instruction_version="probe-v1",
         )
         assert len(calls) == 7
+
+
+def _create_seeded_v1_database(path: Path) -> None:
+    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    segment_json = json.dumps(payload["segments"][0], ensure_ascii=False)
+    connection = sqlite3.connect(path)
+    try:
+        with connection:
+            for statement in database_module._SCHEMA_STATEMENTS:
+                if "nadeshiko_context_cache" in statement:
+                    continue
+                if "CREATE TABLE reviews" in statement:
+                    connection.execute(V1_REVIEWS_DDL)
+                    continue
+                connection.execute(statement)
+            connection.execute(
+                """
+                INSERT INTO media (id, nadeshiko_media_id, display_name)
+                VALUES (1, 'anonymous-media-001', '익명 작품')
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO search_runs (
+                    id, korean_intent, created_at, ai_service, ai_model, instruction_version
+                ) VALUES (1, '괜찮냐고 묻는 말', 'past', 'service', 'model', 'candidate-v1')
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO expressions (
+                    id, search_run_id, ordinal, japanese, reading,
+                    meaning_ko, register_text, is_selected
+                ) VALUES (1, 1, 0, '大丈夫ですか', 'だいじょうぶですか', '괜찮으세요?', '정중', 1)
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO segments (
+                    id, nadeshiko_segment_id, media_id, position, episode,
+                    start_time_ms, end_time_ms, external_video_id, japanese_text,
+                    video_url, audio_url, image_url, raw_json
+                ) VALUES (
+                    1, 'anonymous-segment-001', 1, 42, 1, 0, 1000, NULL, '大丈夫ですか？',
+                    'https://media.example.invalid/video.mp4',
+                    'https://media.example.invalid/audio.mp3',
+                    'https://media.example.invalid/image.jpg', ?
+                )
+                """,
+                (segment_json,),
+            )
+            connection.execute(
+                "INSERT INTO expression_segments (expression_id, segment_id, ordinal)"
+                " VALUES (1, 1, 0)"
+            )
+            connection.execute(
+                """
+                INSERT INTO reviews (
+                    expression_id, segment_id, decision, direct_meaning,
+                    natural_translation, scene_usage, notes, updated_at
+                ) VALUES (1, 1, '채택', '괜찮습니까?', '괜찮아요?', '상태 확인', '메모', 'past')
+                """
+            )
+            connection.execute("PRAGMA user_version = 1")
+    finally:
+        connection.close()
+
+
+def test_v1_database_migrates_to_v2_with_backup_and_preserved_data(tmp_path: Path) -> None:
+    path = tmp_path / DATABASE_FILENAME
+    _create_seeded_v1_database(path)
+
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        assert database.schema_version == SCHEMA_VERSION == 2
+        assert _table_names(database.connection) == EXPECTED_TABLES
+        review = database.get_review(1, 1)
+        assert review is not None
+        assert review.decision == "채택"
+        assert review.direct_meaning == "괜찮습니까?"
+        assert review.natural_translation == "괜찮아요?"
+        assert review.scene_usage == "상태 확인"
+        assert review.notes == "메모"
+        assert review.translation_ai_service is None
+        assert review.translation_ai_model is None
+        assert review.translation_instruction_version is None
+        assert review.translation_input_hash is None
+        assert review.translated_at is None
+        restored = database.load_search_run(1)
+        assert restored is not None
+        segment = restored.expressions[0].segments[0]
+        assert segment.segment.public_id == "anonymous-segment-001"
+        assert segment.review is not None
+        assert segment.review.decision == "채택"
+
+    backups = sorted(tmp_path.glob("*.pre-schema-v1.*"))
+    assert len(backups) == 1
+    with sqlite3.connect(backups[0]) as backup:
+        assert backup.execute("PRAGMA user_version").fetchone()[0] == 1
+        assert backup.execute("SELECT decision FROM reviews").fetchone()[0] == "채택"
+
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as reopened:
+        assert reopened.schema_version == SCHEMA_VERSION
+    assert len(sorted(tmp_path.glob("*.pre-schema-v1.*"))) == 1
+
+
+def test_v1_migration_failure_keeps_original_v1_data(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    path = tmp_path / DATABASE_FILENAME
+    _create_seeded_v1_database(path)
+    statements = database_module._V1_TO_V2_STATEMENTS
+    monkeypatch.setattr(
+        database_module,
+        "_V1_TO_V2_STATEMENTS",
+        (*statements[:2], "CREATE TABLE broken (", *statements[2:]),
+    )
+
+    with pytest.raises(DatabaseError, match="migration"):
+        SceneCollectorDatabase.open(_settings(tmp_path))
+
+    with sqlite3.connect(path) as connection:
+        assert connection.execute("PRAGMA user_version").fetchone()[0] == 1
+        tables = _table_names(connection)
+        assert "reviews" in tables
+        assert "reviews_v2" not in tables
+        assert "nadeshiko_context_cache" not in tables
+        row = connection.execute("SELECT decision, notes FROM reviews").fetchone()
+        assert tuple(row) == ("채택", "메모")
+
+
+def test_nadeshiko_context_cache_hits_same_identity_and_misses_other(tmp_path: Path) -> None:
+    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    context = SegmentContextResponse.from_dict({"segments": payload["segments"]})
+
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        database.put_nadeshiko_context_cache(
+            segment_public_id="anonymous-segment-001",
+            take=2,
+            response=context,
+        )
+        cached = database.get_nadeshiko_context_cache(
+            segment_public_id="anonymous-segment-001",
+            take=2,
+        )
+        assert cached is not None
+        assert cached.segments[0].public_id == "anonymous-segment-001"
+        assert (
+            database.get_nadeshiko_context_cache(
+                segment_public_id="anonymous-segment-001",
+                take=3,
+            )
+            is None
+        )
+        assert (
+            database.get_nadeshiko_context_cache(
+                segment_public_id="anonymous-segment-002",
+                take=2,
+            )
+            is None
+        )
+
+        with database.transaction() as connection:
+            connection.execute(
+                "UPDATE nadeshiko_context_cache SET response_json = '{broken-json'"
+            )
+        assert (
+            database.get_nadeshiko_context_cache(
+                segment_public_id="anonymous-segment-001",
+                take=2,
+            )
+            is None
+        )
 
 
 def test_nadeshiko_cache_key_separates_exact_take_and_conditions(tmp_path: Path) -> None:

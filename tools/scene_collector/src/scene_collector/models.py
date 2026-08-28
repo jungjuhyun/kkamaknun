@@ -28,3 +28,31 @@ class ExpressionCandidates(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     candidates: list[ExpressionCandidate] = Field(min_length=3, max_length=5)
+
+
+class SceneTranslation(BaseModel):
+    """한 장면에 대한 구조화된 한국어 번역 결과."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    scene_key: str = Field(min_length=1, description="입력에서 받은 장면 식별자를 그대로 반환")
+    direct_meaning: str = Field(
+        min_length=1,
+        description="현재 일본어 대사의 직접적인 뜻",
+    )
+    natural_translation: str = Field(
+        min_length=1,
+        description="앞뒤 문맥에서 자연스러운 한국어 번역",
+    )
+    scene_usage: str = Field(
+        min_length=1,
+        description="목표 표현이 이 장면에서 쓰이는 기능의 짧은 설명",
+    )
+
+
+class SceneTranslationBatch(BaseModel):
+    """여러 장면을 한 요청으로 번역한 구조화 출력."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    translations: list[SceneTranslation] = Field(min_length=1)

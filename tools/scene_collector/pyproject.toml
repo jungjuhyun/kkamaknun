@@ -30,6 +30,7 @@ markers = [
     "search_live: 실제 AI와 Nadeshiko API 사용량이 필요한 검색 품질 시험",
     "surface_live: 실제 Nadeshiko 검색과 로컬 표면형 필터 비교 시험",
     "media_live: 실제 Nadeshiko 작품 metadata와 media filter 검색 시험",
+    "translation_live: 실제 Nadeshiko 문맥 조회와 AI 장면 번역 시험",
 ]
 
 [tool.ruff]
