@@ -1009,7 +1009,7 @@ class SceneCollectorDatabase:
                 connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
                 self._verify_schema()
         except sqlite3.Error as error:
-            raise DatabaseError("SQLite v1 schema 초기화에 실패했습니다.") from error
+            raise DatabaseError("SQLite v2 schema 초기화에 실패했습니다.") from error
 
         if self.schema_version != SCHEMA_VERSION:
             raise DatabaseError("SQLite schema version 저장을 확인할 수 없습니다.")
