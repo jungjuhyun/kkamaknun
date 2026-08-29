@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 재개(rework) — 사용자 실사용 검수(UAT)에서 작업 흐름의 구조 문제가 발견됐다.** 작업 0~13의 자동시험·기술 검증 통과 기록은 유효하지만, 25절의 승인된 rework 계약에 따라 재작업 중이며 **사용자 직접 UAT PASS 전에는 개발 완료로 되돌리지 않는다.** 회사 PC operational smoke check는 그 이후로 미룬다.
+상태: **개발 재개(재작업) — 사용자 실사용 검수(UAT)에서 작업 흐름의 구조 문제가 발견됐다.** 작업 0~13의 자동시험·기술 검증 통과 기록은 유효하지만, 25절의 승인된 재작업 계약에 따라 재작업 중이며 **사용자 직접 UAT 통과 전에는 개발 완료로 되돌리지 않는다.** 회사 PC 실제 환경 실행 확인는 그 이후로 미룬다.
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -47,7 +47,7 @@
 - 서버·클라우드·계정·다중 사용자 기능
 
 `Nadeshiko 수록 범위가 실제 병목으로 확인되기 전에는 로컬 자막 색인이나 Jimaku 대체 경로를 구현하지 않는다`는 원칙은 그대로 지켜졌다.
-2026-08-28 실제 제작 대상 작품군에서 Nadeshiko 미수록 작품이 확인되어 이 진입 조건이 충족됐고, 그에 따라 **사용자가 직접 확보한 일본어 timed subtitle의 작품 단위 로컬 색인**만 fallback으로 도입했다(작업 8 이후 확장 참조). 원칙의 폐기가 아니라 원칙이 정한 조건 충족에 따른 진행이다.
+2026-08-28 실제 제작 대상 작품군에서 Nadeshiko 미수록 작품이 확인되어 이 진입 조건이 충족됐고, 그에 따라 **사용자가 직접 확보한 일본어 타임코드 자막의 작품 단위 로컬 색인**만 대체 경로로 도입했다(작업 8 이후 확장 참조). 원칙의 폐기가 아니라 원칙이 정한 조건 충족에 따른 진행이다.
 Jimaku 자동 대체 검색·자동 다운로드는 여전히 구현하지 않는다.
 후보를 사람이 검수하기 전에 자동 감정·음향 순위 시스템부터 만들지 않는다.
 
@@ -171,7 +171,7 @@ AI 반환은 자유문장이 아니라 고정 자료형(일본어/읽기/그 의
 
 Nadeshiko 검색은 **사용자가 선택한 표현 하나**에 대해서만, 일본어 표현으로 우선 실행한다. 영어 의미 검색은 일본어 회수가 명백히 부족한 경우에만 향후 대체 경로로 재평가한다(모든 요청 자동 병행 금지 — API 증가·무관 결과·번역문 의존 위험).
 
-과거 기록: 작업 4 품질 시험은 10/10 한국어 의도에서 일본어 경로만으로 corpus-backed 결과를 회수했고, 작업 6 진입 전 recall 검증에 따라 pagination은 제품에 넣지 않는다.
+과거 기록: 작업 4 품질 시험은 10/10 한국어 의도에서 일본어 경로만으로 실제 대사가 확인된 결과를 회수했고, 작업 6 진입 전 회수 검증에 따라 페이지 순회은 제품에 넣지 않는다.
 
 ## 7. 목표 표현 잠금과 정확 동일표현 검사
 
@@ -210,9 +210,9 @@ Nadeshiko 검색은 **사용자가 선택한 표현 하나**에 대해서만, �
 - `ん？なんて？`가 인용 문법의 `なんて`에 검색됨
 - `今、何してるんですか？`가 비슷한 다른 `今…してるんです` 문장에 검색됨
 
-작업 5에서 Nadeshiko 공식 `exact_match=True`를 실제 평가했지만 이것만으로는 부분 일치가 완전히 제거되지 않았고 일부 정상 표현의 회수도 줄었다. 따라서 최종 방식은 **일반 검색 → 로컬 표면형 검사 → 결과가 0개일 때만 exact 검색 fallback → 동일 로컬 검사**다.
+작업 5에서 Nadeshiko 공식 `exact_match=True`를 실제 평가했지만 이것만으로는 부분 일치가 완전히 제거되지 않았고 일부 정상 표현의 회수도 줄었다. 따라서 최종 방식은 **일반 검색 → 로컬 표면형 검사 → 결과가 0개일 때만 exact 검색 대체 경로 → 동일 로컬 검사**다.
 
-로컬 matcher는 NFKC·Unicode 공백·끝 문장부호 차이만 완화하고 내부 문장부호와 활용형은 보존한다. Nadeshiko top-level token의 원문 offset을 표현 경계 보조로 사용하며, token 정보가 없을 때는 더 보수적으로 판정한다. `primary_surface`와 명시적 `allowed_surfaces`를 분리하고 `ExpressionCandidate.reading`을 자동 허용 표기로 승격하지 않는다.
+로컬 판정 로직은 NFKC·Unicode 공백·끝 문장부호 차이만 완화하고 내부 문장부호와 활용형은 보존한다. Nadeshiko 최상위 토큰의 원문 오프셋을 표현 경계 보조로 사용하며, 토큰 정보가 없을 때는 더 보수적으로 판정한다. `primary_surface`와 명시적 `allowed_surfaces`를 분리하고 `ExpressionCandidate.reading`을 자동 허용 표기로 승격하지 않는다.
 
 ### 한자/가나 표기 차이
 
@@ -244,11 +244,11 @@ Nadeshiko 작품 public ID
 
 `극장판`, `TV 소년만화` 같은 묶음은 단순 기술 분류와 분리된 **사용자 편성 기준**으로 저장한다.
 
-작업 7에서 공식 SDK의 `search_media`·`get_media`로 작품 metadata를 조회하고 기존 SQLite v1 `media` table을 그대로 재사용했다. 내부 식별자는 Nadeshiko public media ID이며 표시명은 metadata다. preference는 nullable integer, content group은 자유 문자열/None, `is_active`가 기본 검색 포함 여부를 결정한다.
+작업 7에서 공식 SDK의 `search_media`·`get_media`로 작품 메타데이터를 조회하고 기존 SQLite v1 `media` 테이블을 그대로 재사용했다. 내부 식별자는 Nadeshiko public media ID이며 표시명은 메타데이터다. preference는 빈 값 허용 정수, 콘텐츠 묶음은 자유 문자열/None, `is_active`가 기본 검색 포함 여부를 결정한다.
 
-DB가 연결된 제품 검색에서는 활성 작품 ID를 `SearchFilters.media.include`로 Nadeshiko 요청 자체에 전달한다. 활성 작품이 하나도 없으면 global corpus로 자동 fallback하지 않고 명확한 오류를 낸다.
+DB가 연결된 제품 검색에서는 활성 작품 ID를 `SearchFilters.media.include`로 Nadeshiko 요청 자체에 전달한다. 활성 작품이 하나도 없으면 전체 대사 자료로 자동 확대하지 않고 명확한 오류를 낸다.
 
-과거 구현 기록(작업 7 당시 — rework에서 검색 cache 자체가 제거된다): 활성 작품 ID 집합을 Nadeshiko search cache identity에 포함했었다. 작업 7 전체 pytest는 **84 passed, 14 skipped**, Ruff·`git diff --check` PASS, media live **1 passed**다. 실제 metadata 조회와 media-filtered 대사 검색, 동일 조건 cache hit를 확인했고 DB schema·dependency는 변경하지 않았다.
+과거 구현 기록(작업 7 당시 — 재작업에서 검색 캐시 자체가 제거된다): 활성 작품 ID 집합을 Nadeshiko 검색 캐시 식별 기준에 포함했었다. 작업 7 전체 pytest는 **84 passed, 14 skipped**, Ruff·`git diff --check` 통과, 작품 조회 실제 연결 **1 passed**다. 실제 메타데이터 조회와 작품 필터 대사 검색, 동일 조건 캐시 적중을 확인했고 DB 구조·의존성은 변경하지 않았다.
 
 ## 9. Nadeshiko 요청량 줄이기
 
@@ -261,7 +261,7 @@ DB가 연결된 제품 검색에서는 활성 작품 ID를 `SearchFilters.media.
 ↓
 검색 결과에 정확 동일표현 검사 (활성 선호작 필터는 요청 자체에 포함)
 ↓
-사용자가 요청한 장면에만 get_segment_context
+사용자가 요청한 장면에만 get_장면_문맥
 ↓
 사용자가 요청한 장면에만 AI 번역
 ```
@@ -269,9 +269,9 @@ DB가 연결된 제품 검색에서는 활성 작품 ID를 `SearchFilters.media.
 Nadeshiko 사용량은 프로그램 시작 시 기억한 숫자를 믿지 않고 `get_me`와 실제 응답을 통해 확인할 수 있게 한다.
 검색 응답·문맥 응답은 **캐시하거나 영구 저장하지 않는다** — 같은 표현을 다시 찾으면 그때 다시 호출한다.
 
-과거 검증·구현 기록(현재 설계 지침 아님 — 캐시류는 rework에서 제거 대상):
-- 작업 6 진입 전 recall 검증에서 세 문제 표현은 상위 200 segment까지 정확 surface 0건이었고(`大丈夫ですか？`는 첫 20건에서 17건), pagination은 recall을 개선하지 못해 **제품 검색에는 추가 pagination을 넣지 않는다**(이 원칙은 유지). 제한은 corpus 부족·희귀/긴 표현·향후 영어 fallback 가능성으로 기록.
-- 작업 6~8 당시에는 Nadeshiko `SearchResponse`·`get_segment_context` 응답과 AI 응답을 SQLite에 cache했었다. 이 캐시들은 UAT 이후 rework에서 전부 제거된다.
+과거 검증·구현 기록(현재 설계 지침 아님 — 캐시류는 재작업에서 제거 대상):
+- 작업 6 진입 전 회수 검증에서 세 문제 표현은 상위 200 장면까지 정확 표면형 0건이었고(`大丈夫ですか？`는 첫 20건에서 17건), 페이지 순회은 회수을 개선하지 못해 **제품 검색에는 추가 페이지 순회을 넣지 않는다**(이 원칙은 유지). 제한은 대사 자료 부족·희귀/긴 표현·향후 영어 대체 경로 가능성으로 기록.
+- 작업 6~8 당시에는 Nadeshiko `SearchResponse`·`get_segment_context` 응답과 AI 응답을 SQLite에 캐시했었다. 이 캐시들은 UAT 이후 재작업에서 전부 제거된다.
 
 ## 10. 한국어 번역
 
@@ -298,7 +298,7 @@ Nadeshiko 번역 정보
 
 문맥 응답은 즉석에서 사용하고 캐시하지 않는다. 앞/뒤 대사는 같은 작품·같은 화의 가장 가까운 장면을 응답 순서에 의존하지 않고 고르며, 첫·마지막 장면처럼 한쪽 문맥이 없는 경우는 정상 상태다.
 
-번역 결과는 캐시가 아니라 **사용자 작업물**이므로 해당 작업 장면(`work_scenes`)에 저장한다. 함께 기록(provenance):
+번역 결과는 캐시가 아니라 **사용자 작업물**이므로 해당 작업 장면(`work_scenes`)에 저장한다. 함께 기록(생성 이력):
 - 사용한 AI 서비스
 - 모델명
 - 번역 지시문 버전
@@ -306,7 +306,7 @@ Nadeshiko 번역 정보
 
 번역은 사용자 판정보다 먼저 존재할 수 있다(`decision` NULL 허용). 번역 저장은 기존 판정/메모를 보존하고, 판정 변경은 기존 번역을 지우지 않는다. 이미 번역이 저장된 장면은 저장값을 보여주고, 재번역은 명시적 재요청 시에만 실행한다.
 
-과거 구현 기록(작업 8 당시 — 현재 설계 지침 아님): 저장된 후보 전체를 최대 5장면 batch로 선번역하고 context/AI 응답을 SQLite에 cache했었다(작업 8 pytest 100 passed·translation live 1 passed). 이 batch·캐시 구조는 rework에서 단일 장면·무캐시로 대체된다.
+과거 구현 기록(작업 8 당시 — 현재 설계 지침 아님): 저장된 후보 전체를 최대 5장면 묶음로 선번역하고 문맥/AI 응답을 SQLite에 캐시했었다(작업 8 pytest 100 passed·translation 실제 연결 1 passed). 이 묶음·캐시 구조는 재작업에서 단일 장면·무캐시로 대체된다.
 
 ## 11. 설정과 이동식 SSD
 
@@ -333,9 +333,9 @@ Nadeshiko 번역 정보
 
 ## 12. SQLite 자료 구조
 
-Task 6에서 첫 실제 schema v1을 구현했고 Task 8에서 실제 migration 원칙을 처음 사용해 schema v2로 올렸다. DB는 `<work_data_dir>/scene_collector.sqlite3`에 두고 Python 표준 `sqlite3`만 사용한다.
+Task 6에서 첫 실제 DB 구조 v1을 구현했고 Task 8에서 실제 마이그레이션 원칙을 처음 사용해 DB 구조 v2로 올렸다. DB는 `<work_data_dir>/scene_collector.sqlite3`에 두고 Python 표준 `sqlite3`만 사용한다.
 
-현재 table:
+현재 테이블:
 
 ### media
 - 내부 ID
@@ -379,20 +379,20 @@ Task 6에서 첫 실제 schema v1을 구현했고 Task 8에서 실제 migration 
 - 메모
 - 생성/갱신 시각
 
-저장하지 않는 것: 검색 응답 전체, 검색 결과 전체, video/audio/image URL, Nadeshiko raw JSON. 영상 접근에 필요한 값은 안정 ID인 장면 public ID 하나이며, 영상 주소는 내보내기 시점에 다시 조회한다. **판정·번역·메모 중 하나라도 실제로 발생한 장면만 이 table에 생긴다.**
+저장하지 않는 것: 검색 응답 전체, 검색 결과 전체, video/audio/image URL, Nadeshiko 원본 JSON. 영상 접근에 필요한 값은 안정 ID인 장면 public ID 하나이며, 영상 주소는 내보내기 시점에 다시 조회한다. **판정·번역·메모 중 하나라도 실제로 발생한 장면만 이 테이블에 생긴다.**
 
 현재 DB 구현 원칙:
 - `SCHEMA_VERSION = 4`
 - `PRAGMA user_version`으로 자료구조 버전 관리
-- 모든 연결에서 foreign key 활성화와 실제 활성 여부 확인
-- 명시적 transaction/rollback
-- 현재 코드보다 높은 미래 schema는 write 없이 거부
-- 실제 schema 변경 전 `sqlite3.Connection.backup()`으로 같은 작업 데이터 위치에 백업
-- v3 → v4는 **실제 SSD DB 사본에서 먼저 리허설해 보존을 확인한 뒤에만 실 DB에 실행**하며, 표현·의미·실작업(판정/번역/메모 보유분)은 이관하고 캐시·검색 이력·segment 원본·URL은 이관하지 않는다
-- WAL은 기본 활성화하지 않고 rollback journal 유지
-- 새 ORM·migration framework·DB dependency는 추가하지 않음
+- 모든 연결에서 외래 키 활성화와 실제 활성 여부 확인
+- 명시적 트랜잭션/롤백
+- 현재 코드보다 높은 미래 DB 구조는 write 없이 거부
+- 실제 DB 구조 변경 전 `sqlite3.Connection.backup()`으로 같은 작업 데이터 위치에 백업
+- v3 → v4는 **실제 SSD DB 사본에서 먼저 리허설해 보존을 확인한 뒤에만 실 DB에 실행**하며, 표현·의미·실작업(판정/번역/메모 보유분)은 이관하고 캐시·검색 이력·장면 원본·URL은 이관하지 않는다
+- WAL은 기본 활성화하지 않고 롤백 저널 유지
+- 새 ORM·마이그레이션 framework·DB 의존성은 추가하지 않음
 
-과거 schema 기록: v1(작업 6) → v2(작업 8: 번역-before-review·context cache) → v3(subtitle fallback: media.source·local_segments). v2까지의 검색 저장·캐시 table들(search_runs, 구 expressions, segments, expression_segments, reviews, ai_cache, nadeshiko_search_cache, nadeshiko_context_cache)은 당시 구현 기록이며 v4에서 제거·대체된다.
+과거 DB 구조 기록: v1(작업 6) → v2(작업 8: 판정 전 번역·문맥 캐시) → v3(자막 대체 경로: `media.source`·`local_segments`). v2까지의 검색 저장·캐시 테이블들(`search_runs`, 구 `expressions`, `segments`, `expression_segments`, `reviews`, `ai_cache`, `nadeshiko_search_cache`, `nadeshiko_context_cache`)은 당시 구현 기록이며 v4에서 제거·대체된다.
 
 ## 13. 영상 저장과 내보내기
 
@@ -404,14 +404,14 @@ Task 6에서 첫 실제 schema v1을 구현했고 Task 8에서 실제 migration 
 예:
 
 ```text
-<segment_id>.mp4
+<장면_id>.mp4
 ```
 
 최종 내보내기 최소 구조:
 
 ```text
 표현별 출력 폴더/
-├─ manifest.json
+├─ 내보내기 목록.json
 ├─ candidates.csv
 └─ clips/
 ```
@@ -528,7 +528,7 @@ tools/
    │     ├─ nadeshiko.py
    │     ├─ ai.py
    │     ├─ search.py
-   │     ├─ export.py
+   │     ├─ 내보내기.py
    │     └─ app.py
    └─ tests/
 ```
@@ -550,7 +550,7 @@ tools/
 
 ## 18. 개발 작업 단위
 
-이 절의 작업 0~13 정의와 `상태: 완료` 문단은 **당시 구현 기준의 역사적 기록**이며 현재 설계 지침이 아니다. 현재 설계는 본문 1~14절과 25절 rework 계약이 기준이며, 특히 아래 기록에 등장하는 캐시·검색 결과 저장·후보 일괄 검색·batch 선번역은 rework에서 제거·대체된다.
+이 절의 작업 0~13 정의와 `상태: 완료` 문단은 **당시 구현 기준의 역사적 기록**이며 현재 설계 지침이 아니다. 현재 설계는 본문 1~14절과 25절 재작업 계약이 기준이며, 특히 아래 기록에 등장하는 캐시·검색 결과 저장·후보 일괄 검색·묶음 선번역은 재작업에서 제거·대체된다.
 
 ### 작업 0 — 개발 골격
 
@@ -590,7 +590,7 @@ tools/
 - 영상 URL
 - 시험용 익명 응답 예제 저장
 
-상태: **완료**. 실제 live test에서 인증·`get_me`·작품 조회·검색·페이지 순회·앞뒤 문맥·image/audio/video URL을 모두 확인했다.
+상태: **완료**. 실제 실제 연결 시험에서 인증·`get_me`·작품 조회·검색·페이지 순회·앞뒤 문맥·image/audio/video URL을 모두 확인했다.
 
 ### 작업 3 — AI 실제 연결 확인
 
@@ -598,7 +598,7 @@ Instructor 사용.
 서로 다른 AI 서비스 최소 2개를 설정만 바꿔 실제 시험한다.
 애플리케이션 검색 로직을 수정하지 않고 동일 Pydantic 자료형이 반환되어야 한다.
 
-상태: **완료**. 실제 live test에서 OpenAI `gpt-5.4-nano`와 Google `gemini-3.6-flash`를 설정만 바꿔 호출했고, 두 provider 모두 동일 `ConnectivityProbe` Pydantic 자료형을 반환했다.
+상태: **완료**. 실제 실제 연결 시험에서 OpenAI `gpt-5.4-nano`와 Google `gemini-3.6-flash`를 설정만 바꿔 호출했고, 두 서비스 모두 동일 `ConnectivityProbe` Pydantic 자료형을 반환했다.
 
 ### 작업 4 — 한국어 표현 찾기
 
@@ -611,7 +611,7 @@ Instructor 사용.
 
 대표 시험 표현 최소 10개를 사용해 상위 후보 안에 실제 문맥상 쓸 만한 표현이 들어오는지 평가한다.
 
-상태: **완료**. Google `gemini-3.6-flash`로 고정 한국어 의도 10개를 실제 평가했고 10/10에서 corpus-backed 후보가 하나 이상 회수됐다. AI 후보 50개 중 Nadeshiko 일반 검색 결과가 있는 후보는 44개였으나, 부분 일치 거짓 양성이 실제로 확인되어 이 수치를 유효 표현률로 해석하지 않는다. 영어 fallback 필요성은 확인되지 않았고 정확 동일표현 검사가 다음 병목으로 확정됐다.
+상태: **완료**. Google `gemini-3.6-flash`로 고정 한국어 의도 10개를 실제 평가했고 10/10에서 실제 대사가 확인된 후보가 하나 이상 회수됐다. AI 후보 50개 중 Nadeshiko 일반 검색 결과가 있는 후보는 44개였으나, 부분 일치 거짓 양성이 실제로 확인되어 이 수치를 유효 표현률로 해석하지 않는다. 영어 대체 경로 필요성은 확인되지 않았고 정확 동일표현 검사가 다음 병목으로 확정됐다.
 
 ### 작업 5 — 정확 동일표현 검사
 
@@ -620,23 +620,23 @@ Instructor 사용.
 한자/가나 허용 표기는 별도 관리.
 작업 4에서 확인된 부분 일치 거짓 양성을 제거하고, 실제 원문에 목표 표현이 같은 표면형으로 존재하는 후보만 남긴다.
 
-상태: **완료**. Nadeshiko `exact_match=True`를 단독 정확성 기준으로 쓰지 않고 일반 검색과 로컬 surface matcher를 결합했다. 전체 pytest **61 passed, 13 skipped**, Ruff·`git diff --check` PASS, Nadeshiko surface live **1 passed**를 확인했다. 대표 거짓 양성을 제거하면서 필수 positive를 유지했고 새 tokenizer 의존성은 추가하지 않았다.
+상태: **완료**. Nadeshiko `exact_match=True`를 단독 정확성 기준으로 쓰지 않고 일반 검색과 로컬 표면형 판정 로직를 결합했다. 전체 pytest **61 passed, 13 skipped**, Ruff·`git diff --check` 통과, Nadeshiko 표면형 실제 연결 **1 passed**를 확인했다. 대표 거짓 양성을 제거하면서 필수 positive를 유지했고 새 토큰izer 의존성은 추가하지 않았다.
 
-#### 작업 6 진입 전 검색 recall 검증
+#### 작업 6 진입 전 검색 회수 검증
 
 상태: **완료**. 작업 번호를 새로 만들지 않은 단기 검증이다.
 
-작업 5 live에서 `ほんとそれ`, `ん？なんて？`, `今、何してるんですか？`가 상위 20건에서 정확 surface 0건이었던 관찰을 Nadeshiko 공식 cursor pagination으로 추가 확인했다.
+작업 5 live에서 `ほんとそれ`, `ん？なんて？`, `今、何してるんですか？`가 상위 20건에서 정확 표면형 0건이었던 관찰을 Nadeshiko 공식 커서 페이지 순회으로 추가 확인했다.
 
 결과:
-- 세 문제 target을 각각 상위 200 segment까지 조회했으나 정확 surface 0건
-- `大丈夫ですか？`는 첫 20건에서 정확 surface 17건
-- `もう一回言って。`는 전체 17건에서 정확 surface 2건
-- pagination은 정상 동작했지만 세 문제 target의 회수를 개선하지 못함
-- 제품 코드에는 pagination을 추가하지 않음
-- rank 200 이후 존재 가능성, corpus 부족, AI 후보의 희귀/장문 문제, 향후 영어 fallback 필요 가능성은 제한으로 기록
+- 세 문제 target을 각각 상위 200 장면까지 조회했으나 정확 표면형 0건
+- `大丈夫ですか？`는 첫 20건에서 정확 표면형 17건
+- `もう一回言って。`는 전체 17건에서 정확 표면형 2건
+- 페이지 순회은 정상 동작했지만 세 문제 target의 회수를 개선하지 못함
+- 제품 코드에는 페이지 순회을 추가하지 않음
+- rank 200 이후 존재 가능성, 대사 자료 부족, AI 후보의 희귀/장문 문제, 향후 영어 대체 경로 필요 가능성은 제한으로 기록
 
-따라서 검색 recall 검증은 닫고 기존 계획의 작업 6으로 이동한다.
+따라서 검색 회수 검증은 닫고 기존 계획의 작업 6으로 이동한다.
 
 ### 작업 6 — 저장·캐시·자료구조 버전
 
@@ -649,44 +649,44 @@ Instructor 사용.
 - `PRAGMA user_version`
 - 구조 변경 전 백업
 
-상태: **완료**. Python 표준 `sqlite3`만 사용해 v1 schema를 구현했고 전체 pytest **72 passed, 13 skipped**, Ruff·`git diff --check` PASS를 확인했다. 파일 DB 재개방 후 검색·표현·공유 segment·review·AI/Nadeshiko cache가 유지되는 것을 검증했다. AI cache와 Nadeshiko raw search cache는 실제 코드 경로에 연결해 동일 fake 외부 호출이 재실행되지 않는 것을 확인했다. `PRAGMA user_version=1`, foreign key, 명시적 transaction/rollback, `Connection.backup()` 기반 구조 변경 전 백업을 적용했고 WAL·ORM·새 dependency는 추가하지 않았다.
+상태: **완료**. Python 표준 `sqlite3`만 사용해 v1 DB 구조를 구현했고 전체 pytest **72 passed, 13 skipped**, Ruff·`git diff --check` 통과를 확인했다. 파일 DB 재개방 후 검색·표현·공유 장면·review·AI/Nadeshiko 캐시가 유지되는 것을 검증했다. AI 캐시와 Nadeshiko raw 검색 캐시는 실제 코드 경로에 연결해 동일 fake 외부 호출이 재실행되지 않는 것을 확인했다. `PRAGMA user_version=1`, 외래 키, 명시적 트랜잭션/롤백, `Connection.backup()` 기반 구조 변경 전 백업을 적용했고 WAL·ORM·새 의존성은 추가하지 않았다.
 
 ### 작업 7 — 선호 애니 관리
 
 Nadeshiko 작품 검색 → 작품 ID 저장 → 선호도·콘텐츠 묶음·활성 여부.
 
-상태: **완료**. 공식 `nadeshiko-sdk==2.3.7`의 `search_media`·`get_media`·`SearchFilters.media.include`를 사용해 Nadeshiko public media ID 기반 작품 관리와 활성 선호작 검색을 연결했다. 기존 SQLite v1 `media` table을 재사용해 preference/content_group/is_active를 보존하며 metadata를 갱신하고, DB가 연결된 제품 검색은 활성 작품이 없을 때 global corpus로 자동 fallback하지 않는다. 활성 media ID 집합은 Nadeshiko search cache 조건에도 포함한다. 전체 pytest **84 passed, 14 skipped**, Ruff·`git diff --check` PASS, media live **1 passed**를 확인했고 schema와 dependency는 변경하지 않았다.
+상태: **완료**. 공식 `nadeshiko-sdk==2.3.7`의 `search_media`·`get_media`·`SearchFilters.media.include`를 사용해 Nadeshiko public media ID 기반 작품 관리와 활성 선호작 검색을 연결했다. 기존 SQLite v1 `media` 테이블을 재사용해 preference/content_group/is_active를 보존하며 메타데이터를 갱신하고, DB가 연결된 제품 검색은 활성 작품이 없을 때 전체 대사 자료로 자동 확대하지 않는다. 활성 media ID 집합은 Nadeshiko 검색 캐시 조건에도 포함한다. 전체 pytest **84 passed, 14 skipped**, Ruff·`git diff --check` 통과, 작품 조회 실제 연결 **1 passed**를 확인했고 DB 구조와 의존성은 변경하지 않았다.
 
-현재 제한: 실제 사용자 선호작 목록은 UI 전이라 아직 직접 등록 경로가 필요하고, 선호작 corpus로 좁힐수록 일부 표현 recall이 더 낮아질 수 있다. 이 제한은 실사용에서 확인된 경우에만 검색 전략을 다시 연다.
+현재 제한: 실제 사용자 선호작 목록은 UI 전이라 아직 직접 등록 경로가 필요하고, 선호작 대사 자료로 좁힐수록 일부 표현 회수이 더 낮아질 수 있다. 이 제한은 실사용에서 확인된 경우에만 검색 전략을 다시 연다.
 
 ### 작업 8 — 한국어 장면 번역
 
 정확 후보의 앞/현재/뒤 문맥을 묶어서 번역.
 모델·지시문 버전·입력 해시 저장.
 
-상태: **완료**. 정확 surface와 활성 선호작 조건을 통과해 저장된 장면에만 `get_segment_context(take=2)`를 호출하고, 같은 작품·화의 가장 가까운 앞/뒤 대사를 선택한다. context는 `(segment_public_id, take)` 기준으로 SQLite에 캐시한다. 여러 장면은 최대 5개씩 하나의 Instructor 구조화 요청으로 번역하며 `SceneTranslationBatch`의 scene key 중복·누락·미지 ID를 저장 전에 거부한다. 기존 AI cache를 `scene-translation-v1` 지시문과 canonical 입력으로 재사용한다.
+상태: **완료**. 정확 표면형와 활성 선호작 조건을 통과해 저장된 장면에만 `get_segment_context(take=2)`를 호출하고, 같은 작품·화의 가장 가까운 앞/뒤 대사를 선택한다. 문맥는 `(segment_public_id, take)` 기준으로 SQLite에 캐시한다. 여러 장면은 최대 5개씩 하나의 Instructor 구조화 요청으로 번역하며 `SceneTranslationBatch`의 scene key 중복·누락·미지 ID를 저장 전에 거부한다. 기존 AI 캐시를 `scene-translation-v1` 지시문과 canonical 입력으로 재사용한다.
 
-번역은 사용자 판정보다 먼저 존재할 수 있으므로 `SCHEMA_VERSION = 2`로 올려 `reviews.decision`을 nullable로 만들고 번역 provenance를 추가했다. v1 DB는 `Connection.backup()` 후 한 transaction에서 v2로 migration하며 실패 시 v1 원본을 유지한다. AI 번역 저장과 사용자 decision/notes 수정 경로를 분리해 서로 덮어쓰지 않는다.
+번역은 사용자 판정보다 먼저 존재할 수 있으므로 `SCHEMA_VERSION = 2`로 올려 `reviews.decision`을 nullable로 만들고 번역 생성 이력를 추가했다. v1 DB는 `Connection.backup()` 후 한 트랜잭션에서 v2로 마이그레이션하며 실패 시 v1 원본을 유지한다. AI 번역 저장과 사용자 decision/notes 수정 경로를 분리해 서로 덮어쓰지 않는다.
 
-전체 pytest **100 passed, 15 skipped**, Ruff·`git diff --check` PASS, translation live **1 passed**를 확인했다. 실제 Google `gemini-3.6-flash`에서 세 장면을 한 batch로 번역했고 같은 DB 재실행과 reopen 후 Nadeshiko context·AI provider 추가 호출이 발생하지 않았다. 이번 짧은 샘플의 번역 품질은 자연스러웠으며, 복잡한 생략·간접 표현은 실제 사용에서 필요할 때 재평가한다.
+전체 pytest **100 passed, 15 skipped**, Ruff·`git diff --check` 통과, translation 실제 연결 **1 passed**를 확인했다. 실제 Google `gemini-3.6-flash`에서 세 장면을 한 묶음로 번역했고 같은 DB 재실행과 reopen 후 Nadeshiko 문맥·AI 서비스 추가 호출이 발생하지 않았다. 이번 짧은 샘플의 번역 품질은 자연스러웠으며, 복잡한 생략·간접 표현은 실제 사용에서 필요할 때 재평가한다.
 
-### 작업 8 이후 확장 — 로컬 timed subtitle fallback
+### 작업 8 이후 확장 — 로컬 타임코드 자막 대체 경로
 
 작업 번호를 새로 만들지 않은 확장이다. 3절의 진입 조건(`Nadeshiko 수록 범위의 실제 병목 확인`)이 2026-08-28 실제 제작 대상 작품군에서 충족되어 진행했다.
 
-배경: 실제 제작 대상 작품군에 Nadeshiko 미수록 작품이 있어, 사용자가 직접 확보한 일본어 timed subtitle(SRT/ASS)을 해당 작품의 검색 corpus로 쓴다. 자막 파일은 저장소 밖 사용자 위치에 두고 자동 다운로드는 없다.
+배경: 실제 제작 대상 작품군에 Nadeshiko 미수록 작품이 있어, 사용자가 직접 확보한 일본어 타임코드 자막(SRT/ASS)을 해당 작품의 검색 대사 자료로 쓴다. 자막 파일은 저장소 밖 사용자 위치에 두고 자동 다운로드는 없다.
 
-POC(`experiments/subtitle_poc/search_subtitles.py`): 자막 폴더를 pysubs2로 파싱하고 기존 Task 5 surface matcher를 그대로 재사용해 **표현 → 화수 → 타임코드 → 실제 원본 장면 탐색** 경로를 검증했다. 저장소 밖 진격의 거인 S1 5화 fixture에서 1,559개 cue를 파싱해 시험 표현 5개 전부 실제 장면과 정확한 타임코드를 회수했다. 화수는 범용 파일명 패턴만 사용하고 작품별 전용 로직은 없다. 자막과 원본 판본 차이로 ±15초 안팎의 offset이 화마다 있을 수 있다.
+POC(`experiments/subtitle_poc/search_subtitles.py`): 자막 폴더를 pysubs2로 파싱하고 기존 Task 5 표면형 판정 로직를 그대로 재사용해 **표현 → 화수 → 타임코드 → 실제 원본 장면 탐색** 경로를 검증했다. 저장소 밖 진격의 거인 S1 5화 시험 자료에서 1,559개 자막 줄을 파싱해 시험 표현 5개 전부 실제 장면과 정확한 타임코드를 회수했다. 화수는 범용 파일명 패턴만 사용하고 작품별 전용 로직은 없다. 자막과 원본 판본 차이로 ±15초 안팎의 오프셋이 화마다 있을 수 있다.
 
 제품 통합(`claude/scene-collector-subtitle-poc`, `be0574a`):
-- DB `SCHEMA_VERSION = 3`: `media.source`('nadeshiko'/'local')를 추가하고 로컬 작품의 `nadeshiko_media_id`를 NULL로 허용(CHECK로 연동)하며 `local_segments` 색인 table을 추가했다. media 재작성은 SQLite 공식 절차(transaction 밖 foreign key OFF, commit 전 `PRAGMA foreign_key_check`)를 따르고, 기존 v1/v2 DB는 단계별 `backup_before_schema_change()` 후 순차 migration한다.
+- DB `SCHEMA_VERSION = 3`: `media.source`('nadeshiko'/'local')를 추가하고 로컬 작품의 `nadeshiko_media_id`를 NULL로 허용(CHECK로 연동)하며 `local_segments` 색인 테이블을 추가했다. media 재작성은 SQLite 공식 절차(트랜잭션 밖 외래 키 OFF, 커밋 전 `PRAGMA foreign_key_check`)를 따르고, 기존 v1/v2 DB는 단계별 `backup_before_schema_change()` 후 순차 마이그레이션한다.
 - `subtitles.py`: 자막 폴더 파싱·화수 추정·작품 단위 색인. 같은 작품 재색인은 기존 색인을 통째로 교체한다.
-- 통합 검색: 활성 Nadeshiko 작품은 기존 공식 검색·cache 그대로, 활성 로컬 작품은 정규화 LIKE 1차 축소 후 기존 surface matcher 최종 판정. 로컬 작품은 Nadeshiko media filter·cache 조건에 섞이지 않고, 활성 Nadeshiko 작품이 없으면 Nadeshiko API를 호출하지 않는다(`response=None`).
-- 새 dependency는 검증된 `pysubs2==1.8.1` 하나만 고정 추가했다.
+- 통합 검색: 활성 Nadeshiko 작품은 기존 공식 검색·캐시 그대로, 활성 로컬 작품은 정규화 LIKE 1차 축소 후 기존 표면형 판정 로직 최종 판정. 로컬 작품은 Nadeshiko media filter·캐시 조건에 섞이지 않고, 활성 Nadeshiko 작품이 없으면 Nadeshiko API를 호출하지 않는다(`response=None`).
+- 새 의존성은 검증된 `pysubs2==1.8.1` 하나만 고정 추가했다.
 
-코드 검수(2026-08-28): **PASS**. main 대비 변경이 `tools/scene_collector` 안으로 한정되고, 전체 pytest **112 passed, 15 skipped**(live 전부 skip, API 비용 0)·Ruff·`git diff --check` PASS를 확인했다. migration은 실제 시드된 v1/v2 DB로 데이터·참조 보존과 실패 주입 시 rollback까지 검증됐다.
+코드 검수(2026-08-28): **통과**. main 대비 변경이 `tools/scene_collector` 안으로 한정되고, 전체 pytest **112 passed, 15 skipped**(실제 연결 시험 전부 제외, API 비용 0)·Ruff·`git diff --check` 통과를 확인했다. 마이그레이션은 실제 시드된 v1/v2 DB로 데이터·참조 보존과 실패 주입 시 롤백까지 검증됐다.
 
-상태: **완료 — 코드 검수 PASS 후 사용자 승인 하에 main에 fast-forward로 반영됐다.**
+상태: **완료 — 코드 검수 통과 후 사용자 승인 하에 main에 fast-forward로 반영됐다.**
 
 여전히 범위 밖: Jimaku 자동 대체 검색·자동 다운로드, STT(Whisper 등), FFmpeg 자동 클리핑, UI, 로컬 장면의 번역·검수 저장 연결. 로컬 장면의 번역·검수 연결은 실사용에서 필요가 확인될 때 별도 작업으로 연다.
 
@@ -696,52 +696,52 @@ NiceGUI / pywebview를 작은 시험으로 비교.
 Nadeshiko MP4 연속 재생과 Windows 실행이 더 안정적인 쪽 하나만 선택.
 시험 후 선택하지 않은 화면 코드는 제거.
 
-상태: **완료 — NiceGUI 3.16.0(native mode) 선택, main 반영.** NiceGUI 3.16.0과 pywebview 6.2.1을 같은 조건(같은 영상 목록·같은 창 구성·같은 WebView2/EdgeChromium backend, `Edg/151` user-agent 확인)의 작은 Windows probe로 실측 비교했다. pywebview에서 js_api public 속성의 JS 재귀 노출로 인한 실제 창 hang이 관찰됐고, Task 10 다섯 화면을 직접 HTML/JS bridge로 만드는 부담까지 근거로 NiceGUI를 선택했다. pywebview probe 코드와 직접 dependency는 제거했고 pywebview는 `nicegui[native]`의 transitive dependency로만 남는다.
+상태: **완료 — NiceGUI 3.16.0(native mode) 선택, main 반영.** NiceGUI 3.16.0과 pywebview 6.2.1을 같은 조건(같은 영상 목록·같은 창 구성·같은 WebView2/EdgeChromium backend, `Edg/151` user-agent 확인)의 작은 Windows probe로 실측 비교했다. pywebview에서 js_api public 속성의 JS 재귀 노출로 인한 실제 창 hang이 관찰됐고, Task 10 다섯 화면을 직접 HTML/JS bridge로 만드는 부담까지 근거로 NiceGUI를 선택했다. pywebview probe 코드와 직접 의존성은 제거했고 pywebview는 `nicegui[native]`의 transitive 의존성로만 남는다.
 
-최신 main 위 재검증(subtitle fallback 반영 후)에서도 실제 Nadeshiko 샘플 video_url 자산 20개로 연속 전환(20→1 순환, 역방향 포함)·재생·일시정지·다음/이전·일본어/한국어 표시·Windows native 실행·정상 종료 후 프로세스 잔류 없음이 전부 PASS였고, 전체 pytest **112 passed, 15 skipped**·Ruff·`git diff --check` PASS를 확인했다.
+최신 main 위 재검증(자막 대체 경로 반영 후)에서도 실제 Nadeshiko 샘플 video_url 자산 20개로 연속 전환(20→1 순환, 역방향 포함)·재생·일시정지·다음/이전·일본어/한국어 표시·Windows native 실행·정상 종료 후 프로세스 잔류 없음이 전부 통과였고, 전체 pytest **112 passed, 15 skipped**·Ruff·`git diff --check` 통과를 확인했다.
 
-**이번에 샘플링한 20개 자산에서 관찰된 "정지 화면 + 대사 음성" MP4 형태는 해당 샘플에 한정된 관찰이며, Nadeshiko 전체 corpus의 모든 video_url 자산으로 일반화하지 않는다.** 움직이는 MP4 재생은 ffmpeg 로컬 테스트 영상으로 별도 검증했다.
+**이번에 샘플링한 20개 자산에서 관찰된 "정지 화면 + 대사 음성" MP4 형태는 해당 샘플에 한정된 관찰이며, Nadeshiko 전체 대사 자료의 모든 video_url 자산으로 일반화하지 않는다.** 움직이는 MP4 재생은 ffmpeg 로컬 테스트 영상으로 별도 검증했다.
 
 ### 작업 10 — 실제 사용자 화면
 
 기존에 통과한 검색·저장 기능만 연결한다.
 화면 개발 중 새로운 검색 알고리즘을 만들지 않는다.
 
-상태: **완료 — NiceGUI(native mode) 5영역 화면, main 반영.** 표현 찾기 / 일본어 표현 선택 / 장면 검수 / 선호 작품 / 설정을 얇은 adapter(`ui_controller`)로 기존 `search_expressions`·`translate_expression_scenes`·`set_review_decision`·선호작 관리에 연결했다. DB schema·검색 알고리즘·dependency는 변경하지 않았고, 화면 상태는 클라이언트(창)별로 분리했다(검증 중 발견된 상태 공유 버그 수정). UI는 활성 작품 없음("검색에 사용할 활성 작품이 없습니다...")과 실제 corpus 0건을 구분해 안내하고, 비밀키 값은 화면에 출력하지 않는다.
+상태: **완료 — NiceGUI(native mode) 5영역 화면, main 반영.** 표현 찾기 / 일본어 표현 선택 / 장면 검수 / 선호 작품 / 설정을 얇은 adapter(`ui_controller`)로 기존 `search_expressions`·`translate_expression_scenes`·`set_review_decision`·선호작 관리에 연결했다. DB 구조·검색 알고리즘·의존성은 변경하지 않았고, 화면 상태는 클라이언트(창)별로 분리했다(검증 중 발견된 상태 공유 버그 수정). UI는 활성 작품 없음("검색에 사용할 활성 작품이 없습니다...")과 실제 대사 자료 0건을 구분해 안내하고, 비밀키 값은 화면에 출력하지 않는다.
 
-Windows native E2E로 **작품 추가/활성화 → 한국어 검색 → corpus-backed 후보 → 장면 검수 → 번역 → 채택 저장 → 종료(프로세스 잔류 0) → 재실행 → 상태 복원**을 전부 PASS했다. 전체 pytest **117 passed, 15 skipped**, Ruff·`git diff --check` PASS.
+Windows native E2E로 **작품 추가/활성화 → 한국어 검색 → 실제 대사가 확인된 후보 → 장면 검수 → 번역 → 채택 저장 → 종료(프로세스 잔류 0) → 재실행 → 상태 복원**을 전부 통과했다. 전체 pytest **117 passed, 15 skipped**, Ruff·`git diff --check` 통과.
 
 알려진 제한(확장하지 않고 기록만): 로컬 자막 작품은 목록 표시만 되고 활성/선호도 편집은 Nadeshiko 작품만 가능, 로컬 장면의 판정 저장은 범위 밖, 재실행 복원은 장면이 남은 가장 최근 검색 1건 기준, 탭 전환 직후 짧은 레이아웃 흔들림(기능 무관).
 
-### 작업 10.5 — curated 작품 풀 + 체크 활성화 UI
+### 작업 10.5 — 선별 작품 풀 + 체크 활성화 UI
 
-한국 인기/인지도 기준으로 조사·채택된 curated 후보를 선호 작품 탭에 표시하고, 사용자 체크만으로 기존 검색 pool을 바꾼다.
+한국 인기/인지도 기준으로 조사·채택된 선별 후보를 선호 작품 탭에 표시하고, 사용자 체크만으로 기존 검색 pool을 바꾼다.
 
 실행 계약:
-- curated 후보 **97개: A군 63 / B군 34**, Tier 1/2/3, 한국 인기 근거 등급 A/B/C를 데이터로 유지한다.
+- 선별 후보 **97개: A군 63 / B군 34**, Tier 1/2/3, 한국 인기 근거 등급 A/B/C를 데이터로 유지한다.
 - 각 후보는 Nadeshiko/Jimaku source availability를 가진다: Nadeshiko 직접(부분 커버 포함) 또는 Jimaku 일본어 SRT/ASS 확인 경로.
-- **하나의 사용자 체크 항목(프랜차이즈)이 여러 Nadeshiko media entry에 연결될 수 있다**(예: 체인소 맨 = TV + 레제편). 사용자는 항목 하나만 체크하고 내부 entry는 함께 활성/비활성한다.
-- 기존 `media.is_active` 검색 구조를 그대로 유지한다. **DB schema 변경을 기본값으로 하지 않는다.** 검색 알고리즘 변경 없음.
+- **하나의 사용자 체크 항목(프랜차이즈)이 여러 Nadeshiko media 항목에 연결될 수 있다**(예: 체인소 맨 = TV + 레제편). 사용자는 항목 하나만 체크하고 내부 항목는 함께 활성/비활성한다.
+- 기존 `media.is_active` 검색 구조를 그대로 유지한다. **DB 구조 변경을 기본값으로 하지 않는다.** 검색 알고리즘 변경 없음.
 - Jimaku 자동 다운로드 없음. Jimaku 경로 작품은 자막 준비·색인 후에만 활성화할 수 있고, 준비 전에는 "자막 준비 필요"로 정직하게 표시한다.
 - **사용자 체크만 활성화 상태를 바꾼다.** 프로그램/AI가 후보를 자동 활성화하지 않으며, 97개를 DB에 자동 삽입하지 않는다.
 - 완료 후 원래 작업 11로 복귀한다.
 
-상태: **완료 — curated 97개 + A/B 필터 + 사용자 체크 기반 is_active 연결을 구현했고 Windows native E2E PASS.**
+상태: **완료 — 선별 97개 + A/B 필터 + 사용자 체크 기반 is_active 연결을 구현했고 Windows native E2E 통과.**
 
 실측 요약:
 - 선호 작품 탭에서 전체 97 / A군 63 / B군 34 표시 확인.
-- 체인소 맨 + 귀멸의 칼날 + 스즈메의 문단속 체크 — 사용자 선택 3개 → **Nadeshiko media entry 4개 활성**(체인소 맨 = TV + 레제편).
-- 실제 검색의 cache/filter 조건에서 **정확히 그 4개 ID만** 사용됐음을 SQLite로 교차 확인.
+- 체인소 맨 + 귀멸의 칼날 + 스즈메의 문단속 체크 — 사용자 선택 3개 → **Nadeshiko media 항목 4개 활성**(체인소 맨 = TV + 레제편).
+- 실제 검색의 캐시/filter 조건에서 **정확히 그 4개 ID만** 사용됐음을 SQLite로 교차 확인.
 - 체인소 맨 해제 후 다음 검색 filter에서 TV+레제편 **모두 제외** 확인.
 - 종료/재실행 후 체크 상태 복원 확인.
-- 전체 pytest **125 passed, 15 skipped**, Ruff·`git diff --check` PASS.
-- DB schema·검색 알고리즘·dependency 무변경.
+- 전체 pytest **125 passed, 15 skipped**, Ruff·`git diff --check` 통과.
+- DB 구조·검색 알고리즘·의존성 무변경.
 
 제한:
 - Jimaku-only 38개는 자막 확보·색인 전에는 체크할 수 없다.
-- 실제 Jimaku 파일의 판본/offset/품질은 해당 작품을 실제 사용할 때 확인한다.
-- 로컬 색인 연결은 현재 표시명 정확 일치 규약이다(curated 한국 제목으로 색인).
-- `nadeshiko_partial` 항목 중 entry의 전체 시즌 커버 범위가 미확정인 항목이 있다.
+- 실제 Jimaku 파일의 판본/오프셋/품질은 해당 작품을 실제 사용할 때 확인한다.
+- 로컬 색인 연결은 현재 표시명 정확 일치 규약이다(선별 한국 제목으로 색인).
+- `nadeshiko_partial` 항목 중 항목의 전체 시즌 커버 범위가 미확정인 항목이 있다.
 
 ### 작업 11 — 영상 저장·내보내기
 
@@ -749,39 +749,39 @@ Windows native E2E로 **작품 추가/활성화 → 한국어 검색 → corpus-
 
 상태: **완료.** 채택(decision='채택') Nadeshiko 장면의 MP4 저장과 `accepted_scenes.json`/`accepted_scenes.csv` 출력을 구현했다.
 
-- 영상 identity는 `segment_public_id`이며 `exports/videos/<segment_public_id>.mp4` 하나로 저장해 중복 다운로드를 방지한다. **동일 segment가 여러 표현에서 채택되면 MP4는 1개, metadata 관계 row는 각각 유지**한다.
-- 다운로드는 `.part` → atomic replace, manifest도 temp → replace로 작성해 중간 실패가 기존 정상 파일을 깨지 않는다. 0 byte 파일은 완료로 취급하지 않는다.
-- manifest의 `video_file`은 exports 기준 상대경로라 SSD 이동 후에도 유지된다.
-- DB schema v3 유지, dependency 변경 없음, Nadeshiko SDK 업그레이드 없음(실제 blocker 미관찰).
-- Windows native 실측: 실제 채택 장면 2개의 MP4 2개 저장과 ffprobe container 확인, **두 번째 export에서 다운로드 0·기존 파일 재사용** 확인.
-- 전체 pytest **132 passed, 15 skipped**, Ruff·`git diff --check` PASS.
-- 로컬 자막 장면의 영상 export는 아직 범위 밖이며 화면에 그대로 안내한다.
+- 영상 식별 기준는 `segment_public_id`이며 `exports/videos/<segment_public_id>.mp4` 하나로 저장해 중복 다운로드를 방지한다. **동일 장면이 여러 표현에서 채택되면 MP4는 1개, 메타데이터 관계 행은 각각 유지**한다.
+- 다운로드는 `.part` → 원자적 교체, 내보내기 목록도 임시 파일 → 교체로 작성해 중간 실패가 기존 정상 파일을 깨지 않는다. 0 byte 파일은 완료로 취급하지 않는다.
+- 내보내기 목록의 `video_file`은 내보내기s 기준 상대경로라 SSD 이동 후에도 유지된다.
+- DB 구조 v3 유지, 의존성 변경 없음, Nadeshiko SDK 업그레이드 없음(실제 blocker 미관찰).
+- Windows native 실측: 실제 채택 장면 2개의 MP4 2개 저장과 ffprobe container 확인, **두 번째 내보내기에서 다운로드 0·기존 파일 재사용** 확인.
+- 전체 pytest **132 passed, 15 skipped**, Ruff·`git diff --check` 통과.
+- 로컬 자막 장면의 영상 내보내기는 아직 범위 밖이며 화면에 그대로 안내한다.
 
 ### 작업 12 — SSD 집/회사 실행 확인
 
 집 PC에서 검색·저장 후 종료 → SSD 이동 → 회사 PC에서 같은 상태로 이어서 검수.
 
-상태: **기술적 portability 검증 PASS / 실제 두 번째 PC 검증은 수행하지 않음.**
+상태: **기술적 이동성 검증 통과 / 실제 두 번째 PC 검증은 수행하지 않음.**
 
-- 실제 SSD work_data_dir에 baseline(활성 작품·검색 run·선택 표현·판정 3종·번역·export 산출물)을 만들고 `task12_baseline.json`에 DB·MP4·manifest SHA-256을 기록했다.
-- 앱 완전 종료 후 동일 SSD 데이터를 Windows `subst`로 **다른 drive letter/절대경로**에서 열어(설정의 work_data_dir만 변경) 같은 DB가 새 DB 생성 없이 열리고 체크·검색·검수·번역 상태와 export 산출물이 그대로 복원됨을 확인했다. 열람·재-export 후에도 DB SHA-256이 baseline과 동일했고, manifest의 상대 `video_file` 덕에 기존 MP4가 재사용되어 재다운로드 0이었다.
-- **실제 회사 PC 검증은 하지 않았다.** 개발 완료 기준에서는 기술적 SSD 이동성 검증까지를 완료로 보고, 실제 회사 PC 확인은 **1회 operational smoke check**(SSD 연결 → drive letter가 다르면 settings.toml의 work_data_dir 수정 → 앱 실행 → 상태 복원 확인)로 분리한다.
+- 실제 SSD work_data_dir에 기준 기록(활성 작품·검색 실행·선택 표현·판정 3종·번역·내보내기 산출물)을 만들고 `task12_baseline.json`에 DB·MP4·내보내기 목록 SHA-256을 기록했다.
+- 앱 완전 종료 후 동일 SSD 데이터를 Windows `subst`로 **다른 드라이브 문자/절대경로**에서 열어(설정의 work_data_dir만 변경) 같은 DB가 새 DB 생성 없이 열리고 체크·검색·검수·번역 상태와 내보내기 산출물이 그대로 복원됨을 확인했다. 열람·재-내보내기 후에도 DB SHA-256이 기준 기록과 동일했고, 내보내기 목록의 상대 `video_file` 덕에 기존 MP4가 재사용되어 재다운로드 0이었다.
+- **실제 회사 PC 검증은 하지 않았다.** 개발 완료 기준에서는 기술적 SSD 이동성 검증까지를 완료로 보고, 실제 회사 PC 확인은 **1회 실제 환경 실행 확인**(SSD 연결 → 드라이브 문자가 다르면 settings.toml의 work_data_dir 수정 → 앱 실행 → 상태 복원 확인)로 분리한다.
 
 ### 작업 13 — 고장 시험
 
 16절 오류 목록을 실제로 시험하고 작업 데이터 보존을 확인한다.
 
-상태: **완료.** 기존 offline 보호장치 테스트 전체 실행 PASS에 더해, 실제/주입 고장 시험으로 다음을 확인했다.
+상태: **완료.** 기존 오프라인 보호장치 테스트 전체 실행 통과에 더해, 실제/주입 고장 시험으로 다음을 확인했다.
 
-- Nadeshiko 키 오류·AI 키 오류·없는 모델명: 실제 호출 실패가 명확한 오류로 드러나고 저장 데이터 무변화, 실패한 검색 run 미저장. (인터넷 단절·사용량 소진은 같은 HTTP 오류 처리 경로로 갈음 — 별도 유발 불가.)
+- Nadeshiko 키 오류·AI 키 오류·없는 모델명: 실제 호출 실패가 명확한 오류로 드러나고 저장 데이터 무변화, 실패한 검색 실행 미저장. (인터넷 단절·사용량 소진은 같은 HTTP 오류 처리 경로로 갈음 — 별도 유발 불가.)
 - 잘못된/없는 work_data_dir 거부. **손상 TOML 문법은 ConfigurationError("설정 파일 형식이 올바르지 않습니다")로 정리** — 마감 수정 반영.
-- DB reopen·transaction rollback·migration 전 backup 기존 테스트 유지, **더 새로운 schema(v99) 거부 + 데이터 무변화**.
-- export 고장: 다운로드 실패 시 `.part` 잔류 없음·기존 정상 MP4 보존·0 byte 미완료 처리·manifest temp→replace 보존.
-- 활성 작품 0개에서 global fallback 금지, **손상 AI cache는 miss 처리**로 기존 데이터 무영향.
+- DB reopen·트랜잭션 롤백·마이그레이션 전 백업 기존 테스트 유지, **더 새로운 DB 구조(v99) 거부 + 데이터 무변화**.
+- 내보내기 고장: 다운로드 실패 시 `.part` 잔류 없음·기존 정상 MP4 보존·0 byte 미완료 처리·내보내기 목록 temp→replace 보존.
+- 활성 작품 0개에서 전체 대사 자료 확대 금지, **손상 AI 캐시는 미적중 처리**로 기존 데이터 무영향.
 - **강제 종료(taskkill /F) 후 DB reopen + `PRAGMA integrity_check` ok.**
 - **DB 잠김은 DatabaseError("작업 데이터베이스를 사용할 수 없습니다…")로 정리** — 마감 수정 반영. 잠금 해제 후 같은 연결·재열기 모두 정상, 데이터 보존.
 - 읽기 전용 작업 위치: **미실측**(Windows에서 시스템 설정 변경 없는 안전한 재현 수단 없음). 코드의 OSError 처리 경로는 존재한다.
-- 마감 수정 2건 반영 후 전체 regression **134 passed, 15 skipped**, Ruff·`git diff --check` PASS, schema v3·dependency·검색/번역/export 코드 무변경.
+- 마감 수정 2건 반영 후 전체 regression **134 passed, 15 skipped**, Ruff·`git diff --check` 통과, DB 구조 v3·의존성·검색/번역/내보내기 코드 무변경.
 
 ## 19. 개발량 추정
 
@@ -794,7 +794,7 @@ Windows native E2E로 **작품 추가/활성화 → 한국어 검색 → corpus-
 - Windows/영상/AI 호환 문제가 여러 번 발생: 약 **65~75시간**
 
 확정 계약 시간이 아니라 불확실성 관리용 추정이었다.
-작업 0~13이 개발 기준으로 완료되어 이 추정의 관리 목적은 끝났다. 남은 것은 실제 회사 PC에서의 1회 operational smoke check뿐이다.
+작업 0~13이 개발 기준으로 완료되어 이 추정의 관리 목적은 끝났다. 남은 것은 실제 회사 PC에서의 1회 실제 환경 실행 확인뿐이다.
 
 AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작, Windows 영상 재생, SSD 이동, 사용자 작업 흐름 검증 시간까지 자동으로 사라진다고 가정하지 않는다.
 
@@ -860,9 +860,9 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 - 채택/예비/제외·메모 저장 — **실제 작업한 장면만** DB에 남음
 - 프로그램 재시작 후 표현 자산과 실제 작업 결과 유지
 - 채택 영상과 제작용 JSON/CSV 내보내기(기존 MP4 재사용, 없으면 현재 주소 재조회)
-- 동일 SSD 작업 데이터를 다른 절대경로/drive letter에서도 같은 상태로 이어서 작업 가능 (**기술적 portability PASS; 실제 회사 PC는 1회 operational smoke check 미수행**)
+- 동일 SSD 작업 데이터를 다른 절대경로/드라이브 문자에서도 같은 상태로 이어서 작업 가능 (**기술적 이동성 통과; 실제 회사 PC는 1회 실제 환경 실행 확인 미수행**)
 - 일반 자동시험은 실제 API 비용/사용량을 발생시키지 않음
-- **실제 사용자가 전체 흐름을 직접 사용해 PASS를 선언**(자동시험 통과만으로 완료하지 않음)
+- **실제 사용자가 전체 흐름을 직접 사용해 통과를 선언**(자동시험 통과만으로 완료하지 않음)
 
 ## 22. 현재 하지 않는 것
 
@@ -876,7 +876,7 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 - Jiten 자동 점수
 - AniList 인기 점수
 - Jimaku 자동 검색·자동 다운로드
-- 로컬 애니 라이브러리 전체 자동 색인 (사용자가 직접 확보한 자막의 작품 단위 fallback 색인은 병목 확인 후 도입 — 작업 8 이후 확장 참조)
+- 로컬 애니 라이브러리 전체 자동 색인 (사용자가 직접 확보한 자막의 작품 단위 대체 경로 색인은 병목 확인 후 도입 — 작업 8 이후 확장 참조)
 - Whisper 등 STT 대사 추출
 - FFmpeg 자동 재편집
 - 자동 영상 제작
@@ -898,9 +898,9 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 
 ## 24. 바로 다음 작업
 
-**25절의 승인된 rework 계약을 구현 순서대로 진행한다.** 완료 조건은 자동시험이 아니라 **사용자 직접 실사용 검수 PASS**이며, 그 전에는 이 문서를 '개발 완료'로 되돌리지 않는다. 회사 PC operational smoke check와 프로젝트 본체 복귀(0화 실제 구성·후속 콘텐츠 POC)는 UAT PASS 이후에 진행한다.
+**25절의 승인된 재작업 계약을 구현 순서대로 진행한다.** 완료 조건은 자동시험이 아니라 **사용자 직접 실사용 검수 통과**이며, 그 전에는 이 문서를 '개발 완료'로 되돌리지 않는다. 회사 PC 실제 환경 실행 확인와 프로젝트 본체 복귀(0화 실제 구성·후속 콘텐츠 POC)는 UAT 통과 이후에 진행한다.
 
-## 25. Rework — 사용자 실사용 검수 반영 (승인된 실행 계약)
+## 25. 재작업 — 사용자 실사용 검수 반영 (승인된 실행 계약)
 
 UAT에서 확인된 문제: 선택하지 않은 후보 전부를 Nadeshiko에 검색하고 검색 결과가 있는 표현만 보여주는 구조, 검색 응답·장면 원본·URL·캐시의 영구 저장과 시작 시 검색 자동 복원, 장면 수만큼 영상 동시 로딩, 작업 결과(판정·번역·메모)의 검색 저장 구조 종속.
 
@@ -909,5 +909,5 @@ UAT에서 확인된 문제: 선택하지 않은 후보 전부를 Nadeshiko에 �
 - **제거**: `ai_cache`·`nadeshiko_search_cache`·`nadeshiko_context_cache`, `search_runs`·구 `expressions`·`expression_segments`·`segments`·구 `reviews`, 검색 결과 저장(`save_search_result`)과 시작 시 검색 복원, 선택 전 전 후보 검색, 여러 장면 선번역.
 - **설정**: `candidate_count`는 의미가 달라졌으므로 **값을 승계하지 않는다** — 새 `expression_generation_limit`(기본 20)을 도입하고, 구 키만 있는 설정에서도 기본값 20을 쓴다. 실제 settings.toml은 구현 과정에서 `expression_generation_limit = 20`으로 갱신한다. `nadeshiko_take`는 유지.
 - **로컬 자막 범위**: 선택 표현 검색 시 병행 검색해 **해당 작품에 그 표현이 존재하는지 확인하는 참고 결과로만** 표시한다. 영상 로딩·판정·work_scenes 저장·내보내기는 이번 범위에서 **Nadeshiko 장면으로 한정**하며 로컬 자막 작업 장면 지원을 새로 확장하지 않는다.
-- **v3 → v4 migration**: 기존 자동 pre-schema backup 유지 + **실제 SSD DB 사본에 먼저 migration을 실행해 보존(선호 작품·로컬 자막·기존 표현·의미 연결·판정·번역·메모)을 확인한 뒤에만 실 DB에 실행**한다. v3의 표현·의미·실작업(reviews 중 판정/번역/메모 보유분)은 12절의 새 구조로 이관하고, 캐시·검색 이력·segment 원본·URL은 이관하지 않는다. 실패 시 rollback으로 v3 원본 유지.
-- **완료 조건**: 한국어 입력 → 저장 표현 확인/AI 생성 → 표현 선택 → 장면 검색 → 장면 하나 선택 → 영상 확인 → 필요시 문맥/번역 → 판정/메모 → 종료·재실행 후 보존 확인 → 내보내기까지 **실제 사용자가 직접 사용해 PASS를 선언**하는 것. 자동시험 통과만으로 이 문서를 다시 '개발 완료'로 바꾸지 않는다.
+- **v3 → v4 마이그레이션**: 기존 자동 pre-DB 구조 백업 유지 + **실제 SSD DB 사본에 먼저 마이그레이션을 실행해 보존(선호 작품·로컬 자막·기존 표현·의미 연결·판정·번역·메모)을 확인한 뒤에만 실 DB에 실행**한다. v3의 표현·의미·실작업(reviews 중 판정/번역/메모 보유분)은 12절의 새 구조로 이관하고, 캐시·검색 이력·장면 원본·URL은 이관하지 않는다. 실패 시 롤백으로 v3 원본 유지.
+- **완료 조건**: 한국어 입력 → 저장 표현 확인/AI 생성 → 표현 선택 → 장면 검색 → 장면 하나 선택 → 영상 확인 → 필요시 문맥/번역 → 판정/메모 → 종료·재실행 후 보존 확인 → 내보내기까지 **실제 사용자가 직접 사용해 통과를 선언**하는 것. 자동시험 통과만으로 이 문서를 다시 '개발 완료'로 바꾸지 않는다.
