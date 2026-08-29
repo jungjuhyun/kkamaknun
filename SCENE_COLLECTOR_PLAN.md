@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 진행 중 / 작업 0~11 완료 / 로컬 자막 fallback main 반영 완료 / 다음 작업 12**
+상태: **개발 완료 — 작업 0~13 개발 기준 완료.** 남은 것은 실제 회사 PC에서 SSD 연결 후 1회 operational smoke check(운영 확인, 새 개발 아님)뿐이다.
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -829,9 +829,27 @@ Windows native E2E로 **작품 추가/활성화 → 한국어 검색 → corpus-
 
 집 PC에서 검색·저장 후 종료 → SSD 이동 → 회사 PC에서 같은 상태로 이어서 검수.
 
+상태: **기술적 portability 검증 PASS / 실제 두 번째 PC 검증은 수행하지 않음.**
+
+- 실제 SSD work_data_dir에 baseline(활성 작품·검색 run·선택 표현·판정 3종·번역·export 산출물)을 만들고 `task12_baseline.json`에 DB·MP4·manifest SHA-256을 기록했다.
+- 앱 완전 종료 후 동일 SSD 데이터를 Windows `subst`로 **다른 drive letter/절대경로**에서 열어(설정의 work_data_dir만 변경) 같은 DB가 새 DB 생성 없이 열리고 체크·검색·검수·번역 상태와 export 산출물이 그대로 복원됨을 확인했다. 열람·재-export 후에도 DB SHA-256이 baseline과 동일했고, manifest의 상대 `video_file` 덕에 기존 MP4가 재사용되어 재다운로드 0이었다.
+- **실제 회사 PC 검증은 하지 않았다.** 개발 완료 기준에서는 기술적 SSD 이동성 검증까지를 완료로 보고, 실제 회사 PC 확인은 **1회 operational smoke check**(SSD 연결 → drive letter가 다르면 settings.toml의 work_data_dir 수정 → 앱 실행 → 상태 복원 확인)로 분리한다.
+
 ### 작업 13 — 고장 시험
 
 16절 오류 목록을 실제로 시험하고 작업 데이터 보존을 확인한다.
+
+상태: **완료.** 기존 offline 보호장치 테스트 전체 실행 PASS에 더해, 실제/주입 고장 시험으로 다음을 확인했다.
+
+- Nadeshiko 키 오류·AI 키 오류·없는 모델명: 실제 호출 실패가 명확한 오류로 드러나고 저장 데이터 무변화, 실패한 검색 run 미저장. (인터넷 단절·사용량 소진은 같은 HTTP 오류 처리 경로로 갈음 — 별도 유발 불가.)
+- 잘못된/없는 work_data_dir 거부. **손상 TOML 문법은 ConfigurationError("설정 파일 형식이 올바르지 않습니다")로 정리** — 마감 수정 반영.
+- DB reopen·transaction rollback·migration 전 backup 기존 테스트 유지, **더 새로운 schema(v99) 거부 + 데이터 무변화**.
+- export 고장: 다운로드 실패 시 `.part` 잔류 없음·기존 정상 MP4 보존·0 byte 미완료 처리·manifest temp→replace 보존.
+- 활성 작품 0개에서 global fallback 금지, **손상 AI cache는 miss 처리**로 기존 데이터 무영향.
+- **강제 종료(taskkill /F) 후 DB reopen + `PRAGMA integrity_check` ok.**
+- **DB 잠김은 DatabaseError("작업 데이터베이스를 사용할 수 없습니다…")로 정리** — 마감 수정 반영. 잠금 해제 후 같은 연결·재열기 모두 정상, 데이터 보존.
+- 읽기 전용 작업 위치: **미실측**(Windows에서 시스템 설정 변경 없는 안전한 재현 수단 없음). 코드의 OSError 처리 경로는 존재한다.
+- 마감 수정 2건 반영 후 전체 regression **134 passed, 15 skipped**, Ruff·`git diff --check` PASS, schema v3·dependency·검색/번역/export 코드 무변경.
 
 ## 19. 개발량 추정
 
@@ -843,8 +861,8 @@ Windows native E2E로 **작품 추가/활성화 → 한국어 검색 → corpus-
 - 기준 예상: 약 **52시간**
 - Windows/영상/AI 호환 문제가 여러 번 발생: 약 **65~75시간**
 
-확정 계약 시간이 아니라 불확실성 관리용 추정이다.
-작업 0~11의 핵심 검색·연결·저장·캐시·선호작·번역·화면 기술·사용자 화면·curated 작품 풀·영상 내보내기 검증과 검색 recall 검증, 로컬 자막 fallback은 완료됐으며, 남은 개발은 기존 작업 12~13 기준으로 이어간다.
+확정 계약 시간이 아니라 불확실성 관리용 추정이었다.
+작업 0~13이 개발 기준으로 완료되어 이 추정의 관리 목적은 끝났다. 남은 것은 실제 회사 PC에서의 1회 operational smoke check뿐이다.
 
 AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작, Windows 영상 재생, SSD 이동, 사용자 작업 흐름 검증 시간까지 자동으로 사라진다고 가정하지 않는다.
 
@@ -949,7 +967,11 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 
 ## 24. 바로 다음 작업
 
-**작업 12 — SSD 집/회사 실행 확인**부터 진행한다. 작업 11 — 영상 저장·내보내기는 완료됐다.
+**장면 수집기의 새 개발 작업은 없다. 작업 0~13이 개발 기준으로 완료됐다.**
+
+남은 것은 실제 회사 PC에서 SSD 연결 후 **1회 operational smoke check**(운영 확인: drive letter가 다르면 settings.toml의 work_data_dir만 수정 → 앱 실행 → 상태 복원 확인)뿐이며, 이는 새 기능 개발 단계가 아니다.
+
+프로젝트는 이제 본체로 복귀한다 — **0화 실제 구성과 후속 콘텐츠 POC**(현재 상태와 다음 행동은 `STATE.md`가 owner).
 
 작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전, 작업 7 — 선호 애니 관리, 작업 8 — 한국어 장면 번역은 완료되어 `main`에 반영됐다.
 검색 recall 검증도 닫았다. 세 문제 target을 상위 200건까지 확인해도 정확 surface가 없었고 pagination의 제품 적용 이득이 확인되지 않았으므로 검색 계층을 더 늘리지 않는다.

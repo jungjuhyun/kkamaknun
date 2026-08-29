@@ -213,7 +213,7 @@ Windows native E2E는 **작품 추가/활성화 → 한국어 검색 → corpus-
 - 기준 약 52시간
 - Windows/영상/AI 호환 문제가 여러 번 발생하면 약 65~75시간
 
-이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. 작업 0~11의 검색·저장·캐시·선호작·번역·화면 기술·사용자 화면·curated 작품 풀·영상 내보내기 검증과 로컬 자막 fallback 확장까지 완료됐다. 개발의 다음 작업은 **작업 12 — SSD 집/회사 실행 확인**이다.
+이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. **작업 0~13이 개발 기준으로 완료되어 장면 수집기 개발은 종료됐다.** 남은 것은 실제 회사 PC에서 SSD 연결 후 1회 operational smoke check(새 개발이 아니라 실제 환경 확인)뿐이다.
 
 ## Curated 후보 작품 풀 — 작업 10.5 완료
 
@@ -242,9 +242,28 @@ Windows native E2E는 **작품 추가/활성화 → 한국어 검색 → corpus-
 - 전체 pytest **132 passed, 15 skipped**.
 - **로컬 자막 장면의 영상 export는 아직 범위 밖**이며 UI에 그대로 안내한다.
 
+## 작업 12·13 완료 — 장면 수집기 개발 종료
+
+**작업 12 — SSD 이동성**은 다음과 같이 기록한다.
+
+- 실제 SSD(work_data_dir `K:\side-project\scene-collector-data`) baseline 생성: PASS. `task12_baseline.json`에 DB/산출물 해시 기록.
+- 동일 SSD 데이터를 Windows `subst`로 다른 drive letter/절대경로에서 열어 동일 DB·체크 상태·검색·검수·번역·export가 그대로 복원됨: PASS (새 DB 미생성 — DB SHA-256이 baseline과 동일).
+- 기존 MP4 재사용·재다운로드 0, manifest 상대 `video_file`이 새 절대경로에서도 유효: PASS.
+- **기술적 portability 검증: PASS. 실제 두 번째 PC 검증은 수행하지 않았다.** 실제 회사 PC에서는 이후 **1회 operational smoke check**(SSD 연결 → drive letter가 다르면 `settings.toml`의 `work_data_dir`만 수정 → 앱 실행 → 상태 복원 확인)만 남는다.
+
+**작업 13 — 고장 시험**은 완료로 기록한다.
+
+- Nadeshiko/AI 실패(실제 잘못된 키·없는 모델 주입) 시 명확한 오류와 저장 데이터 보존, 실패한 검색 run 미저장.
+- 잘못된/없는 work_data_dir 거부, **손상 TOML은 ConfigurationError로 정리**(마감 수정 반영), DB reopen·transaction rollback, **더 새로운 schema 거부**(데이터 무변화), migration 전 backup 테스트 유지.
+- export: 다운로드 실패 시 `.part` 정리·기존 정상 MP4 보존·0 byte 미완료 처리·manifest atomic write.
+- 활성 작품 0개에서 global corpus로 확대하지 않음, **손상 AI cache는 miss로 처리**되어 기존 데이터에 영향 없음.
+- **강제 종료(taskkill /F) 후 reopen + `PRAGMA integrity_check` ok**, **DB 잠김은 DatabaseError로 정리**(마감 수정 반영)되고 해제 후 정상 복구.
+- 읽기 전용 작업 위치는 **미실측**(Windows에서 안전한 재현 수단 없음; 코드의 OSError 처리 경로는 존재).
+- 마감 수정 2건 반영 후 전체 pytest **134 passed, 15 skipped**, schema v3·dependency·검색/번역/export 코드 무변경.
+
 ## 지금 딱 한 단계
 
-**0화 구성은 계속 유지하면서, 장면 수집기의 작업 12 — SSD 집/회사 실행 확인을 진행한다.**
+**장면 수집기 개발은 완료됐다. 이제 프로젝트 본체로 복귀해 0화 실제 구성과 후속 콘텐츠 POC를 진행한다.** (회사 PC smoke check 1회는 새 개발이 아닌 운영 확인으로만 남는다.)
 
 현재 목표 순서:
 1. 확보된 촬영물에서 0화에 들어갈 실제 사건/반응 후보를 선별해 0화를 구성한다.
@@ -264,9 +283,11 @@ Windows native E2E는 **작품 추가/활성화 → 한국어 검색 → corpus-
 15. 작업 10 — 실제 사용자 화면: **완료 — 5영역 화면과 Windows native E2E PASS, main 반영**.
 16. 작업 10.5 — curated 작품 풀 + 체크 활성화 UI: **완료 — 97개 표시·체크 활성화·검색 filter 반영·재실행 복원 실측 PASS**.
 17. 작업 11 — 영상 저장·내보내기: **완료 — 채택 MP4 저장·JSON/CSV 출력·중복 다운로드 방지 실측 PASS**.
-18. 작업 12 — SSD 집/회사 실행 확인: **다음 작업**. 집 PC에서 검색·저장 후 종료 → SSD 이동 → 회사 PC에서 같은 상태로 이어서 검수.
+18. 작업 12 — SSD 이동성: **기술 검증 완료(동일 데이터 다른 절대경로 복원·해시 보존·재다운로드 0). 실제 두 번째 PC 검증은 미수행 — 회사 PC 1회 operational smoke check로 분리**.
+19. 작업 13 — 고장 시험: **완료 — 실패 주입·데이터 보존·오류 정리 2건 반영, 134 passed**.
+20. **장면 수집기 개발 완료.** 남은 것은 회사 PC smoke check 1회(운영 확인)뿐.
 
-즉 현재 우선순위는 새로운 검색·번역 알고리즘을 더 만드는 것이 아니라 **0화 구성 + SSD 이동 실사용을 확인하는 작업 12**다.
+즉 현재 우선순위는 장면 수집기 개발이 아니라 **0화 실제 구성과 후속 콘텐츠 POC**다.
 
 ## 운영 원칙
 
