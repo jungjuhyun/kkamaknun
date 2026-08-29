@@ -1,6 +1,6 @@
 # SCENE_COLLECTOR_PLAN.md — 애니 표현 장면 수집기 개발 계획
 
-상태: **개발 진행 중 / 작업 0~10.5 완료 / 로컬 자막 fallback main 반영 완료 / 다음 작업 11**
+상태: **개발 진행 중 / 작업 0~11 완료 / 로컬 자막 fallback main 반영 완료 / 다음 작업 12**
 
 이 문서는 `FIRST_VIDEO.md`의 후속 학습·콘텐츠 POC에 필요한 **애니 표현 장면 수집기**의 실행 계획이다.
 `FIRST_VIDEO.md`가 콘텐츠·학습 방향의 owner이며, 이 문서는 그 방향을 실제 코드로 구현하기 위한 하위 실행 계획이다.
@@ -815,6 +815,16 @@ Windows native E2E로 **작품 추가/활성화 → 한국어 검색 → corpus-
 
 채택 MP4 저장, JSON/CSV 출력, 중복 다운로드 방지.
 
+상태: **완료.** 채택(decision='채택') Nadeshiko 장면의 MP4 저장과 `accepted_scenes.json`/`accepted_scenes.csv` 출력을 구현했다.
+
+- 영상 identity는 `segment_public_id`이며 `exports/videos/<segment_public_id>.mp4` 하나로 저장해 중복 다운로드를 방지한다. **동일 segment가 여러 표현에서 채택되면 MP4는 1개, metadata 관계 row는 각각 유지**한다.
+- 다운로드는 `.part` → atomic replace, manifest도 temp → replace로 작성해 중간 실패가 기존 정상 파일을 깨지 않는다. 0 byte 파일은 완료로 취급하지 않는다.
+- manifest의 `video_file`은 exports 기준 상대경로라 SSD 이동 후에도 유지된다.
+- DB schema v3 유지, dependency 변경 없음, Nadeshiko SDK 업그레이드 없음(실제 blocker 미관찰).
+- Windows native 실측: 실제 채택 장면 2개의 MP4 2개 저장과 ffprobe container 확인, **두 번째 export에서 다운로드 0·기존 파일 재사용** 확인.
+- 전체 pytest **132 passed, 15 skipped**, Ruff·`git diff --check` PASS.
+- 로컬 자막 장면의 영상 export는 아직 범위 밖이며 화면에 그대로 안내한다.
+
 ### 작업 12 — SSD 집/회사 실행 확인
 
 집 PC에서 검색·저장 후 종료 → SSD 이동 → 회사 PC에서 같은 상태로 이어서 검수.
@@ -834,7 +844,7 @@ Windows native E2E로 **작품 추가/활성화 → 한국어 검색 → corpus-
 - Windows/영상/AI 호환 문제가 여러 번 발생: 약 **65~75시간**
 
 확정 계약 시간이 아니라 불확실성 관리용 추정이다.
-작업 0~10.5의 핵심 검색·연결·저장·캐시·선호작·번역·화면 기술·사용자 화면·curated 작품 풀 검증과 검색 recall 검증, 로컬 자막 fallback은 완료됐으며, 남은 개발은 기존 작업 11~13 기준으로 이어간다.
+작업 0~11의 핵심 검색·연결·저장·캐시·선호작·번역·화면 기술·사용자 화면·curated 작품 풀·영상 내보내기 검증과 검색 recall 검증, 로컬 자막 fallback은 완료됐으며, 남은 개발은 기존 작업 12~13 기준으로 이어간다.
 
 AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작, Windows 영상 재생, SSD 이동, 사용자 작업 흐름 검증 시간까지 자동으로 사라진다고 가정하지 않는다.
 
@@ -939,7 +949,7 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 
 ## 24. 바로 다음 작업
 
-**작업 11 — 영상 저장·내보내기**부터 진행한다. 작업 10.5 — curated 작품 풀 + 체크 활성화 UI는 완료됐다.
+**작업 12 — SSD 집/회사 실행 확인**부터 진행한다. 작업 11 — 영상 저장·내보내기는 완료됐다.
 
 작업 0 — 개발 골격, 작업 1 — 설정 로딩·검증, 작업 2 — Nadeshiko 실제 연결 확인, 작업 3 — AI 실제 연결 확인, 작업 4 — 한국어 표현 찾기, 작업 5 — 정확 동일표현 검사, 작업 6 — 저장·캐시·자료구조 버전, 작업 7 — 선호 애니 관리, 작업 8 — 한국어 장면 번역은 완료되어 `main`에 반영됐다.
 검색 recall 검증도 닫았다. 세 문제 target을 상위 200건까지 확인해도 정확 surface가 없었고 pagination의 제품 적용 이득이 확인되지 않았으므로 검색 계층을 더 늘리지 않는다.

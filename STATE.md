@@ -213,7 +213,7 @@ Windows native E2E는 **작품 추가/활성화 → 한국어 검색 → corpus-
 - 기준 약 52시간
 - Windows/영상/AI 호환 문제가 여러 번 발생하면 약 65~75시간
 
-이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. 작업 0~10의 검색·저장·캐시·선호작·번역·화면 기술·사용자 화면 검증, 로컬 자막 fallback 확장, 그리고 **작업 10.5 — curated 작품 풀 + 체크 활성화 UI**까지 완료됐다. 개발의 다음 작업은 원래 계획의 **작업 11**이다.
+이 값은 확정 계약 시간이 아니라 불확실성 관리용이다. 작업 0~11의 검색·저장·캐시·선호작·번역·화면 기술·사용자 화면·curated 작품 풀·영상 내보내기 검증과 로컬 자막 fallback 확장까지 완료됐다. 개발의 다음 작업은 **작업 12 — SSD 집/회사 실행 확인**이다.
 
 ## Curated 후보 작품 풀 — 작업 10.5 완료
 
@@ -228,9 +228,23 @@ Windows native E2E는 **작품 추가/활성화 → 한국어 검색 → corpus-
 - 체크 해제 후 다음 검색의 media filter에서 해당 entry들이 **실제로 제외**되는 것, **종료/재실행 후 체크 상태 복원**을 확인했다.
 - 전체 pytest **125 passed, 15 skipped**. DB schema·검색 알고리즘·dependency 변경 없음.
 
+## 작업 11 — 영상 저장·내보내기 완료
+
+채택(decision='채택') Nadeshiko 장면의 제작용 export를 완료했다.
+
+- 채택 장면 MP4 저장과 `accepted_scenes.json` / `accepted_scenes.csv` 출력 완료.
+- 영상 identity는 `segment_public_id`이며 `exports/videos/<segment_public_id>.mp4` 하나로 저장해 **중복 다운로드를 방지**한다. 정상 파일이 있으면 다음 export에서 재사용한다.
+- **동일 segment가 여러 표현에서 채택되면 MP4는 1개, metadata 관계는 각각 유지**한다.
+- 다운로드는 `.part` → atomic replace, manifest(JSON/CSV)도 temp → replace로 작성해 중간 실패가 기존 정상 파일을 깨지 않는다.
+- manifest의 `video_file`은 exports 기준 상대경로라 SSD 이동 후에도 유지된다.
+- DB schema v3 유지, dependency 변경 없음, Nadeshiko SDK 업그레이드 없음.
+- Windows native에서 실제 채택 장면 2개(귀멸의 칼날 9화·스즈메의 문단속 1화)의 **실제 MP4 2개 저장과 ffprobe container 확인**, **두 번째 export에서 다운로드 0·기존 파일 재사용**을 실측했다.
+- 전체 pytest **132 passed, 15 skipped**.
+- **로컬 자막 장면의 영상 export는 아직 범위 밖**이며 UI에 그대로 안내한다.
+
 ## 지금 딱 한 단계
 
-**0화 구성은 계속 유지하면서, 장면 수집기의 작업 11 — 영상 저장·내보내기를 진행한다.**
+**0화 구성은 계속 유지하면서, 장면 수집기의 작업 12 — SSD 집/회사 실행 확인을 진행한다.**
 
 현재 목표 순서:
 1. 확보된 촬영물에서 0화에 들어갈 실제 사건/반응 후보를 선별해 0화를 구성한다.
@@ -249,9 +263,10 @@ Windows native E2E는 **작품 추가/활성화 → 한국어 검색 → corpus-
 14. 작업 9 — NiceGUI / pywebview Windows MP4 연속 재생 비교: **완료 — NiceGUI(native mode) 선택, main 반영**.
 15. 작업 10 — 실제 사용자 화면: **완료 — 5영역 화면과 Windows native E2E PASS, main 반영**.
 16. 작업 10.5 — curated 작품 풀 + 체크 활성화 UI: **완료 — 97개 표시·체크 활성화·검색 filter 반영·재실행 복원 실측 PASS**.
-17. 작업 11 — 영상 저장·내보내기: **다음 작업**. 채택 MP4 저장, 제작용 JSON/CSV 출력, 중복 다운로드 방지.
+17. 작업 11 — 영상 저장·내보내기: **완료 — 채택 MP4 저장·JSON/CSV 출력·중복 다운로드 방지 실측 PASS**.
+18. 작업 12 — SSD 집/회사 실행 확인: **다음 작업**. 집 PC에서 검색·저장 후 종료 → SSD 이동 → 회사 PC에서 같은 상태로 이어서 검수.
 
-즉 현재 우선순위는 새로운 검색·번역 알고리즘을 더 만드는 것이 아니라 **0화 구성 + 채택 장면을 제작에 쓸 수 있게 내보내는 작업 11**이다.
+즉 현재 우선순위는 새로운 검색·번역 알고리즘을 더 만드는 것이 아니라 **0화 구성 + SSD 이동 실사용을 확인하는 작업 12**다.
 
 ## 운영 원칙
 
