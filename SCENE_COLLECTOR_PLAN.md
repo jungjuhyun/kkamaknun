@@ -930,7 +930,7 @@ AI 코딩 도구로 코드 작성 시간은 줄 수 있지만 실제 API 동작,
 - 프로그램 재시작 후 작업 상태 유지
 - 같은 요청의 불필요한 AI/Nadeshiko 재호출 감소
 - 채택 영상과 제작용 JSON/CSV 내보내기
-- 집 PC → SSD 이동 → 회사 PC에서 같은 상태로 이어서 작업
+- 동일 SSD 작업 데이터를 다른 절대경로/drive letter에서도 같은 상태로 이어서 작업 가능 (**기술적 portability PASS; 실제 회사 PC는 1회 operational smoke check 미수행**)
 - 일반 자동시험은 실제 API 비용/사용량을 발생시키지 않음
 
 ## 22. 현재 하지 않는 것
