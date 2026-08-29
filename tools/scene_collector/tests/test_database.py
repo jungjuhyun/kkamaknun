@@ -890,3 +890,35 @@ def test_repeated_search_uses_both_caches_and_persists_each_run(
             "ちょっと待って",
         ]
         assert reopened.connection.execute("SELECT COUNT(*) FROM search_runs").fetchone()[0] == 3
+
+
+def test_locked_database_raises_database_error_and_preserves_data(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    with SceneCollectorDatabase.open(settings) as database:
+        database.upsert_media("anonymous-media-001", display_name="잠금 시험 작품")
+        # 시험을 빠르게 하기 위한 대기 시간 축소 (기본 5초)
+        database.connection.execute("PRAGMA busy_timeout = 100")
+
+        locker = sqlite3.connect(database.path, isolation_level=None)
+        locker.execute("BEGIN EXCLUSIVE")
+        try:
+            with pytest.raises(DatabaseError, match="사용할 수 없습니다"):
+                database.set_media_active("anonymous-media-001", False)
+            with pytest.raises(DatabaseError, match="사용할 수 없습니다"):
+                database.schema_version
+        finally:
+            locker.execute("ROLLBACK")
+            locker.close()
+
+        # 잠금 해제 후에는 그대로 사용 가능하고 데이터가 보존된다
+        assert database.schema_version == SCHEMA_VERSION
+        stored = database.get_media("anonymous-media-001")
+        assert stored is not None and stored.is_active is True
+        database.set_media_active("anonymous-media-001", False)
+        assert (
+            database.connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
+        )
+
+    with SceneCollectorDatabase.open(settings) as reopened:
+        stored = reopened.get_media("anonymous-media-001")
+        assert stored is not None and stored.is_active is False

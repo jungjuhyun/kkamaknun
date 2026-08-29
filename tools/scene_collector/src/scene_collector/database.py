@@ -31,6 +31,18 @@ ReviewDecision = Literal["채택", "예비", "제외"]
 CachedResponse = TypeVar("CachedResponse", bound=BaseModel)
 
 
+_LOCKED_SQLITE_ERROR_CODES = frozenset({sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED})
+_LOCKED_MESSAGE = (
+    "작업 데이터베이스를 사용할 수 없습니다. 다른 프로그램이나 작업이 사용 중인지 확인하세요."
+)
+
+
+def _raise_if_locked(error: sqlite3.OperationalError) -> None:
+    """DB 잠김(BUSY/LOCKED)만 사용자용 DatabaseError로 바꾼다. 그 외는 그대로 둔다."""
+    if getattr(error, "sqlite_errorcode", None) in _LOCKED_SQLITE_ERROR_CODES:
+        raise DatabaseError(_LOCKED_MESSAGE) from error
+
+
 class DatabaseError(RuntimeError):
     """로컬 데이터베이스를 안전하게 사용할 수 없을 때 발생한다."""
 
@@ -410,7 +422,11 @@ class SceneCollectorDatabase:
     @property
     def schema_version(self) -> int:
         """현재 DB의 PRAGMA user_version 값을 반환한다."""
-        row = self.connection.execute("PRAGMA user_version").fetchone()
+        try:
+            row = self.connection.execute("PRAGMA user_version").fetchone()
+        except sqlite3.OperationalError as error:
+            _raise_if_locked(error)
+            raise
         if row is None:
             raise DatabaseError("SQLite schema version을 읽을 수 없습니다.")
         return int(row[0])
@@ -444,6 +460,11 @@ class SceneCollectorDatabase:
         connection.execute("BEGIN")
         try:
             yield connection
+        except sqlite3.OperationalError as error:
+            if connection.in_transaction:
+                connection.rollback()
+            _raise_if_locked(error)
+            raise
         except BaseException:
             if connection.in_transaction:
                 connection.rollback()
@@ -451,6 +472,11 @@ class SceneCollectorDatabase:
         else:
             try:
                 connection.commit()
+            except sqlite3.OperationalError as error:
+                if connection.in_transaction:
+                    connection.rollback()
+                _raise_if_locked(error)
+                raise
             except BaseException:
                 if connection.in_transaction:
                     connection.rollback()

@@ -178,3 +178,22 @@ def test_python_source_has_no_hard_coded_user_path() -> None:
     for source_file in source_directory.glob("*.py"):
         assert absolute_windows_path.search(source_file.read_text(encoding="utf-8")) is None
     assert not config_module.DEFAULT_SETTINGS_FILE.is_absolute()
+
+
+def test_malformed_toml_raises_configuration_error(tmp_path: Path) -> None:
+    broken = tmp_path / "settings.toml"
+    broken.write_text("[storage\nwork_data_dir = ???", encoding="utf-8")
+
+    with pytest.raises(ConfigurationError, match="설정 파일 형식이 올바르지 않습니다"):
+        load_settings(broken)
+
+    # raw TOML parser 예외가 밖으로 새지 않고, 설정 원문도 메시지에 노출되지 않는다
+    import tomllib
+
+    try:
+        load_settings(broken)
+    except ConfigurationError as error:
+        assert not isinstance(error, tomllib.TOMLDecodeError)
+        assert "work_data_dir = ???" not in str(error)
+    else:  # pragma: no cover - 위 raises에서 이미 실패한다
+        raise AssertionError("ConfigurationError가 발생해야 합니다")

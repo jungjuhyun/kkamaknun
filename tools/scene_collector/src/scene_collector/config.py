@@ -1,5 +1,6 @@
 """로컬 설정 파일과 비밀정보를 검증해 읽는다."""
 
+import tomllib
 from pathlib import Path
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator
@@ -134,6 +135,8 @@ def load_settings(
 
     try:
         return configured_settings(_env_file=dotenv_path)
+    except tomllib.TOMLDecodeError as error:
+        raise ConfigurationError(f"설정 파일 형식이 올바르지 않습니다: {error}") from error
     except ValidationError as error:
         raise ConfigurationError(_format_validation_error(error)) from error
     except (OSError, PydanticSettingsError) as error:
