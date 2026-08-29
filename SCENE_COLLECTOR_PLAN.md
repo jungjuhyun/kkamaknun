@@ -117,8 +117,8 @@ AI가 필요한 일은 복잡한 자율 에이전트가 아니라:
 - pytest
 - Ruff
 
-화면 기술은 아직 확정하지 않는다.
-NiceGUI와 pywebview 중 실제 MP4 연속 재생·Windows 실행 시험을 통과한 쪽 하나만 채택한다.
+화면 기술은 작업 9의 실제 Windows 비교 시험을 거쳐 NiceGUI 3.16.0(native mode)으로 확정했다.
+선택하지 않은 pywebview 시험 코드는 제거했으며, pywebview는 `nicegui[native]`의 전이 의존성으로만 남는다.
 
 ## 5. 전체 사용자 흐름
 
