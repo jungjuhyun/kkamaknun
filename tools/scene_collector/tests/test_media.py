@@ -38,7 +38,7 @@ def _settings(work_data_dir: Path, *, expression_generation_limit: int = 3) -> A
         ai=AISettings(service="provider-one", model="model-one"),
         search=SearchSettings(
             expression_generation_limit=expression_generation_limit,
-            nadeshiko_take=2,
+            scene_result_limit=2,
         ),
     )
 

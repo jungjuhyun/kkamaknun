@@ -19,12 +19,14 @@ def _write_settings(
     service: str = '"test-service"',
     model: str = '"test-model"',
     expression_generation_limit: str | None = "5",
-    nadeshiko_take: str | None = "5",
+    scene_result_limit: str | None = "5",
     candidate_count: str | None = None,
+    nadeshiko_take: str | None = None,
 ) -> None:
     """설정 파일을 쓴다. 값이 None인 검색 항목은 아예 기록하지 않는다."""
     search_entries = (
         ("expression_generation_limit", expression_generation_limit),
+        ("scene_result_limit", scene_result_limit),
         ("candidate_count", candidate_count),
         ("nadeshiko_take", nadeshiko_take),
     )
@@ -60,7 +62,7 @@ def test_loads_valid_settings_from_toml(tmp_path: Path) -> None:
     assert settings.ai.service == "test-service"
     assert settings.ai.model == "test-model"
     assert settings.search.expression_generation_limit == 5
-    assert settings.search.nadeshiko_take == 5
+    assert settings.search.scene_result_limit == 5
 
 
 @pytest.mark.parametrize(
@@ -153,7 +155,7 @@ def test_legacy_candidate_count_is_ignored_and_not_inherited(tmp_path: Path) -> 
     settings = load_settings(settings_file)
 
     assert settings.search.expression_generation_limit == 20
-    assert settings.search.nadeshiko_take == 5
+    assert settings.search.scene_result_limit == 5
     assert not hasattr(settings.search, "candidate_count")
 
 
@@ -171,6 +173,58 @@ def test_expression_generation_limit_wins_over_legacy_candidate_count(tmp_path: 
     settings = load_settings(settings_file)
 
     assert settings.search.expression_generation_limit == 12
+
+
+def test_legacy_nadeshiko_take_is_ignored_and_not_inherited(tmp_path: Path) -> None:
+    """옛 nadeshiko_take는 뜻이 달라졌으므로 값을 승계하지 않는다.
+
+    옛 키는 API에서 한 번에 받아올 후보 수였고, 새 키는 화면에 보여줄 장면
+    수다. 구 설정 파일이 오류를 내지는 않지만 그 숫자를 그대로 쓰지 않는다.
+    """
+    work_data_dir = _work_data_dir(tmp_path)
+    settings_file = tmp_path / "settings.toml"
+    _write_settings(
+        settings_file,
+        work_data_dir=_toml_string(work_data_dir),
+        scene_result_limit=None,
+        nadeshiko_take="3",
+    )
+
+    settings = load_settings(settings_file)
+
+    assert settings.search.scene_result_limit == 5
+    assert not hasattr(settings.search, "nadeshiko_take")
+
+
+def test_scene_result_limit_wins_over_legacy_nadeshiko_take(tmp_path: Path) -> None:
+    """두 키가 함께 있으면 새 키 값을 쓰고 옛 키는 무시한다."""
+    work_data_dir = _work_data_dir(tmp_path)
+    settings_file = tmp_path / "settings.toml"
+    _write_settings(
+        settings_file,
+        work_data_dir=_toml_string(work_data_dir),
+        scene_result_limit="7",
+        nadeshiko_take="3",
+    )
+
+    assert load_settings(settings_file).search.scene_result_limit == 7
+
+
+def test_only_the_legacy_handler_still_mentions_the_old_search_keys() -> None:
+    """옛 키 이름이 코드에 남아 있으면 값이 조용히 기본값으로 바뀌는 회귀가 생긴다.
+
+    옛 키는 mode="before" 검증기가 조용히 버리므로, 이름을 못 고친 자리는
+    오류가 아니라 '뜻이 달라진 기본값'으로 넘어가 시험이 통과해 버린다.
+    그래서 이름이 남은 자리를 문자열로 직접 막는다.
+    """
+    root = Path(__file__).resolve().parents[1]
+    allowed = {root / "src" / "scene_collector" / "config.py", Path(__file__).resolve()}
+    offenders = [
+        path.relative_to(root).as_posix()
+        for path in (*root.glob("src/**/*.py"), *root.glob("tests/**/*.py"))
+        if path.resolve() not in allowed and "nadeshiko_take" in path.read_text(encoding="utf-8")
+    ]
+    assert offenders == []
 
 
 @pytest.mark.parametrize("value", ("1", "20"))
@@ -194,9 +248,9 @@ def test_accepts_expression_generation_limit_bounds(tmp_path: Path, value: str) 
         ("expression_generation_limit", "0"),
         ("expression_generation_limit", "21"),
         ("expression_generation_limit", '"5"'),
-        ("nadeshiko_take", "0"),
-        ("nadeshiko_take", "21"),
-        ("nadeshiko_take", '"5"'),
+        ("scene_result_limit", "0"),
+        ("scene_result_limit", "21"),
+        ("scene_result_limit", '"5"'),
     ),
 )
 def test_rejects_invalid_search_settings(tmp_path: Path, field: str, value: str) -> None:

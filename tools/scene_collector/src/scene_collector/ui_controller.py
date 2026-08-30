@@ -47,7 +47,7 @@ class SettingsSummary:
     ai_service: str
     ai_model: str
     expression_generation_limit: int
-    nadeshiko_take: int
+    scene_result_limit: int
     nadeshiko_key_set: bool
 
 
@@ -171,7 +171,7 @@ def settings_summary(settings: AppSettings) -> SettingsSummary:
         ai_service=settings.ai.service,
         ai_model=settings.ai.model,
         expression_generation_limit=settings.search.expression_generation_limit,
-        nadeshiko_take=settings.search.nadeshiko_take,
+        scene_result_limit=settings.search.scene_result_limit,
         nadeshiko_key_set=key_set,
     )
 

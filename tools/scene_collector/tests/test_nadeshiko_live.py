@@ -38,7 +38,7 @@ def live_client(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Nadeshiko]
                 "",
                 "[search]",
                 "expression_generation_limit = 5",
-                "nadeshiko_take = 5",
+                "scene_result_limit = 5",
                 "",
             )
         ),

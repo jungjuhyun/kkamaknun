@@ -35,6 +35,27 @@ if TYPE_CHECKING:
         StoredMedia,
     )
 
+SEARCH_PAGE_TAKE = 50
+"""한 번의 검색 요청으로 받아올 후보 수. Nadeshiko 공식 take 상한이다.
+
+사용자에게 보여줄 장면 수와 다른 값이다. 같은 수의 후보를 보는 데 필요한
+요청 수가 가장 적어서 상한을 그대로 쓴다.
+"""
+
+SEARCH_MAX_PAGES = 4
+"""일반 검색에서 훑을 최대 페이지 수. 4 x 50 = 후보 200개.
+
+과거 회수 검증에서 문제 표현 세 개는 상위 200장면까지 정확 일치가 0이었고
+`大丈夫ですか`는 첫 20건에서 17건을 회수했다. 200을 넘겨 더 훑을 실익이 없다.
+"""
+
+EXACT_MATCH_MAX_PAGES = 2
+"""정확 검색 대체 경로의 최대 페이지 수.
+
+이 경로는 일반 검색으로 후보 200개를 다 본 뒤에도 0건일 때만 돌므로 더 짧게 잡는다.
+표현 하나를 찾는 데 드는 검색 호출은 최대 SEARCH_MAX_PAGES + EXACT_MATCH_MAX_PAGES회다.
+"""
+
 _EXPRESSION_RULES = """당신은 한국어 의미에 맞는 실제 일본어 회화 표현을 모으는 도우미입니다.
 
 규칙:
@@ -167,23 +188,27 @@ def search_selected_expression(
 
     segments: tuple[Segment, ...] = ()
     if media_ids:
-        response = _search_nadeshiko(
+        target = settings.search.scene_result_limit
+        segments = _collect_surface_segments(
             relation.japanese,
             exact_match=False,
-            take=settings.search.nadeshiko_take,
+            target=target,
+            max_pages=SEARCH_MAX_PAGES,
             nadeshiko_client=nadeshiko_client,
             media_ids=media_ids,
         )
-        segments = _surface_segments(response, relation.japanese)
         if not segments:
-            exact_response = _search_nadeshiko(
+            # 훑을 수 있는 후보를 전부 본 뒤에도 0건일 때만 정확 검색으로 넘어간다.
+            # 부족할 때마다 정확 검색을 돌리면 과거에 확인된 정상 표현 회수 저하가
+            # 되살아난다.
+            segments = _collect_surface_segments(
                 relation.japanese,
                 exact_match=True,
-                take=settings.search.nadeshiko_take,
+                target=target,
+                max_pages=EXACT_MATCH_MAX_PAGES,
                 nadeshiko_client=nadeshiko_client,
                 media_ids=media_ids,
             )
-            segments = _surface_segments(exact_response, relation.japanese)
 
     local_segments: tuple[LocalSegmentMatch, ...] = ()
     if local_media:
@@ -194,6 +219,61 @@ def search_selected_expression(
         nadeshiko_segments=segments,
         local_segments=local_segments,
     )
+
+
+def _collect_surface_segments(
+    search_text: str,
+    *,
+    exact_match: bool,
+    target: int,
+    max_pages: int,
+    nadeshiko_client: Nadeshiko,
+    media_ids: tuple[str, ...],
+) -> tuple[Segment, ...]:
+    """정확히 같은 표현이 담긴 장면을 target개 모을 때까지 페이지를 넘긴다.
+
+    API가 주는 후보 수와 사용자에게 보여줄 장면 수는 다르다. 흔한 표현일수록
+    첫 페이지가 비슷하지만 다른 표현으로 채워져 표면형 판정에서 전부 떨어질 수
+    있으므로, 목표 수를 채울 때까지 다음 페이지를 이어서 훑는다.
+
+    목표를 채우면 즉시 멈춰 다음 페이지를 요청하지 않고, 페이지가 계속 있어도
+    max_pages를 넘지 않는다. 작품 필터는 모든 페이지에 그대로 붙는다.
+
+    순회 도중 호출이 실패하면 예외를 그대로 올린다. 모은 것만 돌려주면 0건이
+    실제로 없는 것인지 못 본 것인지 구분할 수 없게 된다.
+    """
+    collected: list[Segment] = []
+    seen: set[str] = set()
+    cursor: str | None = None
+    for _ in range(max_pages):
+        response = _search_nadeshiko(
+            search_text,
+            exact_match=exact_match,
+            take=SEARCH_PAGE_TAKE,
+            nadeshiko_client=nadeshiko_client,
+            media_ids=media_ids,
+            cursor=cursor,
+        )
+        for segment in _surface_segments(response, search_text):
+            if segment.public_id in seen:
+                # 색인이 갱신되는 중이면 같은 장면이 두 페이지에 걸쳐 올 수 있다.
+                continue
+            seen.add(segment.public_id)
+            collected.append(segment)
+            if len(collected) >= target:
+                return tuple(collected)
+        cursor = _next_cursor(response)
+        if cursor is None:
+            break
+    return tuple(collected)
+
+
+def _next_cursor(response: SearchResponse) -> str | None:
+    """다음 페이지가 실제로 있을 때만 cursor를 준다."""
+    pagination = response.pagination
+    if not pagination.has_more or not pagination.cursor:
+        return None
+    return pagination.cursor
 
 
 def _split_active_media(
@@ -226,16 +306,17 @@ def _search_nadeshiko(
     take: int,
     nadeshiko_client: Nadeshiko,
     media_ids: tuple[str, ...],
+    cursor: str | None = None,
 ) -> SearchResponse:
     query = SearchQuery(search=search_text, exact_match=exact_match)
     media_filter = SearchFiltersMedia(
         include=[MediaFilterItem(media_public_id=media_id) for media_id in media_ids]
     )
-    return nadeshiko_client.search(
-        query=query,
-        take=take,
-        filters=SearchFilters(media=media_filter),
-    )
+    filters = SearchFilters(media=media_filter)
+    if cursor is None:
+        # 공식 API에서 cursor를 생략하는 것이 곧 첫 페이지다.
+        return nadeshiko_client.search(query=query, take=take, filters=filters)
+    return nadeshiko_client.search(query=query, take=take, cursor=cursor, filters=filters)
 
 
 def _search_local_segments(

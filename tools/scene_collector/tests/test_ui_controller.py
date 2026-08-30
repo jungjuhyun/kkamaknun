@@ -86,9 +86,9 @@ def _settings(
     """generation_limit이 None이면 표현 생성 상한의 기본값을 그대로 쓴다."""
     keyword: dict[str, str] = {"NADESHIKO_API_KEY": api_key} if api_key else {}
     search = (
-        SearchSettings(nadeshiko_take=2)
+        SearchSettings(scene_result_limit=2)
         if generation_limit is None
-        else SearchSettings(expression_generation_limit=generation_limit, nadeshiko_take=2)
+        else SearchSettings(expression_generation_limit=generation_limit, scene_result_limit=2)
     )
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
@@ -270,7 +270,7 @@ def test_settings_summary_reports_state_without_secret_value(tmp_path: Path) -> 
     assert without_key.ai_service == "provider-one"
     assert without_key.ai_model == "model-one"
     assert without_key.expression_generation_limit == 7
-    assert without_key.nadeshiko_take == 2
+    assert without_key.scene_result_limit == 2
     assert without_key.nadeshiko_key_set is False
 
     secret = "very-secret-api-key"

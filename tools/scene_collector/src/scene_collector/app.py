@@ -783,7 +783,7 @@ async def main_page() -> None:
             ui.label(f"AI 서비스 / 모델: {summary.ai_service} / {summary.ai_model}")
             ui.label(
                 f"표현 생성 상한: {summary.expression_generation_limit} · "
-                f"장면 검색 조회량: {summary.nadeshiko_take}"
+                f"표시할 장면 수: {summary.scene_result_limit}"
             )
             ui.label(
                 "Nadeshiko API 키: 설정됨 (값은 표시하지 않습니다)"

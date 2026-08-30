@@ -63,7 +63,7 @@ def live_settings(tmp_path: Path) -> AppSettings:
                 "",
                 "[search]",
                 f"expression_generation_limit = {LIVE_EXPRESSION_GENERATION_LIMIT}",
-                "nadeshiko_take = 5",
+                "scene_result_limit = 5",
                 "",
             )
         ),

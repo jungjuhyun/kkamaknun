@@ -62,7 +62,7 @@ def _settings(work_data_dir: Path) -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
         ai=AISettings(service="provider-one", model="model-one"),
-        search=SearchSettings(expression_generation_limit=3, nadeshiko_take=2),
+        search=SearchSettings(expression_generation_limit=3, scene_result_limit=2),
     )
 
 

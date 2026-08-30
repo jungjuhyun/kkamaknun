@@ -76,24 +76,36 @@ class AISettings(BaseModel):
         return value.strip()
 
 
+#: 의미가 달라져 값을 승계하지 않는 옛 검색 설정 키.
+LEGACY_SEARCH_KEYS = ("candidate_count", "nadeshiko_take")
+
+
 class SearchSettings(BaseModel):
-    """일본어 표현 생성 상한과 Nadeshiko 1회 검색 범위."""
+    """일본어 표현 생성 상한과 화면에 표시할 장면 수."""
 
     model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
 
     expression_generation_limit: int = Field(default=20, strict=True, ge=1, le=20)
-    nadeshiko_take: int = Field(strict=True, ge=1, le=20)
+    """AI가 한 번에 만들 표현 수의 상한."""
+
+    scene_result_limit: int = Field(default=5, strict=True, ge=1, le=20)
+    """정확 일치로 판정된 장면을 화면에 몇 개까지 보여줄지.
+
+    이 수는 API에서 한 번에 받아올 후보 수가 아니다. 검색은 이 수를 채울 때까지
+    다음 페이지를 넘겨 가며 후보를 훑고, 채우면 즉시 멈춘다.
+    """
 
     @model_validator(mode="before")
     @classmethod
-    def ignore_legacy_candidate_count(cls, data: object) -> object:
-        """옛 `candidate_count`는 의미가 달라졌으므로 값을 승계하지 않고 무시한다.
+    def ignore_legacy_search_keys(cls, data: object) -> object:
+        """옛 검색 키는 의미가 달라졌으므로 값을 승계하지 않고 무시한다.
 
-        구 설정 파일이 오류를 내지 않게 키만 받아 버리고, 상한은 새 설정값
-        또는 기본값 20을 사용한다.
+        `candidate_count`는 표현 생성 상한으로, `nadeshiko_take`는 표시할 장면
+        수로 뜻이 바뀌었다. 구 설정 파일이 오류를 내지 않게 키만 받아 버리고
+        새 설정값 또는 기본값을 쓴다.
         """
-        if isinstance(data, dict) and "candidate_count" in data:
-            return {key: value for key, value in data.items() if key != "candidate_count"}
+        if isinstance(data, dict) and any(key in data for key in LEGACY_SEARCH_KEYS):
+            return {key: value for key, value in data.items() if key not in LEGACY_SEARCH_KEYS}
         return data
 
 
