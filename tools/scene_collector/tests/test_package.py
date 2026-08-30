@@ -597,7 +597,8 @@ def _check_settings_tab_edits_known_keys(source: str) -> None:
     tree = _app_source_tree(source)
     numbers = _ui_labels(tree, "number")
     assert "표현 생성 상한" in numbers
-    assert "표시할 장면 수" in numbers
+    # 찾은 장면 수를 자르는 설정은 없다.
+    assert "표시할 장면 수" not in numbers
     assert "설정 저장" in _ui_labels(tree, "button")
 
     save = _function_def(tree, "do_save_settings")
@@ -613,14 +614,13 @@ def _check_settings_tab_edits_known_keys(source: str) -> None:
     assert not any("API 키" in label for label in _ui_labels(tree, "input"))
 
 
-def test_settings_tab_can_save_the_two_numbers() -> None:
+def test_settings_tab_can_save_the_generation_limit() -> None:
     _check_settings_tab_edits_known_keys(_app_source_text())
 
 
 @pytest.mark.parametrize(
     ("anchor", "replacement"),
     [
-        ('                    "표시할 장면 수",', '                    "장면 검색 조회량 값",'),
         ("                lambda: save_search_settings(", "                lambda: load_settings("),
     ],
 )

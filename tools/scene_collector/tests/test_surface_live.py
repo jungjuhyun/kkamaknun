@@ -59,7 +59,6 @@ def live_client(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Nadeshiko]
                 "",
                 "[search]",
                 "expression_generation_limit = 5",
-                f"scene_result_limit = {min(_take(), 20)}",
                 "",
             )
         ),

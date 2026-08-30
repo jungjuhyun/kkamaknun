@@ -238,13 +238,6 @@ async def main_page() -> None:
                     max=20,
                     precision=0,
                 ).classes("w-40")
-                scene_limit_input = ui.number(
-                    "표시할 장면 수",
-                    value=settings.search.scene_result_limit,
-                    min=1,
-                    max=20,
-                    precision=0,
-                ).classes("w-40")
                 save_settings_button = ui.button(
                     "설정 저장", on_click=lambda: do_save_settings()
                 )
@@ -396,7 +389,7 @@ async def main_page() -> None:
         render_saved_scenes()
         scene_list_box.clear()
         with scene_list_box:
-            ui.label("장면을 검색하는 중...")
+            ui.label("정확 동일표현 장면을 찾는 중...")
         tabs.set_value(scenes_tab)
         try:
             found = await context.call(
@@ -461,8 +454,10 @@ async def main_page() -> None:
                     "다른 표현을 고르거나 활성 작품을 늘려 보세요."
                 )
                 return
+            japanese = state.relation.japanese
             ui.label(
-                f"Nadeshiko 장면 {len(state.rows)}개 — 하나를 고르면 영상이 로딩됩니다."
+                f"`{japanese}` 정확 동일표현 장면 {len(state.rows)}개 — "
+                "장면을 고르면 영상 하나만 불러옵니다."
             ).style("font-weight: 600")
             for index, row in enumerate(state.rows):
                 with ui.row().classes("items-center w-full"):
@@ -837,9 +832,10 @@ async def main_page() -> None:
             if context.settings_file is not None:
                 ui.label(f"설정 파일: {context.settings_file}")
             ui.label(f"AI 서비스 / 모델: {summary.ai_service} / {summary.ai_model}")
+            ui.label(f"표현 생성 상한: {summary.expression_generation_limit}")
             ui.label(
-                f"표현 생성 상한: {summary.expression_generation_limit} · "
-                f"표시할 장면 수: {summary.scene_result_limit}"
+                "찾은 장면 수에는 제한이 없습니다. 활성 작품 안에 있는 정확 동일표현 "
+                "장면을 가능한 한 다 찾습니다."
             )
             ui.label(
                 "Nadeshiko API 키: 설정됨 (값은 표시하지 않습니다)"
@@ -871,9 +867,6 @@ async def main_page() -> None:
             limit = ui_controller.parse_setting_number(
                 generation_limit_input.value, label="표현 생성 상한"
             )
-            scene_limit = ui_controller.parse_setting_number(
-                scene_limit_input.value, label="표시할 장면 수"
-            )
         except _USER_ERRORS as error:
             settings_save_status.set_text(f"설정 저장 실패: {error}")
             _notify_error(error)
@@ -884,9 +877,7 @@ async def main_page() -> None:
         try:
             saved = await context.call(
                 lambda: save_search_settings(
-                    settings_file,
-                    expression_generation_limit=limit,
-                    scene_result_limit=scene_limit,
+                    settings_file, expression_generation_limit=limit
                 )
             )
         except _USER_ERRORS as error:

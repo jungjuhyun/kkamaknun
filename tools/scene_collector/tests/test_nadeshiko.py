@@ -20,7 +20,7 @@ def _settings(tmp_path: Path, *, api_key: str | None) -> AppSettings:
     values: dict[str, object] = {
         "storage": StorageSettings(work_data_dir=tmp_path),
         "ai": AISettings(service="unused-in-task-2", model="unused-in-task-2"),
-        "search": SearchSettings(expression_generation_limit=5, scene_result_limit=5),
+        "search": SearchSettings(expression_generation_limit=5),
     }
     if api_key is not None:
         values["NADESHIKO_API_KEY"] = api_key

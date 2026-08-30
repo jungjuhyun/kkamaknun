@@ -77,33 +77,31 @@ class AISettings(BaseModel):
         return value.strip()
 
 
-#: 의미가 달라져 값을 승계하지 않는 옛 검색 설정 키.
-LEGACY_SEARCH_KEYS = ("candidate_count", "nadeshiko_take")
+#: 의미가 달라졌거나 사라져 값을 승계하지 않는 옛 검색 설정 키.
+LEGACY_SEARCH_KEYS = ("candidate_count", "nadeshiko_take", "scene_result_limit")
 
 
 class SearchSettings(BaseModel):
-    """일본어 표현 생성 상한과 화면에 표시할 장면 수."""
+    """일본어 표현 생성 상한.
+
+    찾은 장면 수에는 제한을 두지 않는다. 고른 표현 하나를 여러 장면에서 반복해
+    보여줄 제작 재료를 모으는 것이 목적이라, 활성 작품 안에 실제로 있는 정확
+    동일표현 장면을 가능한 한 다 찾아 보여준다.
+    """
 
     model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
 
     expression_generation_limit: int = Field(default=20, strict=True, ge=1, le=20)
     """AI가 한 번에 만들 표현 수의 상한."""
 
-    scene_result_limit: int = Field(default=5, strict=True, ge=1, le=20)
-    """정확 일치로 판정된 장면을 화면에 몇 개까지 보여줄지.
-
-    이 수는 API에서 한 번에 받아올 후보 수가 아니다. 검색은 이 수를 채울 때까지
-    다음 페이지를 넘겨 가며 후보를 훑고, 채우면 즉시 멈춘다.
-    """
-
     @model_validator(mode="before")
     @classmethod
     def ignore_legacy_search_keys(cls, data: object) -> object:
         """옛 검색 키는 의미가 달라졌으므로 값을 승계하지 않고 무시한다.
 
-        `candidate_count`는 표현 생성 상한으로, `nadeshiko_take`는 표시할 장면
-        수로 뜻이 바뀌었다. 구 설정 파일이 오류를 내지 않게 키만 받아 버리고
-        새 설정값 또는 기본값을 쓴다.
+        `candidate_count`는 표현 생성 상한으로 뜻이 바뀌었고, `nadeshiko_take`와
+        `scene_result_limit`은 검색 장면 수를 제한하던 값이라 사라졌다. 구 설정
+        파일이 오류를 내지 않게 키만 받아 버린다.
         """
         if isinstance(data, dict) and any(key in data for key in LEGACY_SEARCH_KEYS):
             return {key: value for key, value in data.items() if key not in LEGACY_SEARCH_KEYS}
@@ -190,10 +188,9 @@ def save_search_settings(
     settings_file: str | Path,
     *,
     expression_generation_limit: int,
-    scene_result_limit: int,
     env_file: str | Path | None = None,
 ) -> AppSettings:
-    """설정 파일의 [search] 값 두 개만 바꿔 저장하고 다시 읽어 돌려준다.
+    """설정 파일의 [search] 값만 바꿔 저장하고 다시 읽어 돌려준다.
 
     알려진 키의 값 줄만 바꾸고 다른 값·섹션·주석·줄바꿈 문자는 그대로 둔다.
     사용자가 손으로 편집하는 파일이라 전체를 다시 쓰지 않는다.
@@ -206,10 +203,7 @@ def save_search_settings(
 
     # 값 검증을 먼저 해서 잘못된 값이면 파일을 열지도 않는다.
     try:
-        SearchSettings(
-            expression_generation_limit=expression_generation_limit,
-            scene_result_limit=scene_result_limit,
-        )
+        SearchSettings(expression_generation_limit=expression_generation_limit)
     except ValidationError as error:
         raise ConfigurationError(_format_validation_error(error)) from error
 
@@ -217,10 +211,7 @@ def save_search_settings(
     updated = _replace_table_values(
         original,
         "search",
-        {
-            "expression_generation_limit": expression_generation_limit,
-            "scene_result_limit": scene_result_limit,
-        },
+        {"expression_generation_limit": expression_generation_limit},
     )
 
     if updated == original:
@@ -233,10 +224,7 @@ def save_search_settings(
         atomic_write_text(path, original)
         raise
 
-    if (
-        reloaded.search.expression_generation_limit != expression_generation_limit
-        or reloaded.search.scene_result_limit != scene_result_limit
-    ):
+    if reloaded.search.expression_generation_limit != expression_generation_limit:
         # 파일은 제대로 저장됐지만 환경변수가 그 값을 덮어쓰고 있다.
         # 원본을 되돌리면 오히려 사용자 설정을 잃으므로 그대로 두고 사실만 알린다.
         raise ConfigurationError(

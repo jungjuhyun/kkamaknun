@@ -16,10 +16,9 @@ from scene_collector.config import (
 from scene_collector.database import SceneCollectorDatabase, StoredMeaningExpression
 from scene_collector.models import ExpressionCandidate, GeneratedExpressions
 from scene_collector.search import (
-    EXACT_MATCH_MAX_PAGES,
-    SEARCH_MAX_PAGES,
     SEARCH_PAGE_TAKE,
     NoActiveMediaError,
+    SearchPaginationError,
     find_saved_expressions,
     generate_expressions,
     search_selected_expression,
@@ -35,15 +34,11 @@ def _settings(
     tmp_path: Path,
     *,
     generation_limit: int = 20,
-    scene_result_limit: int = 2,
 ) -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=tmp_path),
         ai=AISettings(service="provider-one", model="configured-model"),
-        search=SearchSettings(
-            expression_generation_limit=generation_limit,
-            scene_result_limit=scene_result_limit,
-        ),
+        search=SearchSettings(expression_generation_limit=generation_limit),
     )
 
 
@@ -144,8 +139,8 @@ class PagingNadeshiko:
         return self.pages[key]
 
 
-class EndlessNadeshiko:
-    """항상 다음 페이지가 있다고 답하는 가짜 client. 안전 상한 시험용이다."""
+class RepeatingCursorNadeshiko:
+    """같은 cursor를 계속 돌려주는 비정상 client. 순환 안전장치 시험용이다."""
 
     def __init__(self, *texts_ja: str) -> None:
         self.texts_ja = texts_ja
@@ -160,10 +155,7 @@ class EndlessNadeshiko:
         cursor: str | None = None,
     ) -> SearchResponse:
         self.calls.append((query.search, bool(query.exact_match), cursor))
-        return _search_response(*self.texts_ja, cursor=f"page-{len(self.calls) + 1}")
-
-    def calls_for(self, *, exact_match: bool) -> list[tuple[str, bool, str | None]]:
-        return [call for call in self.calls if call[1] is exact_match]
+        return _search_response(*self.texts_ja, cursor="stuck-page")
 
 
 def _failing_ai(*args: object, **kwargs: object) -> GeneratedExpressions:
@@ -535,8 +527,10 @@ def test_selected_expression_search_calls_nadeshiko_only_for_that_expression(
     )
 
     # 선택한 표현 하나로만, 활성 작품 필터를 달아 한 번 호출한다.
+    # 두 검색 경로를 모두 돌고, 비활성 작품은 어느 쪽에도 들어가지 않는다.
     assert client.calls == [
         ("悪い", False, SEARCH_PAGE_TAKE, ("anonymous-media-001", "anonymous-media-002")),
+        ("悪い", True, SEARCH_PAGE_TAKE, ("anonymous-media-001", "anonymous-media-002")),
     ]
     assert result.relation is selected
     # 「気持ち悪い」는 표면형 판정에서 걸러지는 거짓 양성이다.
@@ -619,8 +613,10 @@ def test_searching_the_same_expression_again_calls_nadeshiko_again(
     )
 
     # 검색 결과를 캐시하지 않으므로 같은 표현이라도 다시 호출한다.
-    assert len(client.calls) == 2
-    assert client.calls[0] == client.calls[1]
+    # 한 번 검색할 때 일반·정확 두 경로를 돌므로 두 번 검색하면 4회다.
+    assert len(client.calls) == 4
+    # 두 번째 검색이 첫 번째와 같은 요청을 그대로 다시 보낸다.
+    assert client.calls[:2] == client.calls[2:]
     assert [segment.text_ja.content for segment in second.nadeshiko_segments] == [
         segment.text_ja.content for segment in first.nadeshiko_segments
     ]
@@ -695,7 +691,8 @@ def test_local_subtitle_matches_come_back_separately_from_nadeshiko_segments(
     )
 
     assert client.calls == [
-        ("大丈夫ですか", False, SEARCH_PAGE_TAKE, ("anonymous-media-001",))
+        ("大丈夫ですか", False, SEARCH_PAGE_TAKE, ("anonymous-media-001",)),
+        ("大丈夫ですか", True, SEARCH_PAGE_TAKE, ("anonymous-media-001",)),
     ]
     assert [segment.text_ja.content for segment in result.nadeshiko_segments] == [
         "あの、大丈夫ですか？"
@@ -741,165 +738,253 @@ def test_local_only_active_media_skips_nadeshiko_entirely(
 
 
 # ----------------------------------------------------------------------
-# 정확 일치를 목표 수만큼 모을 때까지 페이지를 넘긴다
+# 고른 표현의 정확 동일표현 장면을 빠짐없이 수집한다
+#
+# 이 도구는 표현 하나를 여러 장면에서 반복해 보여줄 제작 재료를 모은다.
+# 그래서 "몇 개 찾았으니 그만"이나 "몇 페이지 봤으니 그만"으로 정상 결과를
+# 자르지 않는다.
 # ----------------------------------------------------------------------
 
 _ACTIVE_MEDIA = "anonymous-media-001"
 _TARGET = "大丈夫です"
-# 표면형 판정에서 전부 떨어지는 비슷한 표현들. 흔한 표현의 첫 페이지가 이렇게 채워진다.
+# 표면형 판정에서 떨어지는 비슷한 표현들. 흔한 표현의 첫 페이지가 이렇게 채워진다.
 _NEAR_MISSES = ("大丈夫ですよ", "大丈夫ですか", "本当に大丈夫ですか")
 
 
-def _paged_search(
+def _page(*texts_ja: str, cursor: str | None = None, first_id: int = 1) -> SearchResponse:
+    """장면 ID를 지정할 수 있는 검색 응답 한 페이지."""
+    response = _search_response(*texts_ja, cursor=cursor)
+    for offset, segment in enumerate(response.segments):
+        segment.public_id = f"anonymous-segment-{first_id + offset:03d}"
+    return response
+
+
+def _collect(
     settings: AppSettings,
     database: SceneCollectorDatabase,
     client: object,
 ) -> tuple[str, ...]:
-    """활성 작품 하나로 목표 표현을 검색하고 찾은 대사만 돌려준다."""
+    """활성 작품 하나로 목표 표현을 검색하고 찾은 장면 ID를 돌려준다."""
     relation = _add_relation(database, KOREAN_MEANING, _TARGET)
     found = search_selected_expression(
         settings, relation, nadeshiko_client=client, database=database
     )
-    return tuple(segment.text_ja.content for segment in found.nadeshiko_segments)
+    return tuple(segment.public_id for segment in found.nadeshiko_segments)
 
 
-def test_an_exact_match_on_a_later_page_is_found(
+def _no_exact_pages(search_text: str) -> dict:
+    """정확 검색은 결과가 없는 한 페이지로 끝나게 한다."""
+    return {(search_text, True, None): _search_response()}
+
+
+def test_every_page_of_matches_is_collected(
     tmp_path: Path,
     database: SceneCollectorDatabase,
 ) -> None:
-    """첫 페이지가 비슷한 표현으로 채워져도 다음 페이지의 정확한 표현을 찾는다.
+    """페이지마다 나온 정확 일치를 전부 모은다. 중간에서 멈추지 않는다."""
+    _activate_media(database, _ACTIVE_MEDIA)
+    pages = {
+        (_TARGET, False, None): _page(_TARGET, _TARGET, cursor="p2", first_id=1),
+        (_TARGET, False, "p2"): _page(_TARGET, _TARGET, _TARGET, cursor="p3", first_id=11),
+        (_TARGET, False, "p3"): _page(_TARGET, _TARGET, _TARGET, _TARGET, first_id=21),
+    }
+    pages.update(_no_exact_pages(_TARGET))
+    client = PagingNadeshiko(pages)
 
-    UAT에서 大丈夫です가 0건으로 나온 실제 상황이다.
+    found = _collect(_settings(tmp_path), database, client)
+
+    # 2 + 3 + 4 = 9건이 전부 남는다. 옛 "5개 제한"이 있으면 여기서 실패한다.
+    assert len(found) == 9
+
+
+def test_pagination_runs_past_any_fixed_page_cap(
+    tmp_path: Path,
+    database: SceneCollectorDatabase,
+) -> None:
+    """페이지가 10쪽이 넘어도 has_more가 끝날 때까지 전부 조회한다."""
+    _activate_media(database, _ACTIVE_MEDIA)
+    page_count = 12
+    pages: dict = {}
+    for index in range(page_count):
+        cursor = None if index == 0 else f"p{index}"
+        next_cursor = f"p{index + 1}" if index < page_count - 1 else None
+        pages[(_TARGET, False, cursor)] = _page(
+            _TARGET, cursor=next_cursor, first_id=index + 1
+        )
+    pages.update(_no_exact_pages(_TARGET))
+    client = PagingNadeshiko(pages)
+
+    found = _collect(_settings(tmp_path), database, client)
+
+    assert len(found) == page_count
+    general_calls = [call for call in client.calls if call[1] is False]
+    assert len(general_calls) == page_count
+
+
+def test_a_large_first_page_does_not_stop_the_search(
+    tmp_path: Path,
+    database: SceneCollectorDatabase,
+) -> None:
+    """이미 많이 찾았다는 이유로 멈추지 않는다."""
+    _activate_media(database, _ACTIVE_MEDIA)
+    pages = {
+        (_TARGET, False, None): _page(*([_TARGET] * 20), cursor="p2", first_id=1),
+        (_TARGET, False, "p2"): _page(_TARGET, first_id=101),
+    }
+    pages.update(_no_exact_pages(_TARGET))
+    client = PagingNadeshiko(pages)
+
+    found = _collect(_settings(tmp_path), database, client)
+
+    assert len(found) == 21
+    assert "anonymous-segment-101" in found
+
+
+def test_exact_match_search_runs_even_when_the_general_search_found_scenes(
+    tmp_path: Path,
+    database: SceneCollectorDatabase,
+) -> None:
+    """일반 검색에서 이미 여러 건이 나와도 정확 검색을 건너뛰지 않는다.
+
+    두 경로가 같은 결과를 준다는 공식 보장이 없어 합집합으로 회수를 최대화한다.
     """
     _activate_media(database, _ACTIVE_MEDIA)
     client = PagingNadeshiko(
         {
-            (_TARGET, False, None): _search_response(*_NEAR_MISSES, cursor="page-2"),
-            (_TARGET, False, "page-2"): _search_response(_TARGET),
+            (_TARGET, False, None): _page(_TARGET, _TARGET, first_id=1),
+            (_TARGET, True, None): _page(_TARGET, first_id=50),
         }
     )
 
-    assert _paged_search(_settings(tmp_path, scene_result_limit=1), database, client) == (_TARGET,)
-    # 두 번째 호출이 첫 응답의 cursor를 그대로 들고 갔다.
-    assert [call[4] for call in client.calls] == [None, "page-2"]
-    assert all(call[2] == SEARCH_PAGE_TAKE for call in client.calls)
+    found = _collect(_settings(tmp_path), database, client)
 
-
-def test_a_full_first_page_does_not_request_the_next_page(
-    tmp_path: Path,
-    database: SceneCollectorDatabase,
-) -> None:
-    """목표 수를 채우면 다음 페이지를 요청하지 않는다."""
-    _activate_media(database, _ACTIVE_MEDIA)
-    # 2페이지를 등록하지 않았으므로 요청하면 PagingNadeshiko가 실패시킨다.
-    client = PagingNadeshiko(
-        {(_TARGET, False, None): _search_response(_TARGET, _TARGET, _TARGET, cursor="page-2")}
+    assert found == (
+        "anonymous-segment-001",
+        "anonymous-segment-002",
+        "anonymous-segment-050",
     )
-
-    found = _paged_search(_settings(tmp_path, scene_result_limit=2), database, client)
-
-    # 표시할 장면 수만큼만 남긴다.
-    assert found == (_TARGET, _TARGET)
-    assert len(client.calls) == 1
+    assert [call[1] for call in client.calls] == [False, True]
 
 
-def test_exact_match_fallback_runs_after_every_page_is_examined(
+def test_a_scene_found_by_both_paths_is_listed_once(
     tmp_path: Path,
     database: SceneCollectorDatabase,
 ) -> None:
-    """일반 검색으로 전부 훑고도 0건일 때만 정확 검색으로 넘어간다."""
+    """일반 검색과 정확 검색에 같은 장면이 있으면 한 번만 남는다."""
     _activate_media(database, _ACTIVE_MEDIA)
     client = PagingNadeshiko(
         {
-            (_TARGET, False, None): _search_response(*_NEAR_MISSES, cursor="page-2"),
-            (_TARGET, False, "page-2"): _search_response(*_NEAR_MISSES),
-            (_TARGET, True, None): _search_response(_TARGET),
+            (_TARGET, False, None): _page(_TARGET, _TARGET, first_id=1),
+            (_TARGET, True, None): _page(_TARGET, _TARGET, first_id=1),
         }
     )
 
-    assert _paged_search(_settings(tmp_path), database, client) == (_TARGET,)
-    assert [(call[1], call[4]) for call in client.calls] == [
-        (False, None),
-        (False, "page-2"),
-        (True, None),
-    ]
+    found = _collect(_settings(tmp_path), database, client)
+
+    assert found == ("anonymous-segment-001", "anonymous-segment-002")
 
 
-def test_page_traversal_stops_at_the_safety_limit(
+def test_a_scene_repeated_across_pages_is_listed_once(
     tmp_path: Path,
     database: SceneCollectorDatabase,
 ) -> None:
-    """페이지가 계속 있어도 정해진 상한을 넘겨 호출하지 않는다."""
+    """색인이 갱신되는 중이면 같은 장면이 두 페이지에 걸쳐 올 수 있다."""
     _activate_media(database, _ACTIVE_MEDIA)
-    client = EndlessNadeshiko(*_NEAR_MISSES)
+    pages = {
+        (_TARGET, False, None): _page(_TARGET, cursor="p2", first_id=1),
+        (_TARGET, False, "p2"): _page(_TARGET, _TARGET, first_id=1),
+    }
+    pages.update(_no_exact_pages(_TARGET))
+    client = PagingNadeshiko(pages)
 
-    assert _paged_search(_settings(tmp_path), database, client) == ()
-    assert len(client.calls_for(exact_match=False)) == SEARCH_MAX_PAGES
-    assert len(client.calls_for(exact_match=True)) == EXACT_MATCH_MAX_PAGES
-    assert len(client.calls) == SEARCH_MAX_PAGES + EXACT_MATCH_MAX_PAGES
+    found = _collect(_settings(tmp_path), database, client)
+
+    assert found == ("anonymous-segment-001", "anonymous-segment-002")
 
 
-def test_every_page_keeps_the_active_media_filter(
+def test_every_request_keeps_the_active_media_filter(
     tmp_path: Path,
     database: SceneCollectorDatabase,
 ) -> None:
-    """작품 필터는 모든 페이지에 그대로 붙는다. 몰래 전체 검색으로 넓어지지 않는다."""
+    """작품 필터는 모든 페이지와 두 검색 경로 전부에 그대로 붙는다."""
     _activate_media(database, _ACTIVE_MEDIA, "anonymous-media-002")
     database.set_media_active("anonymous-media-002", False)
     client = PagingNadeshiko(
         {
-            (_TARGET, False, None): _search_response(*_NEAR_MISSES, cursor="page-2"),
-            (_TARGET, False, "page-2"): _search_response(*_NEAR_MISSES, cursor="page-3"),
-            (_TARGET, False, "page-3"): _search_response(_TARGET),
+            (_TARGET, False, None): _page(*_NEAR_MISSES, cursor="p2"),
+            (_TARGET, False, "p2"): _page(_TARGET, first_id=10),
+            (_TARGET, True, None): _page(*_NEAR_MISSES, cursor="q2"),
+            (_TARGET, True, "q2"): _page(_TARGET, first_id=10),
         }
     )
 
-    assert _paged_search(_settings(tmp_path, scene_result_limit=1), database, client) == (_TARGET,)
-    assert len(client.calls) == 3
+    _collect(_settings(tmp_path), database, client)
+
+    assert len(client.calls) == 4
     for call in client.calls:
         assert call[3] == (_ACTIVE_MEDIA,)
+        assert call[2] == SEARCH_PAGE_TAKE
 
 
-def test_paged_search_stores_nothing(
+def test_full_collection_stores_nothing(
     tmp_path: Path,
     database: SceneCollectorDatabase,
 ) -> None:
     """여러 페이지를 훑어도 검색 결과는 DB에 남지 않는다."""
     _activate_media(database, _ACTIVE_MEDIA)
-    client = PagingNadeshiko(
-        {
-            (_TARGET, False, None): _search_response(*_NEAR_MISSES, cursor="page-2"),
-            (_TARGET, False, "page-2"): _search_response(*_NEAR_MISSES, cursor="page-3"),
-            (_TARGET, False, "page-3"): _search_response(_TARGET),
-        }
-    )
+    pages = {
+        (_TARGET, False, None): _page(_TARGET, cursor="p2"),
+        (_TARGET, False, "p2"): _page(_TARGET, first_id=10),
+    }
+    pages.update(_no_exact_pages(_TARGET))
+    client = PagingNadeshiko(pages)
     relation = _add_relation(database, KOREAN_MEANING, _TARGET)
     before = _row_counts(database)
 
     search_selected_expression(
-        _settings(tmp_path, scene_result_limit=1),
-        relation,
-        nadeshiko_client=client,
-        database=database,
+        _settings(tmp_path), relation, nadeshiko_client=client, database=database
     )
 
     assert _row_counts(database) == before
     assert database.list_work_scenes(relation.id) == ()
 
 
-def test_the_same_scene_on_two_pages_is_listed_once(
+def test_a_repeating_cursor_fails_instead_of_looping_forever(
     tmp_path: Path,
     database: SceneCollectorDatabase,
 ) -> None:
-    """색인이 갱신되는 중이면 같은 장면이 두 페이지에 걸쳐 올 수 있다."""
+    """같은 자리를 반복해서 주는 응답은 무한히 돌지 않고 명확히 실패한다."""
     _activate_media(database, _ACTIVE_MEDIA)
-    # 두 페이지 모두 첫 장면의 publicId가 anonymous-segment-001로 같다.
-    client = PagingNadeshiko(
-        {
-            (_TARGET, False, None): _search_response(_TARGET, cursor="page-2"),
-            (_TARGET, False, "page-2"): _search_response(_TARGET),
-        }
-    )
+    client = RepeatingCursorNadeshiko(_TARGET)
 
-    assert _paged_search(_settings(tmp_path, scene_result_limit=5), database, client) == (_TARGET,)
-    assert len(client.calls) == 2
+    relation = _add_relation(database, KOREAN_MEANING, _TARGET)
+    with pytest.raises(SearchPaginationError, match="반복"):
+        search_selected_expression(
+            _settings(tmp_path), relation, nadeshiko_client=client, database=database
+        )
+
+
+def test_a_missing_cursor_with_more_pages_is_an_error(
+    tmp_path: Path,
+    database: SceneCollectorDatabase,
+) -> None:
+    """더 있다면서 cursor를 주지 않으면 부분 결과를 완료로 돌려주지 않는다."""
+    _activate_media(database, _ACTIVE_MEDIA)
+    broken = _page(_TARGET)
+    broken.pagination.has_more = True
+    broken.pagination.cursor = None
+    client = PagingNadeshiko({(_TARGET, False, None): broken})
+
+    relation = _add_relation(database, KOREAN_MEANING, _TARGET)
+    with pytest.raises(SearchPaginationError, match="전체 장면을 확인하지 못했습니다"):
+        search_selected_expression(
+            _settings(tmp_path), relation, nadeshiko_client=client, database=database
+        )
+
+
+def test_search_settings_no_longer_limit_the_scene_count() -> None:
+    """찾은 장면 수를 자르는 설정은 없다."""
+    settings = SearchSettings()
+    assert not hasattr(settings, "scene_result_limit")
+    assert not hasattr(settings, "nadeshiko_take")
+    assert set(SearchSettings.model_fields) == {"expression_generation_limit"}

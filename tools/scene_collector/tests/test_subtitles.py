@@ -62,7 +62,7 @@ def _settings(work_data_dir: Path) -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
         ai=AISettings(service="provider-one", model="model-one"),
-        search=SearchSettings(expression_generation_limit=3, scene_result_limit=2),
+        search=SearchSettings(expression_generation_limit=3),
     )
 
 
@@ -307,7 +307,10 @@ def test_search_merges_nadeshiko_and_local_results(tmp_path: Path) -> None:
             settings, relation, nadeshiko_client=client, database=database
         )
 
-        assert client.calls == [("大丈夫ですか", False, ("anonymous-media-001",))]
+        assert client.calls == [
+            ("大丈夫ですか", False, ("anonymous-media-001",)),
+            ("大丈夫ですか", True, ("anonymous-media-001",)),
+        ]
         assert [segment.text_ja.content for segment in found.nadeshiko_segments] == [
             "あの、大丈夫ですか？"
         ]

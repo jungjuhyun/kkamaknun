@@ -38,7 +38,6 @@ def _settings(work_data_dir: Path, *, expression_generation_limit: int = 3) -> A
         ai=AISettings(service="provider-one", model="model-one"),
         search=SearchSettings(
             expression_generation_limit=expression_generation_limit,
-            scene_result_limit=2,
         ),
     )
 
@@ -328,7 +327,11 @@ def test_database_search_sends_only_active_media_as_official_filter(
             database=database,
         )
 
-        assert client.calls == [("大丈夫ですか", False, ("media-a", "media-b"))]
+        # 두 검색 경로 모두에 같은 활성 작품 필터가 붙는다.
+        assert client.calls == [
+            ("大丈夫ですか", False, ("media-a", "media-b")),
+            ("大丈夫ですか", True, ("media-a", "media-b")),
+        ]
         assert [segment.text_ja.content for segment in found.nadeshiko_segments] == [
             "あの、大丈夫ですか？"
         ]
@@ -378,14 +381,15 @@ def test_repeated_search_is_not_cached_and_follows_active_media_changes(
                 settings, relation, nadeshiko_client=client, database=database
             )
         # 같은 표현을 다시 찾아도 저장된 결과를 재사용하지 않고 다시 호출한다.
-        assert len(client.calls) == 2
+        # 한 번 검색할 때 일반·정확 두 경로를 도므로 두 번 검색하면 4회다.
+        assert len(client.calls) == 4
         assert client.calls[-1][2] == ("media-a", "media-b")
 
         database.set_media_active("media-b", False)
         search_selected_expression(
             settings, relation, nadeshiko_client=client, database=database
         )
-        assert len(client.calls) == 3
+        assert len(client.calls) == 6
         assert client.calls[-1][2] == ("media-a",)
 
         # 검색만으로는 작업 장면도 검색 캐시 table도 생기지 않는다.
@@ -405,4 +409,4 @@ def test_repeated_search_is_not_cached_and_follows_active_media_changes(
         search_selected_expression(
             settings, restored, nadeshiko_client=client, database=reopened
         )
-        assert len(client.calls) == 4
+        assert len(client.calls) == 8

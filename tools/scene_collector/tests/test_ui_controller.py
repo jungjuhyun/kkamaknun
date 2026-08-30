@@ -87,9 +87,9 @@ def _settings(
     """generation_limit이 None이면 표현 생성 상한의 기본값을 그대로 쓴다."""
     keyword: dict[str, str] = {"NADESHIKO_API_KEY": api_key} if api_key else {}
     search = (
-        SearchSettings(scene_result_limit=2)
+        SearchSettings()
         if generation_limit is None
-        else SearchSettings(expression_generation_limit=generation_limit, scene_result_limit=2)
+        else SearchSettings(expression_generation_limit=generation_limit)
     )
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
@@ -271,7 +271,6 @@ def test_settings_summary_reports_state_without_secret_value(tmp_path: Path) -> 
     assert without_key.ai_service == "provider-one"
     assert without_key.ai_model == "model-one"
     assert without_key.expression_generation_limit == 7
-    assert without_key.scene_result_limit == 2
     assert without_key.nadeshiko_key_set is False
 
     secret = "very-secret-api-key"
@@ -455,7 +454,8 @@ def test_scene_rows_attach_saved_work_scene_state(
         (relation,) = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")
 
         found = search_relation(settings, database, relation, nadeshiko_client=client)
-        assert client.search_calls == [("大丈夫ですか", False)]
+        # 일반 검색과 정확 검색을 모두 돌아 회수를 최대화한다.
+        assert client.search_calls == [("大丈夫ですか", False), ("大丈夫ですか", True)]
         assert found.relation == relation
         # 표면형이 다른 장면은 검색 결과에서 빠진다.
         assert [segment.public_id for segment in found.nadeshiko_segments] == [
@@ -827,7 +827,8 @@ def test_restart_keeps_expression_assets_and_work_scenes_without_search_restore(
 
     # 재시작만으로는 AI도 Nadeshiko도 다시 부르지 않는다.
     assert fake_ai.call_count == 1
-    assert len(client.search_calls) == 1
+    # 한 번 검색할 때 일반·정확 두 경로를 돈다.
+    assert len(client.search_calls) == 2
     # 지난 검색 결과를 자동으로 되살리는 API는 없다.
     for removed in ("restore_latest_search", "run_expression_search", "select_expression"):
         assert not hasattr(ui_controller, removed)

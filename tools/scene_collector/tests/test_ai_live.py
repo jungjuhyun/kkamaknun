@@ -56,7 +56,6 @@ def test_provider_returns_same_structured_response(
                 "",
                 "[search]",
                 "expression_generation_limit = 5",
-                "scene_result_limit = 5",
                 "",
             )
         ),

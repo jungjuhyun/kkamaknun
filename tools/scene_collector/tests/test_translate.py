@@ -29,7 +29,7 @@ def _settings(work_data_dir: Path, *, model: str = "model-one") -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
         ai=AISettings(service="provider-one", model=model),
-        search=SearchSettings(scene_result_limit=2),
+        search=SearchSettings(),
     )
 
 

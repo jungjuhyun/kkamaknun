@@ -14,17 +14,12 @@ from scene_collector.database import SceneCollectorDatabase
 from scene_collector.media import store_media
 from scene_collector.nadeshiko import create_nadeshiko_client
 from scene_collector.search import (
-    EXACT_MATCH_MAX_PAGES,
-    SEARCH_MAX_PAGES,
     find_saved_expressions,
     generate_expressions,
     search_selected_expression,
 )
 
 pytestmark = pytest.mark.search_live
-
-# 표현 하나를 찾는 데 드는 검색 호출의 상한.
-_PAGE_BUDGET = SEARCH_MAX_PAGES + EXACT_MATCH_MAX_PAGES
 
 INTENTS_PATH = Path(__file__).parent / "fixtures" / "search_live_intents.json"
 DEFAULT_EXPRESSION_GENERATION_LIMIT = 20
@@ -77,6 +72,35 @@ class _CountingNadeshiko:
         return self._inner.search(**kwargs)
 
 
+class _PathCountingNadeshiko:
+    """일반·정확 검색의 페이지 수와 표면형 통과 수를 따로 세는 wrapper.
+
+    실제 대사나 응답 원본은 보관하지 않고 개수만 센다.
+    """
+
+    def __init__(self, inner: Nadeshiko) -> None:
+        self._inner = inner
+        self.general_pages = 0
+        self.exact_pages = 0
+        self.general_matches = 0
+        self.exact_matches = 0
+
+    def search(self, **kwargs: object) -> SearchResponse:
+        response = self._inner.search(**kwargs)
+        query = kwargs.get("query")
+        exact = bool(getattr(query, "exact_match", False))
+        matched = len(
+            search_module._surface_segments(response, getattr(query, "search", ""))
+        )
+        if exact:
+            self.exact_pages += 1
+            self.exact_matches += matched
+        else:
+            self.general_pages += 1
+            self.general_matches += matched
+        return response
+
+
 @pytest.fixture()
 def live_settings(tmp_path: Path) -> AppSettings:
     _required_environment("NADESHIKO_API_KEY")
@@ -86,7 +110,6 @@ def live_settings(tmp_path: Path) -> AppSettings:
         _required_environment("GOOGLE_API_KEY")
     if service == "openai":
         _required_environment("OPENAI_API_KEY")
-    scene_result_limit = int(_required_environment("SCENE_COLLECTOR_SEARCH_LIVE_SCENE_RESULT_LIMIT"))
 
     work_data_dir = tmp_path / "work-data"
     work_data_dir.mkdir()
@@ -103,7 +126,6 @@ def live_settings(tmp_path: Path) -> AppSettings:
                 "",
                 "[search]",
                 f"expression_generation_limit = {_expression_generation_limit()}",
-                f"scene_result_limit = {scene_result_limit}",
                 "",
             )
         ),
@@ -167,8 +189,8 @@ def test_korean_meanings_become_searchable_expression_assets(
                 # 표현 하나당 목표 수를 채울 때까지 페이지를 넘기고, 일반 검색으로
                 # 후보를 다 훑고도 0건일 때만 정확 검색으로 더 훑는다.
                 search_calls = client.search_calls - search_calls_before
-                assert 1 <= search_calls <= _PAGE_BUDGET
-                assert len(found.nadeshiko_segments) <= live_settings.search.scene_result_limit
+                # 장면 수를 자르지 않으므로 호출 수와 결과 수에 상한을 두지 않는다.
+                assert search_calls >= 1
                 assert found.relation.id == relation.id
                 # 검색 결과는 저장하지 않는다.
                 assert database.list_work_scenes(relation.id) == ()
@@ -256,7 +278,6 @@ def recall_settings(tmp_path: Path) -> AppSettings:
                 'model = "unused-in-this-check"',
                 "",
                 "[search]",
-                "scene_result_limit = 5",
                 "",
             )
         ),
@@ -280,7 +301,7 @@ def test_paged_search_recovers_a_common_expression_in_a_real_media(
     )
     assert item.nadeshiko_media_ids, "이 확인에는 연결된 Nadeshiko 작품이 필요합니다."
 
-    client = _CountingNadeshiko(create_nadeshiko_client(live_settings))
+    client = _PathCountingNadeshiko(create_nadeshiko_client(live_settings))
     with SceneCollectorDatabase.open(live_settings) as database:
         for media_id in item.nadeshiko_media_ids:
             database.upsert_media(media_id, display_name=item.korean_title)
@@ -300,14 +321,19 @@ def test_paged_search_recovers_a_common_expression_in_a_real_media(
         # 검색만으로는 아무것도 저장되지 않는다.
         assert database.list_work_scenes(relation.id) == ()
 
-    exact_matches = len(found.nadeshiko_segments)
+    final_count = len(found.nadeshiko_segments)
+    before_dedup = client.general_matches + client.exact_matches
     print(
-        f"[recall] media={len(item.nadeshiko_media_ids)}개 "
-        f"exact_matches={exact_matches} search_calls={client.search_calls}"
+        "[collection]"
+        f" media={len(item.nadeshiko_media_ids)}개"
+        f" general_pages={client.general_pages}"
+        f" exact_pages={client.exact_pages}"
+        f" before_dedup={before_dedup}"
+        f" after_dedup={final_count}"
     )
-    assert client.search_calls <= _PAGE_BUDGET
-    # 페이지 순회를 넣은 뒤에도 0건이면 수정이 끝난 것이 아니다. 원인을 다시 조사해야 한다.
-    assert exact_matches > 0, (
-        f"{_RECALL_EXPRESSION}의 정확 일치가 여전히 0건이다. "
-        f"검색 호출 {client.search_calls}회. 원인을 다시 조사해야 한다."
+    # 페이지를 다 훑고도 0건이면 수정이 끝난 것이 아니다. 원인을 다시 조사해야 한다.
+    assert final_count > 0, (
+        f"{_RECALL_EXPRESSION}의 정확 동일표현이 0건이다. "
+        f"일반 {client.general_pages}쪽·정확 {client.exact_pages}쪽을 훑었다. "
+        "원인을 다시 조사해야 한다."
     )

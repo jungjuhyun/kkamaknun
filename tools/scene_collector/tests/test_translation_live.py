@@ -21,7 +21,6 @@ from scene_collector.ui_controller import translate_scene
 pytestmark = pytest.mark.translation_live
 
 LIVE_EXPRESSION_GENERATION_LIMIT = 3
-LIVE_SCENE_RESULT_LIMIT = 3
 
 
 def _required_environment(name: str) -> str:
@@ -93,7 +92,6 @@ def live_settings(tmp_path: Path) -> AppSettings:
                 "",
                 "[search]",
                 f"expression_generation_limit = {LIVE_EXPRESSION_GENERATION_LIMIT}",
-                f"scene_result_limit = {LIVE_SCENE_RESULT_LIMIT}",
                 "",
             )
         ),
