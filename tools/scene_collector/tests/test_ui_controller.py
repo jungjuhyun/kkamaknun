@@ -338,6 +338,41 @@ def test_scene_rows_attach_saved_work_scene_state(
         assert unknown_names[0].media_display_name == MEDIA_PUBLIC_ID
 
 
+def test_local_subtitle_matches_stay_reference_only(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """로컬 자막 결과는 참고 표시까지만 간다. 작업 장면도 내보내기도 되지 않는다."""
+    monkeypatch.setattr(search_module, "create_structured_response", _forbidden_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(
+        _search_response(_segment_dict("segment-a", "あの、大丈夫ですか？", position=1))
+    )
+
+    with SceneCollectorDatabase.open(settings) as database:
+        store_media(database, NADESHIKO_MEDIA)
+        index_local_subtitles(database, "테스트 작품", _subtitle_dir(tmp_path))
+        (relation,) = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")
+
+        found = search_relation(settings, database, relation, nadeshiko_client=client)
+        assert found.local_segments, "로컬 자막 참고 결과가 있어야 한다"
+        assert local_scene_line(found.local_segments[0])
+
+        # 장면 목록은 Nadeshiko 장면만으로 만든다.
+        rows = scene_rows(database, found, MEDIA_NAMES)
+        assert [row.segment_public_id for row in rows] == ["segment-a"]
+
+        save_decision(database, relation, rows[0].segment, rows[0].media_display_name, "채택")
+
+        # 저장된 작업 장면과 내보내기 대상에는 Nadeshiko 장면 하나뿐이다.
+        assert [scene.segment_public_id for scene in database.list_work_scenes(relation.id)] == [
+            "segment-a"
+        ]
+        assert [row.segment_public_id for row in database.list_accepted_work_scenes()] == [
+            "segment-a"
+        ]
+
+
 def test_save_decision_and_notes_create_work_scene_and_keep_each_other(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
