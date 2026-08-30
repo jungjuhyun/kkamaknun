@@ -312,7 +312,10 @@ def save_notes(
 
     아직 작업하지 않은 장면에 빈 메모를 저장하면 아무것도 만들지 않는다.
     이미 있는 장면의 메모를 비우는 것은 허용하며, 그 결과 판정도 번역도 없이
-    비어 버린 행은 지운다. 어느 경우든 None을 돌려준다.
+    비어 버린 행은 지운다.
+
+    저장 뒤에도 작업 장면이 남아 있으면 그 장면을, 만들지 않았거나 비어서
+    지웠으면 None을 돌려준다.
     """
     value = normalize_work_scene_notes(notes)
     if value is None and database.get_work_scene(relation.id, segment.public_id) is None:

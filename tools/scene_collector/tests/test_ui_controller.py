@@ -421,6 +421,8 @@ def test_lookup_or_generate_expressions_accepts_empty_ai_result(
         assert lookup.screen.relations == ()
         assert lookup.screen.korean_meaning == "처음 보는 의미"
         assert database.find_expressions_for_meaning("처음 보는 의미") == ()
+        # 찾아본 시도만으로는 의미 행도 남지 않는다.
+        assert database.find_meaning("처음 보는 의미") is None
 
         # 이미 표현이 있는 의미에서 빈 목록이 와도 저장된 표현을 건드리지 않는다.
         saved = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")

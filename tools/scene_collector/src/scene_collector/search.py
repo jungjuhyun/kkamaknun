@@ -23,7 +23,8 @@ from nadeshiko.models import (
 
 from scene_collector.ai import create_structured_response
 from scene_collector.config import AppSettings
-from scene_collector.models import GeneratedExpressions
+from scene_collector.database import normalize_korean_meaning
+from scene_collector.models import ExpressionCandidate, GeneratedExpressions
 from scene_collector.surface import _normalize_surface, matches_surface
 
 if TYPE_CHECKING:
@@ -87,40 +88,55 @@ def generate_expressions(
 
     이미 저장된 표현이 있으면 그 목록을 AI에 함께 전달해 중복되지 않는
     표현만 만들게 하고, 반환된 것 중 기존 표현과 겹치는 항목은 저장하지 않는다.
+
+    실제로 저장할 새 표현이 생겼을 때만 DB에 쓴다. 처음 보는 의미인데 AI가
+    실패하거나 새 표현을 하나도 주지 않으면 아무것도 남기지 않고, 이미 저장된
+    의미라면 기존 자료를 그대로 둔다. 시도 자체는 기록하지 않는다.
     """
     intent = (korean_meaning or "").strip()
     if not intent:
         raise ValueError("한국어로 찾을 의미를 입력해야 합니다.")
+    if not normalize_korean_meaning(intent):
+        raise ValueError("한국어 의미를 입력해야 합니다.")
 
-    meaning = database.upsert_meaning(intent)
-    existing = database.list_meaning_expressions(meaning.id)
-    known = {relation.japanese for relation in existing}
+    meaning = database.find_meaning(intent)
+    known = (
+        {relation.japanese for relation in database.list_meaning_expressions(meaning.id)}
+        if meaning is not None
+        else set()
+    )
+    display = meaning.display_korean_meaning if meaning is not None else intent
 
     limit = settings.search.expression_generation_limit
     generated = create_structured_response(
         settings,
-        prompt=_expression_prompt(meaning.display_korean_meaning, limit, known),
+        prompt=_expression_prompt(display, limit, known),
         response_model=GeneratedExpressions,
     )
 
-    added: list[StoredMeaningExpression] = []
+    fresh: list[tuple[str, ExpressionCandidate]] = []
     for candidate in generated.expressions:
-        if len(added) >= limit:
+        if len(fresh) >= limit:
             break
         japanese = candidate.japanese.strip()
         if not japanese or japanese in known:
             continue
         known.add(japanese)
-        added.append(
-            database.add_meaning_expression(
-                meaning.id,
-                japanese=japanese,
-                reading=candidate.reading,
-                meaning_ko=candidate.meaning_ko,
-                register_text=candidate.register,
-            )
+        fresh.append((japanese, candidate))
+    if not fresh:
+        return ()
+
+    stored = meaning if meaning is not None else database.upsert_meaning(intent)
+    return tuple(
+        database.add_meaning_expression(
+            stored.id,
+            japanese=japanese,
+            reading=candidate.reading,
+            meaning_ko=candidate.meaning_ko,
+            register_text=candidate.register,
         )
-    return tuple(added)
+        for japanese, candidate in fresh
+    )
 
 
 def _expression_prompt(korean_meaning: str, limit: int, known: set[str]) -> str:

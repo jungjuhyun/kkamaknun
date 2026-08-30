@@ -293,24 +293,123 @@ def test_empty_ai_expression_list_is_not_an_error_and_changes_nothing(
     assert list(find_saved_expressions(database, KOREAN_MEANING)) == [first, second]
 
 
-def test_empty_ai_expression_list_for_a_new_meaning_saves_only_the_meaning(
+def test_empty_ai_expression_list_for_a_new_meaning_writes_nothing(
     settings: AppSettings,
     database: SceneCollectorDatabase,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """저장된 표현이 없던 의미에서 빈 목록이 오면 의미만 남고 관계는 0행이다."""
+    """처음 보는 의미에서 빈 목록이 오면 의미 행조차 남기지 않는다.
+
+    찾아본 시도 자체는 작업물이 아니므로 DB에 기록하지 않는다.
+    """
     ai = RecordingAI(_generated())
     monkeypatch.setattr(search_module, "create_structured_response", ai)
     monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+    before = _row_counts(database)
 
     added = generate_expressions(settings, KOREAN_MEANING, database=database)
 
     assert added == ()
+    assert len(ai.calls) == 1
+    counts = _row_counts(database)
+    assert counts["meanings"] == 0
+    assert counts["expressions"] == 0
+    assert counts["meaning_expressions"] == 0
+    assert counts == before
+    assert database.find_meaning(KOREAN_MEANING) is None
+    assert find_saved_expressions(database, KOREAN_MEANING) == ()
+
+
+def test_ai_failure_for_a_new_meaning_writes_nothing(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """처음 보는 의미에서 AI가 실패하면 DB에 아무 변화도 남지 않는다."""
+
+    def failing_ai(*args: object, **kwargs: object) -> object:
+        raise RuntimeError("AI 응답을 받지 못했습니다")
+
+    monkeypatch.setattr(search_module, "create_structured_response", failing_ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+    before = _row_counts(database)
+
+    with pytest.raises(RuntimeError):
+        generate_expressions(settings, KOREAN_MEANING, database=database)
+
+    counts = _row_counts(database)
+    assert counts["meanings"] == 0
+    assert counts["expressions"] == 0
+    assert counts["meaning_expressions"] == 0
+    assert counts == before
+    assert database.find_meaning(KOREAN_MEANING) is None
+
+
+def test_ai_failure_for_a_saved_meaning_keeps_existing_assets(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """이미 저장된 의미에서 AI가 실패해도 기존 표현 자산은 그대로다."""
+    first = _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    second = _add_relation(database, KOREAN_MEANING, "平気ですか")
+
+    def failing_ai(*args: object, **kwargs: object) -> object:
+        raise RuntimeError("AI 응답을 받지 못했습니다")
+
+    monkeypatch.setattr(search_module, "create_structured_response", failing_ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+    before = _row_counts(database)
+
+    with pytest.raises(RuntimeError):
+        generate_expressions(settings, KOREAN_MEANING, database=database)
+
+    assert _row_counts(database) == before
+    assert list(find_saved_expressions(database, KOREAN_MEANING)) == [first, second]
+
+
+def test_meaning_row_appears_only_when_a_new_expression_is_saved(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """빈 결과로 아무것도 남지 않은 뒤, 실제 표현이 오면 그때 의미가 저장된다."""
+    empty_ai = RecordingAI(_generated())
+    monkeypatch.setattr(search_module, "create_structured_response", empty_ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+
+    assert generate_expressions(settings, KOREAN_MEANING, database=database) == ()
+    assert _row_counts(database)["meanings"] == 0
+
+    monkeypatch.setattr(
+        search_module, "create_structured_response", RecordingAI(_generated("大丈夫ですか"))
+    )
+    added = generate_expressions(settings, KOREAN_MEANING, database=database)
+
+    assert [relation.japanese for relation in added] == ["大丈夫ですか"]
     counts = _row_counts(database)
     assert counts["meanings"] == 1
-    assert counts["meaning_expressions"] == 0
-    assert counts["expressions"] == 0
-    assert find_saved_expressions(database, KOREAN_MEANING) == ()
+    assert counts["expressions"] == 1
+    assert counts["meaning_expressions"] == 1
+    stored = database.find_meaning(KOREAN_MEANING)
+    assert stored is not None and stored.display_korean_meaning == KOREAN_MEANING
+
+
+def test_punctuation_only_meaning_is_rejected_before_calling_ai(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """정규화하면 아무 글자도 남지 않는 입력은 AI를 부르기 전에 거절한다."""
+    ai = RecordingAI(_generated("大丈夫ですか"))
+    monkeypatch.setattr(search_module, "create_structured_response", ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+
+    with pytest.raises(ValueError):
+        generate_expressions(settings, "???", database=database)
+
+    assert ai.calls == []
+    assert _row_counts(database)["meanings"] == 0
 
 
 def test_all_duplicate_expressions_add_nothing(
