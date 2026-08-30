@@ -17,19 +17,27 @@ import scene_collector.search as search_module
 import scene_collector.translate as translate_module
 import scene_collector.ui_controller as ui_controller
 from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
-from scene_collector.database import SceneCollectorDatabase, StoredMeaningExpression
+from scene_collector.database import (
+    LocalSegmentMatch,
+    SceneCollectorDatabase,
+    StoredMeaningExpression,
+)
 from scene_collector.media import store_media
 from scene_collector.models import ExpressionCandidate, GeneratedExpressions, SceneTranslation
+from scene_collector.search import SelectedExpressionScenes
 from scene_collector.subtitles import index_local_subtitles
-from scene_collector.translate import CONTEXT_TAKE
+from scene_collector.translate import CONTEXT_TAKE, TRANSLATION_INSTRUCTION_VERSION
 from scene_collector.ui_controller import (
     REVIEW_DECISIONS,
     SceneRow,
+    SceneWorkState,
     ensure_work_scene,
     format_timecode,
     generate_more_expressions,
     local_scene_line,
     lookup_expressions,
+    lookup_or_generate_expressions,
+    reset_player,
     save_decision,
     save_notes,
     scene_line,
@@ -160,8 +168,41 @@ def _subtitle_dir(tmp_path: Path) -> Path:
     return directory
 
 
+def _local_match() -> LocalSegmentMatch:
+    """로컬 자막 참고 결과 한 건. DB 없이 상태 객체만 검증할 때 쓴다."""
+    return LocalSegmentMatch(
+        id=1,
+        media_id=1,
+        media_display_name="테스트 작품",
+        episode=1,
+        position=1,
+        start_time_ms=1000,
+        end_time_ms=2500,
+        japanese_text="（ミサ）大丈夫ですか？",
+        source_file="테스트 작품 S1E01.srt",
+    )
+
+
 def _forbidden_ai(*args: object, **kwargs: object) -> object:
     raise AssertionError("이 흐름에서는 AI를 호출하면 안 됩니다.")
+
+
+def _failing_ai(*args: object, **kwargs: object) -> object:
+    raise RuntimeError("AI 번역 실패")
+
+
+class FakeVideoPlayer:
+    """pause/set_source 호출을 순서대로 기록하는 대역. NiceGUI를 쓰지 않는다."""
+
+    def __init__(self) -> None:
+        self.calls: list[tuple[str, str]] = []
+
+    def pause(self) -> None:
+        self.calls.append(("pause", ""))
+
+    def set_source(self, source: str) -> object:
+        self.calls.append(("set_source", source))
+        return self
 
 
 class FakeAI:
@@ -209,6 +250,14 @@ class FakeNadeshiko:
     def get_segment_context(self, segment_public_id: str, *, take: int) -> SegmentContextResponse:
         self.context_calls.append((segment_public_id, take))
         return SegmentContextResponse.from_dict({"segments": []})
+
+
+class FailingContextNadeshiko(FakeNadeshiko):
+    """검색은 되지만 문맥 조회만 실패하는 대역."""
+
+    def get_segment_context(self, segment_public_id: str, *, take: int) -> SegmentContextResponse:
+        self.context_calls.append((segment_public_id, take))
+        raise RuntimeError("문맥 조회 실패")
 
 
 def test_settings_summary_reports_state_without_secret_value(tmp_path: Path) -> None:
@@ -291,6 +340,96 @@ def test_generate_more_expressions_calls_ai_once_and_returns_only_new(
         assert "平気ですか" in fake_ai.prompts[1]
 
 
+def test_lookup_or_generate_expressions_shows_saved_expressions_without_ai(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """저장된 표현이 있으면 [표현 찾기] 한 번에 AI도 Nadeshiko도 부르지 않는다."""
+    monkeypatch.setattr(search_module, "create_structured_response", _forbidden_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(_search_response())
+
+    with SceneCollectorDatabase.open(settings) as database:
+        saved = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか", "平気ですか")
+
+        lookup = lookup_or_generate_expressions(settings, database, "괜찮냐고 묻는 말")
+        assert lookup.used_ai is False
+        assert lookup.added == ()
+        assert lookup.screen.has_expressions is True
+        assert lookup.screen.korean_meaning == "괜찮냐고 묻는 말"
+        # 저장된 표현이 전부 화면에 온다.
+        assert lookup.screen.relations == saved
+
+    # 표현 찾기는 Nadeshiko를 쓰지 않는다.
+    assert client.search_calls == []
+    assert client.context_calls == []
+
+
+def test_lookup_or_generate_expressions_generates_once_when_nothing_saved(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """저장된 표현이 없으면 같은 동작 안에서 AI를 정확히 한 번만 부른다."""
+    # 응답이 하나뿐이라 AI를 두 번 부르면 FakeAI가 실패한다.
+    fake_ai = FakeAI(_generated("大丈夫ですか", "平気ですか"))
+    monkeypatch.setattr(search_module, "create_structured_response", fake_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(_search_response())
+
+    with SceneCollectorDatabase.open(settings) as database:
+        lookup = lookup_or_generate_expressions(settings, database, "괜찮냐고 묻는 말")
+        assert fake_ai.call_count == 1
+        assert lookup.used_ai is True
+        assert [relation.japanese for relation in lookup.added] == ["大丈夫ですか", "平気ですか"]
+        assert [relation.japanese for relation in lookup.screen.relations] == [
+            "大丈夫ですか",
+            "平気ですか",
+        ]
+
+        # 만든 표현은 자산으로 저장돼 AI 없이 다시 조회된다.
+        assert lookup_expressions(database, "괜찮냐고 묻는 말").relations == lookup.screen.relations
+
+        again = lookup_or_generate_expressions(settings, database, "괜찮냐고 묻는 말")
+        assert fake_ai.call_count == 1
+        assert again.used_ai is False
+        assert again.added == ()
+        assert again.screen.relations == lookup.screen.relations
+
+    assert client.search_calls == []
+    assert client.context_calls == []
+
+
+def test_lookup_or_generate_expressions_accepts_empty_ai_result(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AI가 표현을 하나도 만들지 못해도 오류가 아니고 기존 표현도 그대로다."""
+    fake_ai = FakeAI(_generated(), _generated())
+    monkeypatch.setattr(search_module, "create_structured_response", fake_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(_search_response())
+
+    with SceneCollectorDatabase.open(settings) as database:
+        lookup = lookup_or_generate_expressions(settings, database, " 처음 보는 의미 ")
+        assert fake_ai.call_count == 1
+        assert lookup.used_ai is True
+        assert lookup.added == ()
+        assert lookup.screen.has_expressions is False
+        assert lookup.screen.relations == ()
+        assert lookup.screen.korean_meaning == "처음 보는 의미"
+        assert database.find_expressions_for_meaning("처음 보는 의미") == ()
+
+        # 이미 표현이 있는 의미에서 빈 목록이 와도 저장된 표현을 건드리지 않는다.
+        saved = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")
+        screen, added = generate_more_expressions(settings, database, "괜찮냐고 묻는 말")
+        assert fake_ai.call_count == 2
+        assert added == ()
+        assert screen.relations == saved
+
+    assert client.search_calls == []
+    assert client.context_calls == []
+
+
 def test_scene_rows_attach_saved_work_scene_state(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
@@ -336,6 +475,111 @@ def test_scene_rows_attach_saved_work_scene_state(
         # 표시명을 모르는 작품은 public ID로 대신 보여준다.
         unknown_names = scene_rows(database, found, {})
         assert unknown_names[0].media_display_name == MEDIA_PUBLIC_ID
+
+
+def test_scene_work_state_keeps_nothing_from_the_previous_relation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """다른 의미→표현으로 넘어가면 이전 장면 결과가 하나도 남지 않는다."""
+    monkeypatch.setattr(search_module, "create_structured_response", _forbidden_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(
+        _search_response(
+            _segment_dict("segment-a", "あの、大丈夫ですか？", position=1),
+            _segment_dict("segment-b", "大丈夫ですか、先輩。", position=2),
+        )
+    )
+
+    with SceneCollectorDatabase.open(settings) as database:
+        store_media(database, NADESHIKO_MEDIA)
+        first, second = _seed_relations(
+            database, "괜찮냐고 묻는 말", "大丈夫ですか", "平気ですか"
+        )
+
+        state = SceneWorkState()
+        # 아직 아무것도 고르지 않은 상태.
+        assert state.relation is None
+        assert state.found is None
+        assert state.rows == ()
+        assert state.saved_scenes == ()
+        assert state.selected_index is None
+        assert state.local_segments == ()
+        assert state.selected_row() is None
+
+        state.start_relation(first)
+        found = search_relation(settings, database, first, nadeshiko_client=client)
+        rows = scene_rows(database, found, MEDIA_NAMES)
+        state.show_results(found, rows)
+        # 결과를 보여준 직후에는 장면을 고르지 않은 상태다.
+        assert state.selected_index is None
+        assert state.selected_row() is None
+        assert state.found is found
+        assert state.rows == rows
+
+        state.selected_index = 1
+        assert state.selected_row() is rows[1]
+        # 범위를 벗어난 선택은 장면으로 보지 않는다.
+        state.selected_index = len(rows)
+        assert state.selected_row() is None
+        state.selected_index = -1
+        assert state.selected_row() is None
+        state.selected_index = 0
+
+        save_decision(database, first, rows[0].segment, rows[0].media_display_name, "채택")
+        state.saved_scenes = database.list_work_scenes(first.id)
+        assert state.saved_scenes
+
+        state.start_relation(second)
+        assert state.relation == second
+        assert state.found is None
+        assert state.rows == ()
+        assert state.saved_scenes == ()
+        assert state.selected_index is None
+        assert state.local_segments == ()
+        assert state.selected_row() is None
+
+        # found가 있으면 로컬 자막 참고 결과를 그대로 보여준다.
+        reference = SelectedExpressionScenes(
+            relation=second,
+            nadeshiko_segments=(),
+            local_segments=(_local_match(),),
+        )
+        state.show_results(reference, ())
+        assert state.local_segments == reference.local_segments
+        # 빈 목록에서는 어떤 번호를 골라도 장면이 없다.
+        state.selected_index = 0
+        assert state.selected_row() is None
+
+        # clear()는 관계까지 비운다.
+        state.clear()
+        assert state.relation is None
+        assert state.found is None
+        assert state.rows == ()
+        assert state.saved_scenes == ()
+        assert state.selected_index is None
+
+
+def test_reset_player_stops_and_clears_the_single_player() -> None:
+    """플레이어는 하나뿐이므로 교체하지 않고 재생만 멈추고 source를 지운다."""
+    player = FakeVideoPlayer()
+    same_player = player
+
+    assert reset_player(player) is None
+    assert player.calls == [("pause", ""), ("set_source", "")]
+    assert same_player is player
+
+    # 여러 번 불러도 같은 플레이어에 같은 동작만 반복한다.
+    reset_player(player)
+    assert player.calls == [
+        ("pause", ""),
+        ("set_source", ""),
+        ("pause", ""),
+        ("set_source", ""),
+    ]
+
+    # 아직 플레이어가 없으면 아무 일도 일어나지 않는다.
+    assert reset_player(None) is None
 
 
 def test_local_subtitle_matches_stay_reference_only(
@@ -402,6 +646,7 @@ def test_save_decision_and_notes_create_work_scene_and_keep_each_other(
         assert decided.japanese_text == "あの、大丈夫ですか？"
 
         noted = save_notes(database, relation, row.segment, row.media_display_name, "  발음 확인  ")
+        assert noted is not None
         assert noted.id == decided.id
         assert noted.notes == "발음 확인"
         # 메모 저장이 판정을 지우지 않는다.
@@ -413,6 +658,130 @@ def test_save_decision_and_notes_create_work_scene_and_keep_each_other(
         # 판정 저장이 메모를 지우지 않는다.
         assert changed.notes == "발음 확인"
         assert len(database.list_work_scenes(relation.id)) == 1
+
+
+def test_save_notes_never_creates_an_empty_work_scene(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """빈 메모만으로는 작업 장면이 생기지 않는다."""
+    monkeypatch.setattr(search_module, "create_structured_response", _forbidden_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(_search_response(_segment_dict("segment-a", "あの、大丈夫ですか？")))
+
+    with SceneCollectorDatabase.open(settings) as database:
+        store_media(database, NADESHIKO_MEDIA)
+        (relation,) = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")
+        found = search_relation(settings, database, relation, nadeshiko_client=client)
+        row = scene_rows(database, found, MEDIA_NAMES)[0]
+
+        for empty in ("", "   ", None):
+            assert (
+                save_notes(database, relation, row.segment, row.media_display_name, empty) is None
+            )
+            assert database.list_work_scenes(relation.id) == ()
+
+        # 실제로 남길 내용이 있을 때만 장면이 생긴다.
+        noted = save_notes(database, relation, row.segment, row.media_display_name, " 발음 확인 ")
+        assert noted is not None
+        assert noted.notes == "발음 확인"
+        assert len(database.list_work_scenes(relation.id)) == 1
+
+
+def test_save_notes_deletes_note_only_work_scene_when_note_is_cleared(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """메모만 있던 장면에서 메모를 비우면 행 자체가 사라진다."""
+    monkeypatch.setattr(search_module, "create_structured_response", _forbidden_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(_search_response(_segment_dict("segment-a", "あの、大丈夫ですか？")))
+
+    with SceneCollectorDatabase.open(settings) as database:
+        store_media(database, NADESHIKO_MEDIA)
+        (relation,) = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")
+        found = search_relation(settings, database, relation, nadeshiko_client=client)
+        row = scene_rows(database, found, MEDIA_NAMES)[0]
+
+        save_notes(database, relation, row.segment, row.media_display_name, "다시 볼 장면")
+        assert len(database.list_work_scenes(relation.id)) == 1
+
+        assert save_notes(database, relation, row.segment, row.media_display_name, "  ") is None
+        assert database.list_work_scenes(relation.id) == ()
+        assert database.get_work_scene(relation.id, "segment-a") is None
+
+
+def test_save_notes_keeps_work_scene_that_still_has_decision_or_translation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """판정이나 번역이 남아 있으면 메모를 비워도 행과 작업물은 그대로다."""
+    monkeypatch.setattr(search_module, "create_structured_response", _forbidden_ai)
+    fake_ai = FakeAI(
+        SceneTranslation(
+            direct_meaning="괜찮습니까",
+            natural_translation="괜찮으세요?",
+            scene_usage="상태 확인",
+        )
+    )
+    monkeypatch.setattr(translate_module, "create_structured_response", fake_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(
+        _search_response(
+            _segment_dict("segment-a", "あの、大丈夫ですか？", position=1),
+            _segment_dict("segment-b", "大丈夫ですか、先輩。", position=2),
+        )
+    )
+
+    with SceneCollectorDatabase.open(settings) as database:
+        store_media(database, NADESHIKO_MEDIA)
+        (relation,) = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")
+        found = search_relation(settings, database, relation, nadeshiko_client=client)
+        decided_row, translated_row = scene_rows(database, found, MEDIA_NAMES)
+
+        # 판정이 있는 장면: 메모를 비워도 행과 판정이 남는다.
+        save_decision(
+            database, relation, decided_row.segment, decided_row.media_display_name, "채택"
+        )
+        save_notes(database, relation, decided_row.segment, decided_row.media_display_name, "메모")
+        cleared = save_notes(
+            database, relation, decided_row.segment, decided_row.media_display_name, ""
+        )
+        # 행이 남으므로 갱신된 작업 장면이 그대로 돌아온다.
+        assert cleared is not None
+        assert cleared.decision == "채택"
+        assert cleared.notes is None
+        kept = database.get_work_scene(relation.id, "segment-a")
+        assert kept == cleared
+
+        # 번역이 있는 장면: 메모를 비워도 행과 번역이 남는다.
+        translate_scene(
+            settings,
+            database,
+            relation,
+            translated_row.segment,
+            translated_row.media_display_name,
+            nadeshiko_client=client,
+        )
+        save_notes(
+            database, relation, translated_row.segment, translated_row.media_display_name, "메모"
+        )
+        save_notes(
+            database,
+            relation,
+            translated_row.segment,
+            translated_row.media_display_name,
+            "   ",
+        )
+        translated = database.get_work_scene(relation.id, "segment-b")
+        assert translated is not None
+        assert translated.notes is None
+        assert translated.decision is None
+        assert translated.direct_meaning == "괜찮습니까"
+        assert translated.natural_translation == "괜찮으세요?"
+        assert translated.scene_usage == "상태 확인"
+
+        assert len(database.list_work_scenes(relation.id)) == 2
 
 
 def test_restart_keeps_expression_assets_and_work_scenes_without_search_restore(
@@ -492,17 +861,145 @@ def test_translate_scene_saves_translation_on_the_work_scene(
         assert fake_ai.call_count == 1
         assert client.context_calls == [("segment-a", CONTEXT_TAKE)]
         assert translated.translation.natural_translation == "괜찮으세요?"
+        assert translated.segment_public_id == "segment-a"
+        # 번역 함수는 DB를 모르므로 work_scene ID를 들고 다니지 않는다.
+        assert not hasattr(translated, "work_scene_id")
 
+        assert len(database.list_work_scenes(relation.id)) == 1
         stored = database.get_work_scene(relation.id, "segment-a")
         assert stored is not None
-        assert stored.id == translated.work_scene_id
         assert stored.direct_meaning == "괜찮습니까"
         assert stored.natural_translation == "괜찮으세요?"
         assert stored.scene_usage == "상태 확인"
         assert stored.translation_ai_service == "provider-one"
         assert stored.translation_ai_model == "model-one"
+        assert stored.translation_instruction_version == TRANSLATION_INSTRUCTION_VERSION
+        assert stored.translated_at
         # 번역만으로 판정이 생기지는 않는다.
         assert stored.decision is None
+        assert stored.notes is None
+
+
+def test_translate_scene_leaves_no_work_scene_when_context_lookup_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """문맥 조회가 실패하면 AI도 부르지 않고 빈 작업 장면도 남기지 않는다."""
+    monkeypatch.setattr(search_module, "create_structured_response", _forbidden_ai)
+    monkeypatch.setattr(translate_module, "create_structured_response", _forbidden_ai)
+    settings = _settings(tmp_path)
+    client = FailingContextNadeshiko(
+        _search_response(_segment_dict("segment-a", "あの、大丈夫ですか？"))
+    )
+
+    with SceneCollectorDatabase.open(settings) as database:
+        store_media(database, NADESHIKO_MEDIA)
+        (relation,) = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")
+        found = search_relation(settings, database, relation, nadeshiko_client=client)
+        row = scene_rows(database, found, MEDIA_NAMES)[0]
+
+        with pytest.raises(RuntimeError, match="문맥 조회 실패"):
+            translate_scene(
+                settings,
+                database,
+                relation,
+                row.segment,
+                row.media_display_name,
+                nadeshiko_client=client,
+            )
+
+        assert client.context_calls == [("segment-a", CONTEXT_TAKE)]
+        assert database.list_work_scenes(relation.id) == ()
+        assert database.get_work_scene(relation.id, "segment-a") is None
+
+
+def test_translate_scene_leaves_no_work_scene_when_ai_fails(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AI 번역이 실패하면 문맥까지 갔더라도 작업 장면을 만들지 않는다."""
+    monkeypatch.setattr(search_module, "create_structured_response", _forbidden_ai)
+    monkeypatch.setattr(translate_module, "create_structured_response", _failing_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(_search_response(_segment_dict("segment-a", "あの、大丈夫ですか？")))
+
+    with SceneCollectorDatabase.open(settings) as database:
+        store_media(database, NADESHIKO_MEDIA)
+        (relation,) = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")
+        found = search_relation(settings, database, relation, nadeshiko_client=client)
+        row = scene_rows(database, found, MEDIA_NAMES)[0]
+
+        with pytest.raises(RuntimeError, match="AI 번역 실패"):
+            translate_scene(
+                settings,
+                database,
+                relation,
+                row.segment,
+                row.media_display_name,
+                nadeshiko_client=client,
+            )
+
+        assert client.context_calls == [("segment-a", CONTEXT_TAKE)]
+        assert database.list_work_scenes(relation.id) == ()
+        assert database.get_work_scene(relation.id, "segment-a") is None
+
+
+def test_translate_scene_failure_keeps_existing_decision_notes_and_translation(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """이미 작업하던 장면이면 번역 실패가 기존 작업물을 건드리지 않는다."""
+    monkeypatch.setattr(search_module, "create_structured_response", _forbidden_ai)
+    fake_ai = FakeAI(
+        SceneTranslation(
+            direct_meaning="괜찮습니까",
+            natural_translation="괜찮으세요?",
+            scene_usage="상태 확인",
+        )
+    )
+    monkeypatch.setattr(translate_module, "create_structured_response", fake_ai)
+    settings = _settings(tmp_path)
+    client = FakeNadeshiko(_search_response(_segment_dict("segment-a", "あの、大丈夫ですか？")))
+
+    with SceneCollectorDatabase.open(settings) as database:
+        store_media(database, NADESHIKO_MEDIA)
+        (relation,) = _seed_relations(database, "괜찮냐고 묻는 말", "大丈夫ですか")
+        found = search_relation(settings, database, relation, nadeshiko_client=client)
+        row = scene_rows(database, found, MEDIA_NAMES)[0]
+
+        save_decision(database, relation, row.segment, row.media_display_name, "채택")
+        save_notes(database, relation, row.segment, row.media_display_name, "다시 볼 장면")
+        translate_scene(
+            settings,
+            database,
+            relation,
+            row.segment,
+            row.media_display_name,
+            nadeshiko_client=client,
+        )
+        before = database.get_work_scene(relation.id, "segment-a")
+        assert before is not None
+
+        monkeypatch.setattr(translate_module, "create_structured_response", _failing_ai)
+        with pytest.raises(RuntimeError, match="AI 번역 실패"):
+            translate_scene(
+                settings,
+                database,
+                relation,
+                row.segment,
+                row.media_display_name,
+                nadeshiko_client=client,
+            )
+
+        after = database.get_work_scene(relation.id, "segment-a")
+        assert after is not None
+        assert after.id == before.id
+        assert after.decision == "채택"
+        assert after.notes == "다시 볼 장면"
+        assert after.direct_meaning == "괜찮습니까"
+        assert after.natural_translation == "괜찮으세요?"
+        assert after.scene_usage == "상태 확인"
+        assert len(database.list_work_scenes(relation.id)) == 1
 
 
 def test_format_timecode_pads_hours_minutes_seconds_and_milliseconds() -> None:

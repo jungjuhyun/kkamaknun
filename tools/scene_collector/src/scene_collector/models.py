@@ -32,13 +32,12 @@ class GeneratedExpressions(BaseModel):
     """한국어 의미 하나에 대해 AI가 생성한 일본어 표현 목록.
 
     자연스러운 표현만 담고 상한까지 억지로 채우지 않으므로 개수는 유연하다.
+    더 이상 자연스럽게 덧붙일 표현이 없으면 빈 목록도 정상 결과다.
     """
 
     model_config = ConfigDict(extra="forbid")
 
-    expressions: list[ExpressionCandidate] = Field(
-        min_length=1, max_length=EXPRESSION_GENERATION_HARD_LIMIT
-    )
+    expressions: list[ExpressionCandidate] = Field(max_length=EXPRESSION_GENERATION_HARD_LIMIT)
 
 
 class SceneTranslation(BaseModel):

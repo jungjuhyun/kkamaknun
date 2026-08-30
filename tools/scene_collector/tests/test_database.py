@@ -763,6 +763,218 @@ def test_accepted_scenes_are_listed_per_relation_and_survive_reopen(tmp_path: Pa
 
 
 # ----------------------------------------------------------------------
+# 빈 작업 장면 정리
+# ----------------------------------------------------------------------
+
+
+def test_empty_work_scene_is_deleted_and_recreated_by_the_next_upsert(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    with SceneCollectorDatabase.open(settings) as database:
+        relation = _add_relation(
+            database,
+            "괜찮냐고 묻는 말",
+            japanese="大丈夫ですか",
+            reading="だいじょうぶですか",
+            meaning_ko="괜찮으세요?",
+            register_text="정중",
+        )
+        empty_id = _add_work_scene(
+            database, relation.id, segment_public_id="anonymous-segment-001"
+        )
+        # 뒤에 만든 행이 남아 있어야 재작업 때 예전 ID가 그대로 재사용되지 않는다
+        kept_id = _add_work_scene(database, relation.id, segment_public_id="anonymous-segment-002")
+        database.set_work_scene_notes(kept_id, "남겨둘 메모")
+
+        assert database.delete_work_scene_if_empty(empty_id) is True
+        assert database.get_work_scene(relation.id, "anonymous-segment-001") is None
+        assert [scene.id for scene in database.list_work_scenes(relation.id)] == [kept_id]
+        # 이미 지운 행을 다시 지우려 해도 조용히 False다
+        assert database.delete_work_scene_if_empty(empty_id) is False
+
+        # 같은 장면을 다시 작업하면 새 행으로 되살아난다
+        recreated_id = _add_work_scene(
+            database, relation.id, segment_public_id="anonymous-segment-001"
+        )
+        assert recreated_id != empty_id
+        recreated = database.get_work_scene(relation.id, "anonymous-segment-001")
+        assert recreated is not None
+        assert recreated.id == recreated_id
+        assert recreated.decision is None
+        assert recreated.notes is None
+        assert recreated.has_translation is False
+
+        database.set_work_scene_decision(recreated_id, "채택")
+
+    with SceneCollectorDatabase.open(settings) as reopened:
+        survivor = reopened.get_work_scene(relation.id, "anonymous-segment-001")
+        assert survivor is not None
+        assert survivor.decision == "채택"
+        assert reopened.connection.execute("SELECT COUNT(*) FROM work_scenes").fetchone()[0] == 2
+
+
+def test_work_scene_that_has_only_a_decision_is_not_deleted(tmp_path: Path) -> None:
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        relation = _add_relation(
+            database,
+            "괜찮냐고 묻는 말",
+            japanese="大丈夫ですか",
+            reading="だいじょうぶですか",
+            meaning_ko="괜찮으세요?",
+            register_text="정중",
+        )
+        scene_id = _add_work_scene(
+            database, relation.id, segment_public_id="anonymous-segment-001"
+        )
+        database.set_work_scene_decision(scene_id, "제외")
+
+        assert database.delete_work_scene_if_empty(scene_id) is False
+        kept = database.get_work_scene(relation.id, "anonymous-segment-001")
+        assert kept is not None
+        assert kept.id == scene_id
+        assert kept.decision == "제외"
+
+
+def test_work_scene_that_has_only_notes_is_not_deleted(tmp_path: Path) -> None:
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        relation = _add_relation(
+            database,
+            "괜찮냐고 묻는 말",
+            japanese="大丈夫ですか",
+            reading="だいじょうぶですか",
+            meaning_ko="괜찮으세요?",
+            register_text="정중",
+        )
+        scene_id = _add_work_scene(
+            database, relation.id, segment_public_id="anonymous-segment-001"
+        )
+        database.set_work_scene_notes(scene_id, "메모만 있는 장면")
+
+        assert database.delete_work_scene_if_empty(scene_id) is False
+        kept = database.get_work_scene(relation.id, "anonymous-segment-001")
+        assert kept is not None
+        assert kept.decision is None
+        assert kept.notes == "메모만 있는 장면"
+
+
+def test_work_scene_that_has_only_a_translation_is_not_deleted(tmp_path: Path) -> None:
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        relation = _add_relation(
+            database,
+            "괜찮냐고 묻는 말",
+            japanese="大丈夫ですか",
+            reading="だいじょうぶですか",
+            meaning_ko="괜찮으세요?",
+            register_text="정중",
+        )
+        scene_id = _add_work_scene(
+            database, relation.id, segment_public_id="anonymous-segment-001"
+        )
+        database.save_work_scene_translation(
+            scene_id,
+            direct_meaning="괜찮습니까?",
+            natural_translation="괜찮아요?",
+            scene_usage="상대의 상태를 확인함",
+            ai_service="provider-one",
+            ai_model="model-one",
+            instruction_version="scene-v1",
+        )
+
+        assert database.delete_work_scene_if_empty(scene_id) is False
+        kept = database.get_work_scene(relation.id, "anonymous-segment-001")
+        assert kept is not None
+        assert kept.decision is None
+        assert kept.notes is None
+        assert kept.has_translation is True
+        assert kept.natural_translation == "괜찮아요?"
+
+
+@pytest.mark.parametrize(
+    ("column", "value"),
+    [
+        ("decision", "예비"),
+        ("notes", "메모"),
+        ("direct_meaning", "괜찮습니까?"),
+        ("natural_translation", "괜찮아요?"),
+        ("scene_usage", "상대의 상태를 확인함"),
+    ],
+)
+def test_single_filled_work_column_blocks_deletion(
+    tmp_path: Path, column: str, value: str
+) -> None:
+    """작업 칸 중 하나만 채워져 있어도 그 행은 지우면 안 된다."""
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        relation = _add_relation(
+            database,
+            "괜찮냐고 묻는 말",
+            japanese="大丈夫ですか",
+            reading="だいじょうぶですか",
+            meaning_ko="괜찮으세요?",
+            register_text="정중",
+        )
+        scene_id = _add_work_scene(
+            database, relation.id, segment_public_id="anonymous-segment-001"
+        )
+        with database.transaction() as connection:
+            connection.execute(
+                f"UPDATE work_scenes SET {column} = ? WHERE id = ?", (value, scene_id)
+            )
+
+        assert database.delete_work_scene_if_empty(scene_id) is False
+        assert (
+            database.connection.execute(
+                f"SELECT {column} FROM work_scenes WHERE id = ?", (scene_id,)
+            ).fetchone()[0]
+            == value
+        )
+
+
+def test_delete_work_scene_if_empty_ignores_unknown_id(tmp_path: Path) -> None:
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        assert database.delete_work_scene_if_empty(9999) is False
+        assert database.connection.execute("SELECT COUNT(*) FROM work_scenes").fetchone()[0] == 0
+
+
+def test_delete_work_scene_if_empty_touches_only_the_target_row(tmp_path: Path) -> None:
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        asking = _add_relation(
+            database,
+            "괜찮냐고 묻는 말",
+            japanese="大丈夫ですか",
+            reading="だいじょうぶですか",
+            meaning_ko="괜찮으세요?",
+            register_text="정중",
+        )
+        thanking = _add_relation(
+            database,
+            "고맙다고 말하기",
+            japanese="ありがとう",
+            reading="ありがとう",
+            meaning_ko="고마워",
+            register_text="반말",
+        )
+        target = _add_work_scene(database, asking.id, segment_public_id="segment-empty")
+        sibling = _add_work_scene(database, asking.id, segment_public_id="segment-sibling")
+        database.set_work_scene_decision(sibling, "채택")
+        # 같은 장면 ID를 쓰는 다른 관계의 빈 행도 그대로 남아야 한다
+        other_relation_row = _add_work_scene(
+            database, thanking.id, segment_public_id="segment-empty"
+        )
+
+        assert database.delete_work_scene_if_empty(target) is True
+
+        assert [scene.segment_public_id for scene in database.list_work_scenes(asking.id)] == [
+            "segment-sibling"
+        ]
+        assert [scene.id for scene in database.list_work_scenes(thanking.id)] == [
+            other_relation_row
+        ]
+        remaining = database.get_work_scene(asking.id, "segment-sibling")
+        assert remaining is not None
+        assert remaining.decision == "채택"
+        assert database.connection.execute("SELECT COUNT(*) FROM work_scenes").fetchone()[0] == 2
+
+
+# ----------------------------------------------------------------------
 # 옛 DB migration
 # ----------------------------------------------------------------------
 

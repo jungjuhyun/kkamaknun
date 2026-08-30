@@ -1,7 +1,8 @@
 """사용자가 요청한 장면 하나의 앞뒤 문맥을 조회해 한국어 번역을 만든다.
 
 문맥 응답은 즉석에서 쓰고 저장·캐시하지 않는다. 번역 결과는 캐시가 아니라
-사용자 작업물이므로 해당 작업 장면(work_scenes)에 저장한다.
+사용자 작업물이지만, 여기서는 DB에 쓰지 않는다. 문맥 조회와 AI 번역이 모두
+성공한 뒤에만 작업 장면을 만들어 저장하도록 저장은 호출한 쪽이 맡는다.
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ from nadeshiko.models import Segment, SegmentContextResponse
 
 from scene_collector.ai import create_structured_response
 from scene_collector.config import AppSettings
-from scene_collector.database import SceneCollectorDatabase, StoredMeaningExpression
+from scene_collector.database import StoredMeaningExpression
 from scene_collector.models import SceneTranslation
 
 CONTEXT_TAKE = 2
@@ -35,9 +36,8 @@ _TRANSLATION_RULES = """당신은 일본어 애니 대사를 한국어 학습 �
 
 @dataclass(frozen=True)
 class TranslatedScene:
-    """한 장면의 문맥과 저장된 한국어 번역 결과."""
+    """한 장면의 문맥과 만들어진 한국어 번역 결과."""
 
-    work_scene_id: int
     segment_public_id: str
     previous_japanese: str | None
     current_japanese: str
@@ -46,16 +46,18 @@ class TranslatedScene:
     translation: SceneTranslation
 
 
-def translate_work_scene(
+def translate_segment(
     settings: AppSettings,
     *,
     relation: StoredMeaningExpression,
     segment: Segment,
-    work_scene_id: int,
     nadeshiko_client: Nadeshiko,
-    database: SceneCollectorDatabase,
 ) -> TranslatedScene:
-    """사용자가 요청한 장면 하나만 문맥 조회 후 번역하고 작업물로 저장한다."""
+    """사용자가 요청한 장면 하나만 문맥 조회 후 번역한다. DB에는 쓰지 않는다.
+
+    문맥 조회나 AI 번역이 실패하면 예외가 그대로 올라가고, 그 결과 호출한 쪽은
+    작업 장면을 만들지 않는다.
+    """
     context = nadeshiko_client.get_segment_context(segment.public_id, take=CONTEXT_TAKE)
     previous_segment, next_segment = _neighbor_segments(segment, context)
     previous_japanese = previous_segment.text_ja.content if previous_segment else None
@@ -74,17 +76,7 @@ def translate_work_scene(
         response_model=SceneTranslation,
     )
 
-    database.save_work_scene_translation(
-        work_scene_id,
-        direct_meaning=translation.direct_meaning,
-        natural_translation=translation.natural_translation,
-        scene_usage=translation.scene_usage,
-        ai_service=settings.ai.service,
-        ai_model=settings.ai.model,
-        instruction_version=TRANSLATION_INSTRUCTION_VERSION,
-    )
     return TranslatedScene(
-        work_scene_id=work_scene_id,
         segment_public_id=segment.public_id,
         previous_japanese=previous_japanese,
         current_japanese=segment.text_ja.content,

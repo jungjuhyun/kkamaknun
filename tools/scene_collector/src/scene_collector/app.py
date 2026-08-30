@@ -32,7 +32,7 @@ from scene_collector.database import (
 from scene_collector.export import export_accepted_scenes
 from scene_collector.media import media_display_name, search_media, store_media
 from scene_collector.nadeshiko import create_nadeshiko_client
-from scene_collector.search import NoActiveMediaError, SelectedExpressionScenes
+from scene_collector.search import NoActiveMediaError
 
 _T = TypeVar("_T")
 
@@ -107,11 +107,7 @@ async def main_page() -> None:
 
     # 화면 상태는 이 클라이언트(창)에만 속한다. 지난 검색을 자동 복원하지 않는다.
     screen: ui_controller.ExpressionScreen | None = None
-    relation: StoredMeaningExpression | None = None
-    found: SelectedExpressionScenes | None = None
-    rows: tuple[ui_controller.SceneRow, ...] = ()
-    saved_scenes: tuple = ()
-    selected_index: int | None = None
+    state = ui_controller.SceneWorkState()
     player = None
     media_rows: tuple[StoredMedia, ...] = ()
     media_names: dict[str, str] = {}
@@ -151,21 +147,17 @@ async def main_page() -> None:
         with ui.tab_panel(search_tab):
             ui.label(
                 "한국어 의미를 입력하면 먼저 저장된 일본어 표현을 찾습니다. "
-                "저장된 표현이 있으면 AI를 호출하지 않습니다."
+                "저장된 표현이 있으면 AI를 호출하지 않고, 없으면 그 자리에서 한 번 만듭니다."
             )
             meaning_input = ui.input(
                 "한국어 의미", placeholder="예: 괜찮아요"
             ).classes("w-96")
             search_status = ui.label("")
-            with ui.row():
-                lookup_button = ui.button("표현 찾기", on_click=lambda: do_lookup())
-                generate_button = ui.button(
-                    "AI로 표현 생성", on_click=lambda: do_generate()
-                )
+            lookup_button = ui.button("표현 찾기", on_click=lambda: do_lookup())
 
         with ui.tab_panel(expressions_tab):
             with ui.row().classes("items-center"):
-                ui.button("표현 더 찾기", on_click=lambda: do_generate())
+                more_button = ui.button("표현 더 찾기", on_click=lambda: do_generate())
                 ui.label(
                     "이미 저장된 표현을 AI에 전달해 중복되지 않는 표현만 추가합니다."
                 ).style("color: #666; font-size: 0.85rem")
@@ -212,42 +204,54 @@ async def main_page() -> None:
     # ------------------------------------------------------------------
 
     async def do_lookup() -> None:
-        """저장된 표현만 조회한다. AI·Nadeshiko 호출 없음."""
+        """저장된 표현을 찾고, 하나도 없으면 그 자리에서 AI로 한 번 만든다."""
         nonlocal screen
         text = (meaning_input.value or "").strip()
         if not text:
             ui.notify("한국어 의미를 입력하세요.", type="warning")
             return
+        # 의미가 바뀌면 이전 표현의 장면 결과는 더 이상 유효하지 않다.
+        clear_scene_screen()
         lookup_button.disable()
+        search_status.set_text("저장된 표현을 찾는 중...")
         try:
-            screen = await context.call(
-                lambda: ui_controller.lookup_expressions(database, text)
+            result = await context.call(
+                lambda: ui_controller.lookup_or_generate_expressions(
+                    settings, database, text
+                )
             )
         except _USER_ERRORS as error:
+            search_status.set_text(f"표현 찾기 실패: {error}")
             _notify_error(error)
             return
         finally:
             lookup_button.enable()
-        if screen.has_expressions:
+        screen = result.screen
+        if not result.used_ai:
             search_status.set_text(
                 f"저장된 표현 {len(screen.relations)}개 — AI를 호출하지 않았습니다."
             )
-            render_expressions()
-            tabs.set_value(expressions_tab)
+        elif result.added:
+            search_status.set_text(
+                f"저장된 표현이 없어 AI로 {len(result.added)}개를 만들어 저장했습니다."
+            )
         else:
             search_status.set_text(
-                "저장된 표현이 없습니다. [AI로 표현 생성]으로 표현 자산을 만드세요."
+                "AI가 이 의미에 자연스러운 일본어 표현을 찾지 못했습니다. "
+                "의미를 조금 더 구체적으로 적어 보세요."
             )
-            render_expressions()
+        render_expressions()
+        if screen.has_expressions:
+            tabs.set_value(expressions_tab)
 
     async def do_generate() -> None:
-        """AI로 표현을 만들어 자산으로 저장한다. Nadeshiko는 호출하지 않는다."""
+        """이미 표현이 있을 때 사용자가 추가 생성을 요청하는 동작."""
         nonlocal screen
         text = (meaning_input.value or "").strip()
         if not text:
             ui.notify("한국어 의미를 입력하세요.", type="warning")
             return
-        generate_button.disable()
+        more_button.disable()
         search_status.set_text("AI로 표현을 만드는 중...")
         try:
             screen, added = await context.call(
@@ -258,10 +262,16 @@ async def main_page() -> None:
             _notify_error(error)
             return
         finally:
-            generate_button.enable()
-        search_status.set_text(
-            f"새 표현 {len(added)}개 저장 · 저장된 표현 {len(screen.relations)}개"
-        )
+            more_button.enable()
+        if added:
+            search_status.set_text(
+                f"새 표현 {len(added)}개 저장 · 저장된 표현 {len(screen.relations)}개"
+            )
+        else:
+            search_status.set_text(
+                f"새 표현 0개 — 더 붙일 자연스러운 표현이 없습니다 · "
+                f"저장된 표현 {len(screen.relations)}개"
+            )
         render_expressions()
         if screen.has_expressions:
             tabs.set_value(expressions_tab)
@@ -280,7 +290,7 @@ async def main_page() -> None:
                     ui.label(f"{item.japanese} ({item.reading})").style("font-size: 1.1rem")
                     ui.label(f"이 의미에서의 뜻: {item.meaning_ko}")
                     ui.label(f"말투: {item.register_text}")
-                    if relation is not None and relation.id == item.id:
+                    if state.relation is not None and state.relation.id == item.id:
                         ui.label("선택됨").style("color: #2e7d32; font-weight: 600")
 
                     async def do_select(chosen: StoredMeaningExpression = item) -> None:
@@ -292,12 +302,27 @@ async def main_page() -> None:
     # 장면 검수
     # ------------------------------------------------------------------
 
+    def clear_scene_screen() -> None:
+        """이전 의미·표현의 장면 화면을 하나도 남기지 않고 비운다.
+
+        영상 플레이어 인스턴스는 계속 하나만 쓰되, 이전 영상이 보이거나
+        재생되지 않도록 멈추고 감춘다.
+        """
+        state.clear()
+        ui_controller.reset_player(player)
+        player_box.set_visibility(False)
+        saved_box.clear()
+        scene_list_box.clear()
+        detail_box.clear()
+        local_box.clear()
+        render_scene_header()
+
     async def select_relation(chosen: StoredMeaningExpression) -> None:
         """선택한 표현 하나만 검색한다. 검색 결과는 저장하지 않는다."""
-        nonlocal relation, found, rows, selected_index, saved_scenes
-        relation = chosen
-        selected_index = None
-        saved_scenes = await context.call(lambda: database.list_work_scenes(chosen.id))
+        # 이전 표현의 장면·영상·번역 표시가 새 표현과 섞이면 안 된다.
+        clear_scene_screen()
+        state.start_relation(chosen)
+        state.saved_scenes = await context.call(lambda: database.list_work_scenes(chosen.id))
         render_expressions()
         render_scene_header()
         render_saved_scenes()
@@ -315,36 +340,34 @@ async def main_page() -> None:
                 lambda: ui_controller.scene_rows(database, found, media_names)
             )
         except NoActiveMediaError:
-            found = None
-            rows = ()
             render_scene_list(message=NO_ACTIVE_MEDIA_GUIDE)
             ui.notify(NO_ACTIVE_MEDIA_GUIDE, type="warning", multi_line=True)
             return
         except _USER_ERRORS as error:
-            found = None
-            rows = ()
             render_scene_list(message=f"검색 실패: {error}")
             _notify_error(error)
             return
+        state.show_results(found, rows)
         render_scene_list()
         render_local_scenes()
         render_detail()
 
     def render_scene_header() -> None:
-        if relation is None or screen is None:
+        chosen = state.relation
+        if chosen is None or screen is None:
             scene_header.set_text("")
             return
         scene_header.set_text(
-            f"작업 맥락: {screen.korean_meaning} → {relation.japanese} ({relation.reading})"
+            f"작업 맥락: {screen.korean_meaning} → {chosen.japanese} ({chosen.reading})"
         )
 
     def render_saved_scenes() -> None:
         saved_box.clear()
-        if relation is None or not saved_scenes:
+        if state.relation is None or not state.saved_scenes:
             return
         with saved_box:
-            ui.label(f"이미 작업한 장면 {len(saved_scenes)}개").style("font-weight: 600")
-            for scene in saved_scenes:
+            ui.label(f"이미 작업한 장면 {len(state.saved_scenes)}개").style("font-weight: 600")
+            for scene in state.saved_scenes:
                 ui.label(ui_controller.work_scene_line(scene)).style("font-size: 0.9rem")
             ui.separator()
 
@@ -354,19 +377,19 @@ async def main_page() -> None:
             if message is not None:
                 ui.label(message)
                 return
-            if relation is None:
+            if state.relation is None:
                 ui.label("일본어 표현 선택 탭에서 표현을 먼저 고르세요.")
                 return
-            if not rows:
+            if not state.rows:
                 ui.label(
                     "이 표현으로 찾은 Nadeshiko 장면이 없습니다. "
                     "다른 표현을 고르거나 활성 작품을 늘려 보세요."
                 )
                 return
-            ui.label(f"Nadeshiko 장면 {len(rows)}개 — 하나를 고르면 영상이 로딩됩니다.").style(
-                "font-weight: 600"
-            )
-            for index, row in enumerate(rows):
+            ui.label(
+                f"Nadeshiko 장면 {len(state.rows)}개 — 하나를 고르면 영상이 로딩됩니다."
+            ).style("font-weight: 600")
+            for index, row in enumerate(state.rows):
                 with ui.row().classes("items-center w-full"):
                     decision = row.decision
                     if decision:
@@ -380,11 +403,11 @@ async def main_page() -> None:
 
     async def pick_scene(index: int) -> None:
         """선택한 장면 하나만 단일 플레이어에 로딩한다."""
-        nonlocal selected_index, player
-        if index < 0 or index >= len(rows):
+        nonlocal player
+        if index < 0 or index >= len(state.rows):
             return
-        selected_index = index
-        source = rows[index].segment.urls.video_url or ""
+        state.selected_index = index
+        source = state.rows[index].segment.urls.video_url or ""
         if player is None:
             with player_box:
                 player = ui.video(source, controls=True).style(
@@ -392,17 +415,14 @@ async def main_page() -> None:
                 )
         else:
             player.set_source(source)
+        # 장면을 실제로 고른 지금에만 영상을 보여준다.
+        player_box.set_visibility(True)
         render_detail()
         render_scene_list()
 
-    def selected_row() -> ui_controller.SceneRow | None:
-        if selected_index is None or selected_index >= len(rows):
-            return None
-        return rows[selected_index]
-
     def render_detail() -> None:
         detail_box.clear()
-        row = selected_row()
+        row = state.selected_row()
         with detail_box:
             if row is None:
                 ui.label("장면 목록에서 장면 하나를 고르세요.")
@@ -442,7 +462,8 @@ async def main_page() -> None:
             ui.button("메모 저장", on_click=do_save_notes)
 
             async def do_translate() -> None:
-                row_now = selected_row()
+                row_now = state.selected_row()
+                relation = state.relation
                 if row_now is None or relation is None:
                     return
                 translate_button.disable()
@@ -466,7 +487,8 @@ async def main_page() -> None:
                 await refresh_rows()
 
     async def save_decision(decision: str) -> None:
-        row_now = selected_row()
+        row_now = state.selected_row()
+        relation = state.relation
         if row_now is None or relation is None:
             return
         try:
@@ -482,11 +504,12 @@ async def main_page() -> None:
         await refresh_rows()
 
     async def save_notes(value: str | None) -> None:
-        row_now = selected_row()
+        row_now = state.selected_row()
+        relation = state.relation
         if row_now is None or relation is None:
             return
         try:
-            await context.call(
+            saved = await context.call(
                 lambda: ui_controller.save_notes(
                     database, relation, row_now.segment, row_now.media_display_name, value
                 )
@@ -494,33 +517,33 @@ async def main_page() -> None:
         except _USER_ERRORS as error:
             _notify_error(error)
             return
-        ui.notify("메모를 저장했습니다.")
+        ui.notify("메모를 저장했습니다." if saved is not None else "메모를 비웠습니다.")
         await refresh_rows()
 
     async def refresh_rows() -> None:
         """저장 후 목록의 작업 상태만 다시 읽는다. 재검색은 하지 않는다."""
-        nonlocal rows, saved_scenes
+        found = state.found
+        relation = state.relation
         if found is None or relation is None:
             return
-        rows = await context.call(
+        state.rows = await context.call(
             lambda: ui_controller.scene_rows(database, found, media_names)
         )
-        saved_scenes = await context.call(lambda: database.list_work_scenes(relation.id))
+        state.saved_scenes = await context.call(lambda: database.list_work_scenes(relation.id))
         render_saved_scenes()
         render_scene_list()
         render_detail()
 
     def render_local_scenes() -> None:
         local_box.clear()
-        if found is None or not found.local_segments:
+        local_segments = state.local_segments
+        if not local_segments:
             return
         with local_box:
             ui.separator()
-            ui.label(f"로컬 자막 참고 결과 {len(found.local_segments)}개").style(
-                "font-weight: 600"
-            )
+            ui.label(f"로컬 자막 참고 결과 {len(local_segments)}개").style("font-weight: 600")
             ui.label(LOCAL_SUBTITLE_NOTICE).style("color: #666; font-size: 0.85rem")
-            for scene in found.local_segments:
+            for scene in local_segments:
                 ui.label(ui_controller.local_scene_line(scene))
 
     async def do_export() -> None:

@@ -1043,6 +1043,27 @@ class SceneCollectorDatabase:
             ),
         )
 
+    def delete_work_scene_if_empty(self, work_scene_id: int) -> bool:
+        """판정·번역·메모가 하나도 없는 작업 장면 행을 지운다. 지웠으면 True.
+
+        메모만 있던 장면에서 메모를 지웠을 때처럼, 실제 작업이 남지 않은 행이
+        work_scenes에 쌓이지 않게 한다.
+        """
+        with self.transaction() as connection:
+            cursor = connection.execute(
+                """
+                DELETE FROM work_scenes
+                WHERE id = ?
+                  AND decision IS NULL
+                  AND notes IS NULL
+                  AND direct_meaning IS NULL
+                  AND natural_translation IS NULL
+                  AND scene_usage IS NULL
+                """,
+                (work_scene_id,),
+            )
+            return cursor.rowcount > 0
+
     def _update_work_scene(self, work_scene_id: int, assignment: str, values: tuple) -> None:
         with self.transaction() as connection:
             cursor = connection.execute(

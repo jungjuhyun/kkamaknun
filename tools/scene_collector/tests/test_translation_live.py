@@ -15,12 +15,8 @@ from scene_collector.media import media_display_name, store_media
 from scene_collector.models import ExpressionCandidate, GeneratedExpressions
 from scene_collector.nadeshiko import create_nadeshiko_client
 from scene_collector.search import generate_expressions, search_selected_expression
-from scene_collector.translate import (
-    TRANSLATION_INSTRUCTION_VERSION,
-    TranslatedScene,
-    translate_work_scene,
-)
-from scene_collector.ui_controller import ensure_work_scene
+from scene_collector.translate import TRANSLATION_INSTRUCTION_VERSION, TranslatedScene
+from scene_collector.ui_controller import translate_scene
 
 pytestmark = pytest.mark.translation_live
 
@@ -179,22 +175,21 @@ def test_context_and_single_scene_translation_live(
                 (scene for scene in found.nadeshiko_segments if scene.position > 1),
                 found.nadeshiko_segments[0],
             )
-            work_scene_id = ensure_work_scene(database, relation, segment, display_name)
             assert counting_ai.calls == 0
             assert client.context_calls == 0
 
-            scene = translate_work_scene(
+            # 저장은 ui_controller.translate_scene이 번역 성공 뒤에만 맡는다.
+            scene = translate_scene(
                 live_settings,
-                relation=relation,
-                segment=segment,
-                work_scene_id=work_scene_id,
+                database,
+                relation,
+                segment,
+                display_name,
                 nadeshiko_client=client,
-                database=database,
             )
 
             assert client.context_calls == 1
             assert counting_ai.calls == 1
-            assert scene.work_scene_id == work_scene_id
             assert scene.segment_public_id == segment.public_id
             assert scene.current_japanese == segment.text_ja.content
             assert scene.previous_japanese is not None or scene.next_japanese is not None

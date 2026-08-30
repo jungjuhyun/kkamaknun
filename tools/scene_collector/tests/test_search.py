@@ -271,6 +271,88 @@ def test_generation_stops_at_the_configured_limit(
     ]
 
 
+def test_empty_ai_expression_list_is_not_an_error_and_changes_nothing(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AI가 빈 목록을 돌려줘도 오류 없이 ()를 반환하고 저장된 표현을 건드리지 않는다."""
+    first = _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    second = _add_relation(database, KOREAN_MEANING, "平気ですか")
+    ai = RecordingAI(_generated())
+    monkeypatch.setattr(search_module, "create_structured_response", ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+    before = _row_counts(database)
+
+    added = generate_expressions(settings, KOREAN_MEANING, database=database)
+
+    assert added == ()
+    assert len(ai.calls) == 1
+    # 행 수도 내용도 그대로다.
+    assert _row_counts(database) == before
+    assert list(find_saved_expressions(database, KOREAN_MEANING)) == [first, second]
+
+
+def test_empty_ai_expression_list_for_a_new_meaning_saves_only_the_meaning(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """저장된 표현이 없던 의미에서 빈 목록이 오면 의미만 남고 관계는 0행이다."""
+    ai = RecordingAI(_generated())
+    monkeypatch.setattr(search_module, "create_structured_response", ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+
+    added = generate_expressions(settings, KOREAN_MEANING, database=database)
+
+    assert added == ()
+    counts = _row_counts(database)
+    assert counts["meanings"] == 1
+    assert counts["meaning_expressions"] == 0
+    assert counts["expressions"] == 0
+    assert find_saved_expressions(database, KOREAN_MEANING) == ()
+
+
+def test_all_duplicate_expressions_add_nothing(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AI가 돌려준 표현이 전부 기존 표현이면 새로 저장하지 않는다."""
+    first = _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    second = _add_relation(database, KOREAN_MEANING, "平気ですか")
+    ai = RecordingAI(_generated("平気ですか", "大丈夫ですか"))
+    monkeypatch.setattr(search_module, "create_structured_response", ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+    before = _row_counts(database)
+
+    added = generate_expressions(settings, KOREAN_MEANING, database=database)
+
+    assert added == ()
+    assert _row_counts(database) == before
+    assert list(find_saved_expressions(database, KOREAN_MEANING)) == [first, second]
+
+
+def test_expression_prompt_allows_an_empty_list(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """빈 목록을 그대로 반환해도 된다는 지시가 프롬프트에 들어간다."""
+    ai = RecordingAI(_generated("大丈夫ですか"))
+    monkeypatch.setattr(search_module, "create_structured_response", ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+
+    generate_expressions(settings, KOREAN_MEANING, database=database)
+    # 이미 저장된 표현이 있는 두 번째 호출에서도 같은 지시가 남아 있어야 한다.
+    generate_expressions(settings, KOREAN_MEANING, database=database)
+
+    assert len(ai.calls) == 2
+    for _, prompt, _ in ai.calls:
+        assert "빈 목록" in prompt
+        assert "빈 목록을 그대로 반환" in prompt
+
+
 def test_selected_expression_search_calls_nadeshiko_only_for_that_expression(
     settings: AppSettings,
     database: SceneCollectorDatabase,
