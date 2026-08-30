@@ -32,6 +32,7 @@ from scene_collector.subtitles import index_local_subtitles
 from scene_collector.translate import CONTEXT_TAKE, TRANSLATION_INSTRUCTION_VERSION
 from scene_collector.ui_controller import (
     REVIEW_DECISIONS,
+    ActionGuard,
     SceneRow,
     SceneWorkState,
     ensure_work_scene,
@@ -1313,3 +1314,76 @@ def test_locked_database_during_save_leaves_no_work_scene(
         # 잠금이 풀리면 정상적으로 저장된다.
         saved = save_decision(database, relation, row.segment, row.media_display_name, "채택")
         assert saved.decision == "채택"
+
+
+# ----------------------------------------------------------------------
+# 화면 배선용 작은 도구들
+# ----------------------------------------------------------------------
+
+
+def test_action_guard_drops_a_second_request_until_the_first_finishes() -> None:
+    """버튼 연타나 IME 조합 확정 Enter로 같은 조회가 두 번 돌지 않게 한다."""
+    guard = ActionGuard()
+
+    assert guard.try_begin() is True
+    assert guard.try_begin() is False
+    assert guard.try_begin() is False
+
+    guard.finish()
+    assert guard.try_begin() is True
+
+    # 실패 경로에서도 finally로 풀리면 다음 요청이 다시 들어온다.
+    try:
+        raise RuntimeError("조회 실패")
+    except RuntimeError:
+        guard.finish()
+    assert guard.try_begin() is True
+
+
+def test_expression_line_shows_japanese_with_a_korean_reading(tmp_path: Path) -> None:
+    """표현 카드에는 일본어와 한글 독음만 보여준다. 히라가나는 내지 않는다."""
+    settings = _settings(tmp_path)
+    with SceneCollectorDatabase.open(settings) as database:
+        meaning = database.upsert_meaning("괜찮습니다")
+        relation = database.add_meaning_expression(
+            meaning.id,
+            japanese="大丈夫です",
+            reading="だいじょうぶです",
+            meaning_ko="괜찮습니다",
+            register_text="정중체",
+        )
+
+    line = ui_controller.expression_line(relation)
+
+    assert line == "大丈夫です : 다이죠부데스"
+    assert "だいじょうぶ" not in line
+    # 이 의미에서의 뜻은 카드 첫 줄에 넣지 않는다.
+    assert relation.meaning_ko not in line
+
+
+def test_expression_line_falls_back_to_the_japanese_alone(tmp_path: Path) -> None:
+    """읽기가 비어 있으면 일본어만 보여준다."""
+    settings = _settings(tmp_path)
+    with SceneCollectorDatabase.open(settings) as database:
+        meaning = database.upsert_meaning("괜찮습니다")
+        relation = database.add_meaning_expression(
+            meaning.id,
+            japanese="大丈夫",
+            reading="   ",
+            meaning_ko="괜찮다",
+            register_text="반말",
+        )
+
+    assert ui_controller.expression_line(relation) == "大丈夫"
+
+
+@pytest.mark.parametrize(("value", "expected"), ((3, 3), (3.0, 3), (20.0, 20)))
+def test_parse_setting_number_accepts_whole_numbers(value: object, expected: int) -> None:
+    assert ui_controller.parse_setting_number(value, label="표시할 장면 수") == expected
+
+
+@pytest.mark.parametrize("value", (None, "3", 3.5, True, ""))
+def test_parse_setting_number_rejects_everything_else(value: object) -> None:
+    """ui.number는 실수를 주고 범위 제한도 포커스를 잃을 때만 걸리므로 여기서 막는다."""
+    with pytest.raises(ValueError, match="표시할 장면 수"):
+        ui_controller.parse_setting_number(value, label="표시할 장면 수")

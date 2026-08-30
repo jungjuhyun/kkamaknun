@@ -23,6 +23,7 @@ from scene_collector.database import (
     database_path,
     normalize_work_scene_notes,
 )
+from scene_collector.reading import korean_reading
 from scene_collector.search import (
     SelectedExpressionScenes,
     find_saved_expressions,
@@ -140,6 +141,52 @@ class SceneWorkState:
     @property
     def local_segments(self) -> tuple[LocalSegmentMatch, ...]:
         return self.found.local_segments if self.found else ()
+
+
+@dataclass
+class ActionGuard:
+    """같은 동작이 이미 실행 중이면 두 번째 요청을 버린다.
+
+    버튼은 눌린 동안 비활성으로 막을 수 있지만 입력창의 Enter는 그렇게 막을 수
+    없다. 한국어 IME가 조합을 확정하는 Enter를 한 번 더 보내는 경우까지 포함해
+    같은 조회가 두 번 실행되지 않게 한다.
+    """
+
+    running: bool = False
+
+    def try_begin(self) -> bool:
+        """시작해도 되면 True. 이미 실행 중이면 False를 주고 아무것도 하지 않는다."""
+        if self.running:
+            return False
+        self.running = True
+        return True
+
+    def finish(self) -> None:
+        self.running = False
+
+
+def expression_line(relation: StoredMeaningExpression) -> str:
+    """표현 카드와 작업 맥락에 함께 쓰는 표기.
+
+    한국어 학습자가 읽을 수 있게 일본어와 한글 독음만 보여준다. 히라가나 읽기는
+    화면에 그대로 내지 않는다. 예: 大丈夫です : 다이죠부데스
+    """
+    korean = korean_reading(relation.reading)
+    return f"{relation.japanese} : {korean}" if korean else relation.japanese
+
+
+def parse_setting_number(value: object, *, label: str) -> int:
+    """설정 화면의 숫자 입력을 정수로 바꾼다.
+
+    ui.number는 실수를 주고 범위 제한도 포커스를 잃을 때만 적용하므로, 저장 전에
+    여기서 정수인지 확인한다. 범위 검사는 설정 자료형이 맡는다.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{label}에 숫자를 입력하세요.")
+    number = int(value)
+    if number != value:
+        raise ValueError(f"{label}은 정수여야 합니다.")
+    return number
 
 
 class VideoPlayer(Protocol):
