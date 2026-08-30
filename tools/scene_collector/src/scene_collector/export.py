@@ -28,7 +28,7 @@ from urllib.parse import urlparse
 
 from nadeshiko import Nadeshiko
 
-from scene_collector.config import AppSettings
+from scene_collector.config import AppSettings, atomic_write_text
 from scene_collector.database import AcceptedSceneExportRow, SceneCollectorDatabase
 
 EXPORT_DIR_NAME = "exports"
@@ -134,15 +134,6 @@ def _fetch_video(url: str, final_path: Path, downloader: Downloader) -> None:
         part_path.unlink(missing_ok=True)
 
 
-def _atomic_write_text(path: Path, content: str, *, encoding: str) -> None:
-    temp_path = path.with_name(path.name + ".tmp")
-    try:
-        temp_path.write_text(content, encoding=encoding, newline="")
-        os.replace(temp_path, path)
-    finally:
-        temp_path.unlink(missing_ok=True)
-
-
 def _manifest_scene(row: AcceptedSceneExportRow, video_file: str | None) -> dict[str, object]:
     return {
         "korean_meaning": row.korean_meaning,
@@ -229,7 +220,7 @@ def export_accepted_scenes(
         "scenes": scenes,
     }
     try:
-        _atomic_write_text(
+        atomic_write_text(
             json_path, json.dumps(manifest, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
         )
     except (OSError, TypeError, ValueError) as error:
@@ -243,7 +234,7 @@ def export_accepted_scenes(
         for scene in scenes:
             writer.writerow({column: scene[column] for column in _CSV_COLUMNS})
         # Excel에서 한국어/일본어가 깨지지 않도록 BOM 포함 UTF-8을 사용한다.
-        _atomic_write_text(csv_path, "".join(lines), encoding="utf-8-sig")
+        atomic_write_text(csv_path, "".join(lines), encoding="utf-8-sig")
     except (OSError, ValueError) as error:
         raise ExportError(f"CSV 작성에 실패했습니다: {error}") from error
 

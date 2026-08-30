@@ -5,7 +5,12 @@ from pathlib import Path
 import pytest
 
 import scene_collector.config as config_module
-from scene_collector.config import ConfigurationError, load_settings
+from scene_collector.config import (
+    AppSettings,
+    ConfigurationError,
+    load_settings,
+    save_search_settings,
+)
 
 
 def _toml_string(value: str | Path) -> str:
@@ -302,3 +307,264 @@ def test_malformed_toml_raises_configuration_error(tmp_path: Path) -> None:
         assert "work_data_dir = ???" not in str(error)
     else:  # pragma: no cover - 위 raises에서 이미 실패한다
         raise AssertionError("ConfigurationError가 발생해야 합니다")
+
+
+# ----------------------------------------------------------------------
+# 화면에서 설정을 저장한다 (실제 SSD 설정 파일은 절대 쓰지 않는다)
+# ----------------------------------------------------------------------
+
+SETTINGS_WITH_COMMENTS = """\
+# 사용자가 직접 적어 둔 안내 주석이다. 저장해도 그대로 남아야 한다.
+[storage]
+work_data_dir = {work_data_dir}
+
+[ai]
+service = "test-service"  # 줄 끝 주석
+model = "test-model"
+
+# 검색 관련 설정
+[search]
+expression_generation_limit = 5
+scene_result_limit = 5
+"""
+
+
+def _settings_with_comments(tmp_path: Path, *, line_ending: str = "\n") -> tuple[Path, Path]:
+    work_data_dir = _work_data_dir(tmp_path)
+    settings_file = tmp_path / "settings.toml"
+    body = SETTINGS_WITH_COMMENTS.format(work_data_dir=_toml_string(work_data_dir))
+    if line_ending != "\n":
+        body = body.replace("\n", line_ending)
+    with settings_file.open("w", encoding="utf-8", newline="") as file:
+        file.write(body)
+    return settings_file, work_data_dir
+
+
+def _raw(path: Path) -> str:
+    """줄바꿈 문자를 바꾸지 않고 원문 그대로 읽는다."""
+    with path.open("r", encoding="utf-8", newline="") as file:
+        return file.read()
+
+
+def test_saving_changes_only_the_two_known_lines(tmp_path: Path) -> None:
+    """알려진 값 줄만 바꾸고 주석과 다른 섹션은 글자 그대로 둔다."""
+    settings_file, _ = _settings_with_comments(tmp_path)
+    before = _raw(settings_file).splitlines(keepends=True)
+
+    saved = save_search_settings(
+        settings_file, expression_generation_limit=12, scene_result_limit=7
+    )
+
+    assert saved.search.expression_generation_limit == 12
+    assert saved.search.scene_result_limit == 7
+    after = _raw(settings_file).splitlines(keepends=True)
+    assert len(after) == len(before)
+    changed = [index for index, (old, new) in enumerate(zip(before, after)) if old != new]
+    assert len(changed) == 2
+    assert after[changed[0]].strip() == "expression_generation_limit = 12"
+    assert after[changed[1]].strip() == "scene_result_limit = 7"
+    # 다시 읽어도 유지된다.
+    assert load_settings(settings_file).search.scene_result_limit == 7
+
+
+def test_saving_preserves_windows_line_endings(tmp_path: Path) -> None:
+    """CRLF 파일을 저장해도 줄바꿈 문자가 바뀌지 않는다."""
+    settings_file, _ = _settings_with_comments(tmp_path, line_ending="\r\n")
+
+    save_search_settings(settings_file, expression_generation_limit=3, scene_result_limit=4)
+
+    raw = _raw(settings_file)
+    assert "\r\n" in raw
+    assert "\n" not in raw.replace("\r\n", "")
+
+
+def test_missing_key_is_inserted_inside_its_table(tmp_path: Path) -> None:
+    work_data_dir = _work_data_dir(tmp_path)
+    settings_file = tmp_path / "settings.toml"
+    _write_settings(
+        settings_file,
+        work_data_dir=_toml_string(work_data_dir),
+        expression_generation_limit=None,
+    )
+
+    save_search_settings(settings_file, expression_generation_limit=9, scene_result_limit=6)
+
+    settings = load_settings(settings_file)
+    assert settings.search.expression_generation_limit == 9
+    assert settings.search.scene_result_limit == 6
+
+
+def test_missing_search_table_is_appended(tmp_path: Path) -> None:
+    work_data_dir = _work_data_dir(tmp_path)
+    settings_file = tmp_path / "settings.toml"
+    settings_file.write_text(
+        "[storage]\n"
+        f"work_data_dir = {_toml_string(work_data_dir)}\n\n"
+        "[ai]\n"
+        'service = "s"\n'
+        'model = "m"\n',
+        encoding="utf-8",
+    )
+
+    save_search_settings(settings_file, expression_generation_limit=2, scene_result_limit=3)
+
+    settings = load_settings(settings_file)
+    assert settings.search.expression_generation_limit == 2
+    assert settings.search.scene_result_limit == 3
+
+
+def test_out_of_range_values_are_refused_before_writing(tmp_path: Path) -> None:
+    """범위를 벗어난 값은 파일을 열지도 않고 거절한다."""
+    settings_file, _ = _settings_with_comments(tmp_path)
+    before = _raw(settings_file)
+
+    for limit, result in ((0, 5), (21, 5), (5, 0), (5, 21)):
+        with pytest.raises(ConfigurationError):
+            save_search_settings(
+                settings_file, expression_generation_limit=limit, scene_result_limit=result
+            )
+        assert _raw(settings_file) == before
+
+
+def test_duplicate_key_is_refused_without_touching_the_file(tmp_path: Path) -> None:
+    work_data_dir = _work_data_dir(tmp_path)
+    settings_file = tmp_path / "settings.toml"
+    settings_file.write_text(
+        "[storage]\n"
+        f"work_data_dir = {_toml_string(work_data_dir)}\n\n"
+        "[ai]\n"
+        'service = "s"\n'
+        'model = "m"\n\n'
+        "[search]\n"
+        "scene_result_limit = 5\n"
+        "scene_result_limit = 6\n",
+        encoding="utf-8",
+    )
+    before = _raw(settings_file)
+
+    with pytest.raises(ConfigurationError, match="여러 번"):
+        save_search_settings(settings_file, expression_generation_limit=5, scene_result_limit=5)
+
+    assert _raw(settings_file) == before
+
+
+def test_multiline_string_settings_are_refused(tmp_path: Path) -> None:
+    """여러 줄 문자열이 있으면 구조를 추측하지 않고 거절한다."""
+    work_data_dir = _work_data_dir(tmp_path)
+    settings_file = tmp_path / "settings.toml"
+    triple = chr(34) * 3
+    settings_file.write_text(
+        "[storage]\n"
+        f"work_data_dir = {_toml_string(work_data_dir)}\n\n"
+        "[ai]\n"
+        'service = "s"\n'
+        f"model = {triple}여러\n줄{triple}\n\n"
+        "[search]\n"
+        "scene_result_limit = 5\n",
+        encoding="utf-8",
+    )
+    before = _raw(settings_file)
+
+    with pytest.raises(ConfigurationError, match="여러 줄 문자열"):
+        save_search_settings(settings_file, expression_generation_limit=5, scene_result_limit=6)
+
+    assert _raw(settings_file) == before
+
+
+def test_dotted_search_key_is_refused(tmp_path: Path) -> None:
+    """점 표기로 쓴 설정은 구조를 추측하지 않고 거절한다."""
+    work_data_dir = _work_data_dir(tmp_path)
+    settings_file = tmp_path / "settings.toml"
+    # 점 표기 최상위 키는 어떤 표 머리말보다 앞에 와야 유효한 TOML이다.
+    settings_file.write_text(
+        "search.scene_result_limit = 5\n\n"
+        "[storage]\n"
+        f"work_data_dir = {_toml_string(work_data_dir)}\n\n"
+        "[ai]\n"
+        'service = "s"\n'
+        'model = "m"\n',
+        encoding="utf-8",
+    )
+    before = _raw(settings_file)
+
+    with pytest.raises(ConfigurationError, match="점 표기"):
+        save_search_settings(settings_file, expression_generation_limit=5, scene_result_limit=6)
+
+    assert _raw(settings_file) == before
+
+
+def test_failed_reload_restores_the_original_file(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """저장 뒤 다시 읽지 못하면 원본 원문을 되돌린다."""
+    settings_file, _ = _settings_with_comments(tmp_path)
+    before = _raw(settings_file)
+
+    def broken_load(*args: object, **kwargs: object) -> AppSettings:
+        raise ConfigurationError("일부러 실패시킨다")
+
+    monkeypatch.setattr(config_module, "load_settings", broken_load)
+    with pytest.raises(ConfigurationError):
+        save_search_settings(settings_file, expression_generation_limit=9, scene_result_limit=9)
+
+    assert _raw(settings_file) == before
+
+
+def test_saving_the_same_values_leaves_the_file_untouched(tmp_path: Path) -> None:
+    settings_file, _ = _settings_with_comments(tmp_path)
+    before = _raw(settings_file)
+
+    saved = save_search_settings(
+        settings_file, expression_generation_limit=5, scene_result_limit=5
+    )
+
+    assert saved.search.scene_result_limit == 5
+    assert _raw(settings_file) == before
+
+
+def test_saving_does_not_create_a_missing_settings_file(tmp_path: Path) -> None:
+    missing = tmp_path / "settings.toml"
+
+    with pytest.raises(ConfigurationError, match="찾을 수 없습니다"):
+        save_search_settings(missing, expression_generation_limit=5, scene_result_limit=5)
+
+    assert not missing.exists()
+
+
+def test_saving_keeps_a_legacy_key_line_and_still_ignores_it(tmp_path: Path) -> None:
+    """옛 키 줄은 건드리지 않는다. 값은 여전히 승계되지 않는다."""
+    work_data_dir = _work_data_dir(tmp_path)
+    settings_file = tmp_path / "settings.toml"
+    _write_settings(
+        settings_file,
+        work_data_dir=_toml_string(work_data_dir),
+        scene_result_limit=None,
+        nadeshiko_take="3",
+    )
+
+    saved = save_search_settings(
+        settings_file, expression_generation_limit=5, scene_result_limit=8
+    )
+
+    assert saved.search.scene_result_limit == 8
+    assert "nadeshiko_take = 3" in _raw(settings_file)
+
+
+def test_saving_never_reads_or_writes_a_dotenv(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """설정 저장은 비밀 파일을 건드리지 않는다."""
+    settings_file, _ = _settings_with_comments(tmp_path)
+    env_file = tmp_path / ".env"
+    env_file.write_text("NADESHIKO_API_KEY=stored-secret\n", encoding="utf-8")
+    monkeypatch.delenv("NADESHIKO_API_KEY", raising=False)
+
+    saved = save_search_settings(
+        settings_file, expression_generation_limit=6, scene_result_limit=6
+    )
+
+    assert env_file.read_text(encoding="utf-8") == "NADESHIKO_API_KEY=stored-secret\n"
+    # 저장 결과에도 비밀값 자체는 드러나지 않는다.
+    assert "stored-secret" not in repr(saved)
