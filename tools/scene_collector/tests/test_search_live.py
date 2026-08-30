@@ -186,8 +186,8 @@ def test_korean_meanings_become_searchable_expression_assets(
                     nadeshiko_client=client,
                     database=database,
                 )
-                # 표현 하나당 목표 수를 채울 때까지 페이지를 넘기고, 일반 검색으로
-                # 후보를 다 훑고도 0건일 때만 정확 검색으로 더 훑는다.
+                # 표현 하나당 일반 검색과 정확 검색을 각각 페이지 끝까지 훑고 장면
+                # ID로 합치므로, 호출 수는 그 표현의 실제 페이지 수만큼 늘어난다.
                 search_calls = client.search_calls - search_calls_before
                 # 장면 수를 자르지 않으므로 호출 수와 결과 수에 상한을 두지 않는다.
                 assert search_calls >= 1
