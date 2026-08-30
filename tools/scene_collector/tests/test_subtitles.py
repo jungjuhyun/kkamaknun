@@ -5,12 +5,14 @@ from pathlib import Path
 import pytest
 from nadeshiko.models import MediaSummary, SearchFilters, SearchQuery, SearchResponse
 
-import scene_collector.search as search_module
 from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
-from scene_collector.database import DatabaseError, SceneCollectorDatabase
+from scene_collector.database import (
+    DatabaseError,
+    SceneCollectorDatabase,
+    StoredMeaningExpression,
+)
 from scene_collector.media import store_media
-from scene_collector.models import ExpressionCandidate, ExpressionCandidates
-from scene_collector.search import search_expressions
+from scene_collector.search import search_selected_expression
 from scene_collector.subtitles import (
     episode_from_filename,
     index_local_subtitles,
@@ -60,7 +62,7 @@ def _settings(work_data_dir: Path) -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
         ai=AISettings(service="provider-one", model="model-one"),
-        search=SearchSettings(candidate_count=3, nadeshiko_take=2),
+        search=SearchSettings(expression_generation_limit=3, nadeshiko_take=2),
     )
 
 
@@ -72,17 +74,20 @@ def _subtitle_dir(tmp_path: Path) -> Path:
     return directory
 
 
-def _candidates(*japanese: str) -> ExpressionCandidates:
-    return ExpressionCandidates(
-        candidates=[
-            ExpressionCandidate(
-                japanese=text,
-                reading=f"よみかた{index}",
-                meaning_ko=f"의미 {index}",
-                register=f"말투 {index}",
-            )
-            for index, text in enumerate(japanese, start=1)
-        ]
+def _relation(
+    database: SceneCollectorDatabase,
+    japanese: str,
+    *,
+    korean_meaning: str = "괜찮냐고 묻는 말",
+) -> StoredMeaningExpression:
+    """검색에 사용할 의미→표현 관계를 AI 없이 직접 저장한다."""
+    meaning = database.upsert_meaning(korean_meaning)
+    return database.add_meaning_expression(
+        meaning.id,
+        japanese=japanese,
+        reading="よみかた",
+        meaning_ko="의미",
+        register_text="말투",
     )
 
 
@@ -228,65 +233,57 @@ def test_find_local_segments_prefilters_without_wildcard_injection(tmp_path: Pat
 
 def test_search_uses_local_subtitles_when_no_nadeshiko_media_is_active(
     tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: _candidates("大丈夫ですか", "悪い", "結果なし"),
-    )
     settings = _settings(tmp_path)
     client = RecordingNadeshiko()
 
     with SceneCollectorDatabase.open(settings) as database:
         index_local_subtitles(database, "테스트 작품", _subtitle_dir(tmp_path))
+        relation = _relation(database, "大丈夫ですか")
 
-        result = search_expressions(
-            settings,
-            "괜찮냐고 묻는 말",
-            nadeshiko_client=client,
-            database=database,
+        found = search_selected_expression(
+            settings, relation, nadeshiko_client=client, database=database
         )
 
         assert client.calls == []
-        first, second, third = result.candidate_searches
-        assert first.response is None
-        assert first.exact_match_response is None
-        assert first.exact_segments == ()
-        assert [scene.japanese_text for scene in first.local_segments] == [
+        assert found.nadeshiko_segments == ()
+        assert [scene.japanese_text for scene in found.local_segments] == [
             "（ミサ）大丈夫ですか？",
             "本当に大丈夫ですか？",
         ]
-        assert [scene.episode for scene in first.local_segments] == [1, 2]
-        assert first.local_segments[0].media_display_name == "테스트 작품"
-        assert first.local_segments[0].start_time_ms == 1000
+        assert [scene.episode for scene in found.local_segments] == [1, 2]
+        assert found.local_segments[0].media_display_name == "테스트 작품"
+        assert found.local_segments[0].start_time_ms == 1000
+        assert found.has_results
+
         # LIKE 1차 후보(気持ち悪いよ)는 surface matcher가 최종 제거한다.
-        assert second.local_segments == ()
-        assert third.local_segments == ()
-        assert [
-            item.candidate.japanese for item in result.corpus_backed_candidates
-        ] == ["大丈夫ですか"]
+        near_miss = search_selected_expression(
+            settings,
+            _relation(database, "悪い"),
+            nadeshiko_client=client,
+            database=database,
+        )
+        assert near_miss.local_segments == ()
+        no_hit = search_selected_expression(
+            settings,
+            _relation(database, "結果なし"),
+            nadeshiko_client=client,
+            database=database,
+        )
+        assert no_hit.local_segments == ()
+        assert client.calls == []
 
     with SceneCollectorDatabase.open(settings) as reopened:
-        again = search_expressions(
-            settings,
-            "괜찮냐고 묻는 말",
-            nadeshiko_client=client,
-            database=reopened,
+        restored = reopened.get_meaning_expression(relation.id)
+        assert restored is not None
+        again = search_selected_expression(
+            settings, restored, nadeshiko_client=client, database=reopened
         )
         assert client.calls == []
-        assert len(again.candidate_searches[0].local_segments) == 2
+        assert len(again.local_segments) == 2
 
 
-def test_search_merges_nadeshiko_and_local_results(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: _candidates("大丈夫ですか", "大丈夫ですか", "大丈夫ですか"),
-    )
+def test_search_merges_nadeshiko_and_local_results(tmp_path: Path) -> None:
     settings = _settings(tmp_path)
     client = RecordingNadeshiko(
         _search_response(("segment-nadeshiko", "あの、大丈夫ですか？"))
@@ -304,21 +301,18 @@ def test_search_merges_nadeshiko_and_local_results(
     with SceneCollectorDatabase.open(settings) as database:
         store_media(database, summary)
         index_local_subtitles(database, "테스트 작품", _subtitle_dir(tmp_path))
+        relation = _relation(database, "大丈夫ですか")
 
-        result = search_expressions(
-            settings,
-            "괜찮냐고 묻는 말",
-            nadeshiko_client=client,
-            database=database,
+        found = search_selected_expression(
+            settings, relation, nadeshiko_client=client, database=database
         )
 
         assert client.calls == [("大丈夫ですか", False, ("anonymous-media-001",))]
-        search = result.candidate_searches[0]
-        assert [segment.text_ja.content for segment in search.exact_segments] == [
+        assert [segment.text_ja.content for segment in found.nadeshiko_segments] == [
             "あの、大丈夫ですか？"
         ]
-        assert [scene.japanese_text for scene in search.local_segments] == [
+        assert [scene.japanese_text for scene in found.local_segments] == [
             "（ミサ）大丈夫ですか？",
             "本当に大丈夫ですか？",
         ]
-        assert search.has_results
+        assert found.has_results

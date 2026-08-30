@@ -16,24 +16,30 @@ from nadeshiko.models import (
 
 import scene_collector.search as search_module
 from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
-from scene_collector.database import DatabaseError, SceneCollectorDatabase
+from scene_collector.database import (
+    DatabaseError,
+    SceneCollectorDatabase,
+    StoredMeaningExpression,
+)
 from scene_collector.media import (
     media_display_name,
     refresh_media_metadata,
     search_media,
     store_media,
 )
-from scene_collector.models import ExpressionCandidate, ExpressionCandidates
-from scene_collector.search import NoActiveMediaError, search_expressions
+from scene_collector.search import NoActiveMediaError, search_selected_expression
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "nadeshiko_search_response.json"
 
 
-def _settings(work_data_dir: Path, *, candidate_count: int = 3) -> AppSettings:
+def _settings(work_data_dir: Path, *, expression_generation_limit: int = 3) -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
         ai=AISettings(service="provider-one", model="model-one"),
-        search=SearchSettings(candidate_count=candidate_count, nadeshiko_take=2),
+        search=SearchSettings(
+            expression_generation_limit=expression_generation_limit,
+            nadeshiko_take=2,
+        ),
     )
 
 
@@ -102,18 +108,28 @@ def _search_response(
     return SearchResponse.from_dict(payload)
 
 
-def _candidates(*japanese: str) -> ExpressionCandidates:
-    return ExpressionCandidates(
-        candidates=[
-            ExpressionCandidate(
-                japanese=text,
-                reading=f"よみかた{index}",
-                meaning_ko=f"의미 {index}",
-                register=f"말투 {index}",
-            )
-            for index, text in enumerate(japanese, start=1)
-        ]
+def _relation(
+    database: SceneCollectorDatabase,
+    japanese: str = "大丈夫ですか",
+) -> StoredMeaningExpression:
+    """검색에 사용할 의미→표현 관계를 AI 없이 직접 저장한다."""
+    meaning = database.upsert_meaning("다친 사람에게 괜찮냐고 묻는 말")
+    return database.add_meaning_expression(
+        meaning.id,
+        japanese=japanese,
+        reading="だいじょうぶですか",
+        meaning_ko="괜찮으세요?",
+        register_text="존댓말",
     )
+
+
+def _forbid_ai(monkeypatch: pytest.MonkeyPatch) -> None:
+    """검색 경로에서 AI를 한 번도 부르지 않는 계약을 강제한다."""
+
+    def fail(*args: object, **kwargs: object) -> object:
+        raise AssertionError("표현 검색은 AI를 호출하지 않아야 합니다.")
+
+    monkeypatch.setattr(search_module, "create_structured_response", fail)
 
 
 class FilterRecordingNadeshiko:
@@ -290,11 +306,7 @@ def test_database_search_sends_only_active_media_as_official_filter(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: _candidates("大丈夫ですか", "大丈夫ですか", "大丈夫ですか"),
-    )
+    _forbid_ai(monkeypatch)
     client = FilterRecordingNadeshiko(
         _search_response(
             ("segment-partial", "大丈夫？"),
@@ -309,139 +321,88 @@ def test_database_search_sends_only_active_media_as_official_filter(
         store_media(database, _summary("media-inactive", name_ja="비활성"))
         database.set_media_active("media-inactive", False)
 
-        result = search_expressions(
+        found = search_selected_expression(
             settings,
-            "다친 사람에게 괜찮냐고 묻는 말",
+            _relation(database),
             nadeshiko_client=client,
             database=database,
         )
 
         assert client.calls == [("大丈夫ですか", False, ("media-a", "media-b"))]
-        stored_conditions = database.connection.execute(
-            "SELECT conditions_json FROM nadeshiko_search_cache"
-        ).fetchall()
-        assert [row["conditions_json"] for row in stored_conditions] == [
-            '{"media_ids":["media-a","media-b"]}'
+        assert [segment.text_ja.content for segment in found.nadeshiko_segments] == [
+            "あの、大丈夫ですか？"
         ]
-        assert [
-            segment.text_ja.content
-            for segment in result.corpus_backed_candidates[0].exact_segments
-        ] == ["あの、大丈夫ですか？"]
 
 
 def test_zero_active_media_raises_instead_of_global_fallback(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    ai_calls = 0
-
-    def fake_structured_response(*args: object, **kwargs: object) -> ExpressionCandidates:
-        nonlocal ai_calls
-        ai_calls += 1
-        return _candidates("大丈夫ですか", "平気", "怪我してない")
-
-    monkeypatch.setattr(search_module, "create_structured_response", fake_structured_response)
+    _forbid_ai(monkeypatch)
     client = FilterRecordingNadeshiko()
     settings = _settings(tmp_path)
 
     with SceneCollectorDatabase.open(settings) as database:
+        relation = _relation(database)
+
         with pytest.raises(NoActiveMediaError, match="활성 선호 작품이 없습니다"):
-            search_expressions(
-                settings,
-                "활성 작품 없이 검색",
-                nadeshiko_client=client,
-                database=database,
+            search_selected_expression(
+                settings, relation, nadeshiko_client=client, database=database
             )
 
         store_media(database, _summary("media-one", name_ja="비활성 하나"))
         database.set_media_active("media-one", False)
         with pytest.raises(NoActiveMediaError, match="활성 선호 작품이 없습니다"):
-            search_expressions(
-                settings,
-                "활성 작품 없이 검색",
-                nadeshiko_client=client,
-                database=database,
+            search_selected_expression(
+                settings, relation, nadeshiko_client=client, database=database
             )
 
-    assert ai_calls == 0
     assert client.calls == []
 
 
-def test_same_media_conditions_hit_cache_and_changed_conditions_miss(
+def test_repeated_search_is_not_cached_and_follows_active_media_changes(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: _candidates("大丈夫ですか", "大丈夫ですか", "大丈夫ですか"),
-    )
+    _forbid_ai(monkeypatch)
     client = FilterRecordingNadeshiko(_search_response(("segment-ok", "大丈夫ですか？")))
     settings = _settings(tmp_path)
 
     with SceneCollectorDatabase.open(settings) as database:
         store_media(database, _summary("media-a", name_ja="활성 가"))
         store_media(database, _summary("media-b", name_ja="활성 나"))
+        relation = _relation(database)
 
-        search_expressions(settings, "같은 조건 반복", nadeshiko_client=client, database=database)
-        assert len(client.calls) == 1
-
-        search_expressions(settings, "같은 조건 반복", nadeshiko_client=client, database=database)
-        assert len(client.calls) == 1
+        for _ in range(2):
+            search_selected_expression(
+                settings, relation, nadeshiko_client=client, database=database
+            )
+        # 같은 표현을 다시 찾아도 저장된 결과를 재사용하지 않고 다시 호출한다.
+        assert len(client.calls) == 2
+        assert client.calls[-1][2] == ("media-a", "media-b")
 
         database.set_media_active("media-b", False)
-        search_expressions(settings, "같은 조건 반복", nadeshiko_client=client, database=database)
-        assert len(client.calls) == 2
+        search_selected_expression(
+            settings, relation, nadeshiko_client=client, database=database
+        )
+        assert len(client.calls) == 3
         assert client.calls[-1][2] == ("media-a",)
 
-        database.set_media_active("media-b", True)
-        search_expressions(settings, "같은 조건 반복", nadeshiko_client=client, database=database)
-        assert len(client.calls) == 2
+        # 검색만으로는 작업 장면도 검색 캐시 table도 생기지 않는다.
+        assert database.list_work_scenes(relation.id) == ()
+        tables = {
+            row["name"]
+            for row in database.connection.execute(
+                "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+            ).fetchall()
+        }
+        assert "nadeshiko_search_cache" not in tables
+        assert "segments" not in tables
 
     with SceneCollectorDatabase.open(settings) as reopened:
-        search_expressions(settings, "같은 조건 반복", nadeshiko_client=client, database=reopened)
-        assert len(client.calls) == 2
-
-
-def test_media_filtered_search_does_not_reuse_condition_free_cache(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: _candidates("大丈夫ですか", "大丈夫ですか", "大丈夫ですか"),
-    )
-    filtered_response = _search_response(("segment-filtered", "大丈夫ですか？"))
-    client = FilterRecordingNadeshiko(filtered_response)
-    settings = _settings(tmp_path)
-
-    with SceneCollectorDatabase.open(settings) as database:
-        database.put_nadeshiko_search_cache(
-            search_text="大丈夫ですか",
-            exact_match=False,
-            take=settings.search.nadeshiko_take,
-            response=_search_response(("segment-global", "大丈夫ですか？")),
+        restored = reopened.get_meaning_expression(relation.id)
+        assert restored is not None
+        search_selected_expression(
+            settings, restored, nadeshiko_client=client, database=reopened
         )
-        store_media(database, _summary("media-a", name_ja="활성 가"))
-
-        result = search_expressions(
-            settings,
-            "조건 없는 cache 오염 시험",
-            nadeshiko_client=client,
-            database=database,
-        )
-
-        assert len(client.calls) == 1
-        assert [
-            segment.public_id
-            for segment in result.corpus_backed_candidates[0].exact_segments
-        ] == ["segment-filtered"]
-
-        condition_free = database.get_nadeshiko_search_cache(
-            search_text="大丈夫ですか",
-            exact_match=False,
-            take=settings.search.nadeshiko_take,
-        )
-        assert condition_free is not None
-        assert condition_free.segments[0].public_id == "segment-global"
+        assert len(client.calls) == 4

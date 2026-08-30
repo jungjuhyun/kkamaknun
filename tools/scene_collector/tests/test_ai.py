@@ -18,7 +18,7 @@ def _settings(work_data_dir: Path, *, service: str, model: str) -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
         ai=AISettings(service=service, model=model),
-        search=SearchSettings(candidate_count=5, nadeshiko_take=5),
+        search=SearchSettings(expression_generation_limit=5, nadeshiko_take=5),
     )
 
 
@@ -76,6 +76,29 @@ def test_response_model_rejects_invalid_structured_data(
     monkeypatch.setattr(ai_module.instructor, "from_provider", lambda _: InvalidFakeClient())
 
     with pytest.raises(ValidationError):
+        create_structured_response(
+            _settings(tmp_path, service="provider-one", model="model-one"),
+            prompt="Return the neutral connectivity probe.",
+            response_model=ConnectivityProbe,
+        )
+
+
+def test_rejects_response_of_unrequested_type(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """요청한 자료형이 아닌 응답은 그대로 통과시키지 않는다."""
+
+    class OtherModel(BaseModel):
+        text: str
+
+    class WrongTypeFakeClient:
+        def create(self, **kwargs: Any) -> BaseModel:
+            return OtherModel(text="connection-ok")
+
+    monkeypatch.setattr(ai_module.instructor, "from_provider", lambda _: WrongTypeFakeClient())
+
+    with pytest.raises(TypeError, match="Pydantic 자료형"):
         create_structured_response(
             _settings(tmp_path, service="provider-one", model="model-one"),
             prompt="Return the neutral connectivity probe.",

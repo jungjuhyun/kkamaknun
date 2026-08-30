@@ -10,13 +10,13 @@ import scene_collector.search as search_module
 from scene_collector.config import AppSettings, load_settings
 from scene_collector.database import SceneCollectorDatabase
 from scene_collector.media import media_display_name, refresh_media_metadata, search_media
-from scene_collector.models import ExpressionCandidate, ExpressionCandidates
+from scene_collector.models import ExpressionCandidate, GeneratedExpressions
 from scene_collector.nadeshiko import create_nadeshiko_client
-from scene_collector.search import search_expressions
+from scene_collector.search import generate_expressions, search_selected_expression
 
 pytestmark = pytest.mark.media_live
 
-LIVE_CANDIDATE_COUNT = 3
+LIVE_EXPRESSION_GENERATION_LIMIT = 3
 
 
 def _required_environment(name: str) -> str:
@@ -58,11 +58,11 @@ def live_settings(tmp_path: Path) -> AppSettings:
                 f"work_data_dir = {json.dumps(str(work_data_dir))}",
                 "",
                 "[ai]",
-                'service = "unused-in-task-7"',
-                'model = "unused-in-task-7"',
+                'service = "unused-in-media-live"',
+                'model = "unused-in-media-live"',
                 "",
                 "[search]",
-                f"candidate_count = {LIVE_CANDIDATE_COUNT}",
+                f"expression_generation_limit = {LIVE_EXPRESSION_GENERATION_LIMIT}",
                 "nadeshiko_take = 5",
                 "",
             )
@@ -110,6 +110,7 @@ def test_media_management_and_filtered_search_live(
                 chosen.public_id
             ]
 
+            # 이 시험은 작품 필터가 목적이므로 표현 생성은 고정하고 AI를 호출하지 않는다.
             live_target = _live_query()
             fixed_candidate = ExpressionCandidate(
                 japanese=live_target,
@@ -120,43 +121,54 @@ def test_media_management_and_filtered_search_live(
             monkeypatch.setattr(
                 search_module,
                 "create_structured_response",
-                lambda *args, **kwargs: ExpressionCandidates(
-                    candidates=[fixed_candidate] * LIVE_CANDIDATE_COUNT
-                ),
+                lambda *args, **kwargs: GeneratedExpressions(expressions=[fixed_candidate]),
             )
 
-            counting = _CountingNadeshiko(client)
-            result = search_expressions(
+            relations = generate_expressions(
                 live_settings,
                 "media live 필터 검증",
+                database=reopened,
+            )
+            assert len(relations) == 1
+            relation = relations[0]
+            assert relation.japanese == live_target
+
+            counting = _CountingNadeshiko(client)
+            found = search_selected_expression(
+                live_settings,
+                relation,
                 nadeshiko_client=counting,
                 database=reopened,
             )
             first_search_calls = counting.search_calls
             assert 1 <= first_search_calls <= 2
+            assert found.relation.id == relation.id
 
-            candidate_search = result.candidate_searches[0]
-            if not candidate_search.response.segments:
+            if not found.nadeshiko_segments:
                 pytest.fail(
                     "선택한 작품 안에서 검색 결과가 없습니다. "
                     "SCENE_COLLECTOR_MEDIA_LIVE_QUERY를 바꿔 다시 실행하세요."
                 )
             assert all(
                 segment.media_public_id == chosen.public_id
-                for segment in candidate_search.response.segments
+                for segment in found.nadeshiko_segments
             )
-            if candidate_search.exact_match_response is not None:
-                assert all(
-                    segment.media_public_id == chosen.public_id
-                    for segment in candidate_search.exact_match_response.segments
-                )
+            # 로컬 자막 작품을 등록하지 않았으므로 로컬 참고 결과는 없다.
+            assert found.local_segments == ()
+            # 검색만으로는 작업 장면이 생기지 않는다.
+            assert reopened.list_work_scenes(relation.id) == ()
 
-            search_expressions(
+            # 검색 결과는 저장·캐시하지 않으므로 같은 표현을 다시 찾으면 다시 호출한다.
+            repeated = search_selected_expression(
                 live_settings,
-                "media live 필터 검증",
+                relation,
                 nadeshiko_client=counting,
                 database=reopened,
             )
-            assert counting.search_calls == first_search_calls
+            assert counting.search_calls > first_search_calls
+            assert all(
+                segment.media_public_id == chosen.public_id
+                for segment in repeated.nadeshiko_segments
+            )
     finally:
         client.close()

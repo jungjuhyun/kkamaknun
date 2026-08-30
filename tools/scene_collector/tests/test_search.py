@@ -1,10 +1,10 @@
 import copy
 import json
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from nadeshiko.models import SearchQuery, SearchResponse, Token
-from pydantic import ValidationError
+from nadeshiko.models import SearchFilters, SearchQuery, SearchResponse, Token
 
 import scene_collector.search as search_module
 from scene_collector.config import (
@@ -13,26 +13,59 @@ from scene_collector.config import (
     SearchSettings,
     StorageSettings,
 )
-from scene_collector.models import ExpressionCandidate, ExpressionCandidates
-from scene_collector.search import search_expressions
+from scene_collector.database import SceneCollectorDatabase, StoredMeaningExpression
+from scene_collector.models import ExpressionCandidate, GeneratedExpressions
+from scene_collector.search import (
+    NoActiveMediaError,
+    find_saved_expressions,
+    generate_expressions,
+    search_selected_expression,
+)
+from scene_collector.subtitles import SubtitleCue
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "nadeshiko_search_response.json"
 
+KOREAN_MEANING = "다친 사람에게 괜찮냐고 물어보는 말"
 
-def _candidate(japanese: str, number: int) -> ExpressionCandidate:
-    return ExpressionCandidate(
-        japanese=japanese,
-        reading=f"よみかた{number}",
-        meaning_ko=f"의미 {number}",
-        register=f"말투 {number}",
+
+def _settings(
+    tmp_path: Path,
+    *,
+    generation_limit: int = 20,
+    nadeshiko_take: int = 2,
+) -> AppSettings:
+    return AppSettings(
+        storage=StorageSettings(work_data_dir=tmp_path),
+        ai=AISettings(service="provider-one", model="configured-model"),
+        search=SearchSettings(
+            expression_generation_limit=generation_limit,
+            nadeshiko_take=nadeshiko_take,
+        ),
     )
 
 
-def _settings(tmp_path: Path, *, service: str, candidate_count: int = 4) -> AppSettings:
-    return AppSettings(
-        storage=StorageSettings(work_data_dir=tmp_path),
-        ai=AISettings(service=service, model="configured-model"),
-        search=SearchSettings(candidate_count=candidate_count, nadeshiko_take=2),
+@pytest.fixture
+def settings(tmp_path: Path) -> AppSettings:
+    return _settings(tmp_path)
+
+
+@pytest.fixture
+def database(settings: AppSettings) -> Iterator[SceneCollectorDatabase]:
+    with SceneCollectorDatabase.open(settings) as opened:
+        yield opened
+
+
+def _generated(*japanese: str) -> GeneratedExpressions:
+    return GeneratedExpressions(
+        expressions=[
+            ExpressionCandidate(
+                japanese=text,
+                reading=f"よみかた{index}",
+                meaning_ko=f"의미 {index}",
+                register=f"말투 {index}",
+            )
+            for index, text in enumerate(japanese, start=1)
+        ]
     )
 
 
@@ -55,264 +88,414 @@ def _search_response(*texts_ja: str) -> SearchResponse:
     return SearchResponse.from_dict(payload)
 
 
-@pytest.mark.parametrize("service", ("provider-one", "provider-two"))
-def test_searches_unique_ai_candidates_and_filters_empty_results(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    service: str,
-) -> None:
-    generated = ExpressionCandidates(
-        candidates=[
-            _candidate("大丈夫ですか", 1),
-            _candidate("ちょっと待って", 2),
-            _candidate("大丈夫ですか", 3),
-            _candidate("分からない", 4),
-        ]
-    )
-    ai_calls: list[tuple[AppSettings, str, type[ExpressionCandidates]]] = []
+class RecordingNadeshiko:
+    """검색 호출 인자를 기록하는 가짜 Nadeshiko client."""
 
-    def fake_structured_response(
+    def __init__(self, responses: dict[tuple[str, bool], SearchResponse] | None = None) -> None:
+        self.responses = responses or {}
+        # (검색어, exact_match, take, media filter에 들어간 작품 ID들)
+        self.calls: list[tuple[str, bool, int, tuple[str, ...]]] = []
+
+    def search(
+        self,
+        *,
+        query: SearchQuery,
+        take: int,
+        filters: SearchFilters | None = None,
+    ) -> SearchResponse:
+        included: tuple[str, ...] = ()
+        if filters is not None:
+            included = tuple(item.media_public_id for item in filters.media.include)
+        self.calls.append((query.search, bool(query.exact_match), take, included))
+        return self.responses.get((query.search, bool(query.exact_match)), _search_response())
+
+
+def _failing_ai(*args: object, **kwargs: object) -> GeneratedExpressions:
+    """이 흐름에서 AI를 호출하면 시험이 실패하게 하는 stub."""
+    raise AssertionError("이 흐름에서는 AI를 호출하면 안 됩니다.")
+
+
+def _failing_nadeshiko_search(*args: object, **kwargs: object) -> SearchResponse:
+    """이 흐름에서 Nadeshiko를 호출하면 시험이 실패하게 하는 stub."""
+    raise AssertionError("이 흐름에서는 Nadeshiko를 호출하면 안 됩니다.")
+
+
+class RecordingAI:
+    """AI 호출 인자와 횟수를 기록하는 stub."""
+
+    def __init__(self, response: GeneratedExpressions) -> None:
+        self.response = response
+        self.calls: list[tuple[AppSettings, str, type[GeneratedExpressions]]] = []
+
+    def __call__(
+        self,
         settings: AppSettings,
         *,
         prompt: str,
-        response_model: type[ExpressionCandidates],
-    ) -> ExpressionCandidates:
-        ai_calls.append((settings, prompt, response_model))
-        return generated
+        response_model: type[GeneratedExpressions],
+    ) -> GeneratedExpressions:
+        self.calls.append((settings, prompt, response_model))
+        return self.response
 
-    class FakeNadeshiko:
-        def __init__(self) -> None:
-            self.calls: list[tuple[SearchQuery, int]] = []
 
-        def search(self, *, query: SearchQuery, take: int) -> SearchResponse:
-            self.calls.append((query, take))
-            responses = {
-                "大丈夫ですか": _search_response(
-                    "大丈夫？",
-                    "あの、大丈夫ですか？",
-                    "本当に大丈夫ですか?",
-                ),
-                "ちょっと待って": _search_response(),
-                "分からない": _search_response("分からないよ", "分からない。"),
-            }
-            return responses[query.search]
-
-    monkeypatch.setattr(search_module, "create_structured_response", fake_structured_response)
-    client = FakeNadeshiko()
-    korean_intent = "다친 사람에게 괜찮냐고 물어보는 말"
-
-    result = search_expressions(
-        _settings(tmp_path, service=service),
-        korean_intent,
-        nadeshiko_client=client,
+def _add_relation(
+    database: SceneCollectorDatabase,
+    korean_meaning: str,
+    japanese: str,
+) -> StoredMeaningExpression:
+    """이미 저장돼 있는 의미→표현 관계를 만든다."""
+    meaning = database.upsert_meaning(korean_meaning)
+    return database.add_meaning_expression(
+        meaning.id,
+        japanese=japanese,
+        reading="よみかた",
+        meaning_ko="저장된 뜻",
+        register_text="저장된 말투",
     )
 
-    assert len(ai_calls) == 1
-    called_settings, prompt, response_model = ai_calls[0]
-    assert called_settings.ai.service == service
-    assert korean_intent in prompt
-    assert "4개" in prompt
-    assert response_model is ExpressionCandidates
-    assert [call[0].search for call in client.calls] == [
-        "大丈夫ですか",
-        "ちょっと待って",
-        "ちょっと待って",
-        "分からない",
-    ]
-    assert [call[0].exact_match for call in client.calls] == [False, False, True, False]
-    assert all(call[1] == 2 for call in client.calls)
-    assert len(result.generated_candidates) == 4
-    assert [item.candidate.japanese for item in result.corpus_backed_candidates] == [
-        "大丈夫ですか",
-        "分からない",
-    ]
-    assert [
-        segment.text_ja.content for segment in result.candidate_searches[0].response.segments
-    ] == [
-        "大丈夫？",
-        "あの、大丈夫ですか？",
-        "本当に大丈夫ですか?",
-    ]
-    assert [segment.text_ja.content for segment in result.candidate_searches[0].exact_segments] == [
-        "あの、大丈夫ですか？",
-        "本当に大丈夫ですか?",
-    ]
-    assert [segment.text_ja.content for segment in result.candidate_searches[2].exact_segments] == [
-        "分からない。"
-    ]
-    assert result.candidate_searches[0].exact_match_response is None
-    assert result.candidate_searches[1].exact_match_response is not None
-    assert result.candidate_searches[2].exact_match_response is None
+
+def _activate_media(database: SceneCollectorDatabase, *media_ids: str) -> None:
+    for media_id in media_ids:
+        database.upsert_media(media_id, display_name=f"작품 {media_id}")
 
 
-def test_removes_task_4_false_positive_segments_and_unbacks_candidates(
-    tmp_path: Path,
+def _row_counts(database: SceneCollectorDatabase) -> dict[str, int]:
+    """모든 application table의 행 수를 읽는다. 검색이 무엇도 저장하지 않음을 본다."""
+    names = [
+        row["name"]
+        for row in database.connection.execute(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+        ).fetchall()
+    ]
+    return {
+        name: database.connection.execute(f"SELECT COUNT(*) FROM {name}").fetchone()[0]
+        for name in sorted(names)
+    }
+
+
+def test_saved_meaning_lookup_uses_no_ai_and_no_nadeshiko(
+    database: SceneCollectorDatabase,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    false_positive_pairs = (
-        ("悪い", "気持ち悪い"),
-        ("ほんとそれ", "ほんと? それって甘い?"),
-        ("ん？なんて？", "マンガ描けません なんて なるなよな"),
-        ("今、何してるんですか？", "今 どこに寝泊まりしてるんです?"),
-    )
-    generated = ExpressionCandidates(
-        candidates=[
-            _candidate(target, index)
-            for index, (target, _) in enumerate(false_positive_pairs, start=1)
-        ]
-    )
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: generated,
-    )
+    monkeypatch.setattr(search_module, "create_structured_response", _failing_ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+    _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    _add_relation(database, KOREAN_MEANING, "平気ですか")
 
-    class FakeNadeshiko:
-        def __init__(self) -> None:
-            self.calls: list[tuple[SearchQuery, int]] = []
+    # 끝의 문장부호만 다른 입력도 같은 저장된 의미로 조회된다.
+    saved = find_saved_expressions(database, f"{KOREAN_MEANING}?")
 
-        def search(self, *, query: SearchQuery, take: int) -> SearchResponse:
-            self.calls.append((query, take))
-            source_by_target = dict(false_positive_pairs)
-            return _search_response(source_by_target[query.search])
-
-    client = FakeNadeshiko()
-    result = search_expressions(
-        _settings(tmp_path, service="provider-one"),
-        "작업 4 거짓 양성 회귀시험",
-        nadeshiko_client=client,
-    )
-
-    assert [item.candidate.japanese for item in result.candidate_searches] == [
-        target for target, _ in false_positive_pairs
-    ]
-    assert all(item.response.segments for item in result.candidate_searches)
-    assert all(item.exact_match_response is not None for item in result.candidate_searches)
-    assert all(not item.exact_segments for item in result.candidate_searches)
-    assert result.corpus_backed_candidates == ()
-    assert [call[0].exact_match for call in client.calls] == [False, True] * 4
+    assert [relation.japanese for relation in saved] == ["大丈夫ですか", "平気ですか"]
+    assert [relation.meaning_ko for relation in saved] == ["저장된 뜻", "저장된 뜻"]
+    assert [relation.register_text for relation in saved] == ["저장된 말투", "저장된 말투"]
+    assert find_saved_expressions(database, "저장한 적 없는 의미") == ()
+    with pytest.raises(ValueError, match="한국어"):
+        find_saved_expressions(database, "   ")
 
 
-def test_keeps_a_target_before_following_words_at_nadeshiko_token_boundaries(
-    tmp_path: Path,
+def test_new_meaning_generates_expressions_with_one_ai_call_and_no_nadeshiko(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    generated = ExpressionCandidates(
-        candidates=[
-            _candidate("悪い", 1),
-            _candidate("別候補一", 2),
-            _candidate("別候補二", 3),
-        ]
-    )
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: generated,
-    )
-    tokenized_response = _search_response("悪いと思う")
-    tokenized_response.segments[0].text_ja.tokens = [
+    ai = RecordingAI(_generated("大丈夫ですか", "平気ですか"))
+    monkeypatch.setattr(search_module, "create_structured_response", ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+
+    assert find_saved_expressions(database, KOREAN_MEANING) == ()
+
+    added = generate_expressions(settings, KOREAN_MEANING, database=database)
+
+    assert len(ai.calls) == 1
+    called_settings, prompt, response_model = ai.calls[0]
+    assert called_settings is settings
+    assert KOREAN_MEANING in prompt
+    assert "20개" in prompt
+    assert response_model is GeneratedExpressions
+    assert [relation.japanese for relation in added] == ["大丈夫ですか", "平気ですか"]
+    assert [relation.reading for relation in added] == ["よみかた1", "よみかた2"]
+    assert [relation.meaning_ko for relation in added] == ["의미 1", "의미 2"]
+    assert [relation.register_text for relation in added] == ["말투 1", "말투 2"]
+
+    saved = find_saved_expressions(database, KOREAN_MEANING)
+    assert [relation.id for relation in saved] == [relation.id for relation in added]
+
+
+def test_generating_more_expressions_sends_known_ones_and_saves_only_new(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    _add_relation(database, KOREAN_MEANING, "平気ですか")
+    ai = RecordingAI(_generated("大丈夫ですか", "無事ですか", "平気ですか", "けがない"))
+    monkeypatch.setattr(search_module, "create_structured_response", ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+
+    added = generate_expressions(settings, KOREAN_MEANING, database=database)
+
+    prompt = ai.calls[0][1]
+    assert "大丈夫ですか" in prompt
+    assert "平気ですか" in prompt
+    assert [relation.japanese for relation in added] == ["無事ですか", "けがない"]
+    assert [relation.japanese for relation in find_saved_expressions(database, KOREAN_MEANING)] == [
+        "大丈夫ですか",
+        "平気ですか",
+        "無事ですか",
+        "けがない",
+    ]
+    counts = _row_counts(database)
+    assert counts["meaning_expressions"] == 4
+    assert counts["expressions"] == 4
+    assert counts["meanings"] == 1
+
+
+def test_generation_stops_at_the_configured_limit(
+    tmp_path: Path,
+    database: SceneCollectorDatabase,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    limited = _settings(tmp_path, generation_limit=3)
+    ai = RecordingAI(_generated("表現一", "表現二", "表現三", "表現四", "表現五"))
+    monkeypatch.setattr(search_module, "create_structured_response", ai)
+    monkeypatch.setattr(search_module, "_search_nadeshiko", _failing_nadeshiko_search)
+
+    added = generate_expressions(limited, KOREAN_MEANING, database=database)
+
+    assert "3개" in ai.calls[0][1]
+    assert [relation.japanese for relation in added] == ["表現一", "表現二", "表現三"]
+    assert [relation.japanese for relation in find_saved_expressions(database, KOREAN_MEANING)] == [
+        "表現一",
+        "表現二",
+        "表現三",
+    ]
+
+
+def test_selected_expression_search_calls_nadeshiko_only_for_that_expression(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    selected = _add_relation(database, KOREAN_MEANING, "悪い")
+    _add_relation(database, KOREAN_MEANING, "ごめん")  # 사용자가 고르지 않은 표현
+    _activate_media(database, "anonymous-media-002", "anonymous-media-001")
+    _activate_media(database, "anonymous-media-003")
+    database.set_media_active("anonymous-media-003", False)
+
+    response = _search_response("悪い、遅れた", "気持ち悪い", "悪いと思う")
+    # 형태소 경계가 오면 뒤에 말이 붙어도 같은 표현으로 인정한다.
+    response.segments[2].text_ja.tokens = [
         Token(s="悪い", d="悪い", r="ワルイ", b=0, e=2, p="形容詞"),
         Token(s="と", d="と", r="ト", b=2, e=3, p="助詞"),
         Token(s="思う", d="思う", r="オモウ", b=3, e=5, p="動詞"),
     ]
+    client = RecordingNadeshiko({("悪い", False): response})
 
-    class FakeNadeshiko:
-        def search(self, *, query: SearchQuery, take: int) -> SearchResponse:
-            return tokenized_response if query.search == "悪い" else _search_response()
-
-    result = search_expressions(
-        _settings(tmp_path, service="provider-one", candidate_count=3),
-        "나쁘다고 생각한다고 말하는 표현",
-        nadeshiko_client=FakeNadeshiko(),
-    )
-
-    assert [item.candidate.japanese for item in result.corpus_backed_candidates] == ["悪い"]
-    assert [
-        segment.text_ja.content for segment in result.corpus_backed_candidates[0].exact_segments
-    ] == ["悪いと思う"]
-    assert result.corpus_backed_candidates[0].exact_match_response is None
-
-
-def test_uses_exact_match_only_as_a_fallback_without_losing_normal_matches(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    generated = ExpressionCandidates(
-        candidates=[
-            _candidate("もう一回言って。", 1),
-            _candidate("見つけた", 2),
-            _candidate("結果なし", 3),
-        ]
-    )
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: generated,
-    )
-
-    class FakeNadeshiko:
-        def __init__(self) -> None:
-            self.calls: list[SearchQuery] = []
-
-        def search(self, *, query: SearchQuery, take: int) -> SearchResponse:
-            self.calls.append(query)
-            if query.search == "もう一回言って。":
-                if query.exact_match is True:
-                    raise AssertionError(
-                        "normal surface match must not be replaced by exact search"
-                    )
-                return _search_response("もう一回 言って。")
-            if query.search == "見つけた" and query.exact_match is True:
-                return _search_response("見つけた。")
-            return _search_response()
-
-    client = FakeNadeshiko()
-    result = search_expressions(
-        _settings(tmp_path, service="provider-one", candidate_count=3),
-        "일반 검색 결과를 잃지 않는 fallback 시험",
+    result = search_selected_expression(
+        settings,
+        selected,
         nadeshiko_client=client,
+        database=database,
     )
 
-    assert [item.candidate.japanese for item in result.corpus_backed_candidates] == [
-        "もう一回言って。",
-        "見つけた",
+    # 선택한 표현 하나로만, 활성 작품 필터를 달아 한 번 호출한다.
+    assert client.calls == [
+        ("悪い", False, 2, ("anonymous-media-001", "anonymous-media-002")),
     ]
-    assert [query.exact_match for query in client.calls] == [False, False, True, False, True]
-    assert result.candidate_searches[0].exact_match_response is None
-    assert result.candidate_searches[1].exact_match_response is not None
-    assert result.candidate_searches[2].exact_match_response is not None
+    assert result.relation is selected
+    # 「気持ち悪い」는 표면형 판정에서 걸러지는 거짓 양성이다.
+    assert [segment.text_ja.content for segment in result.nadeshiko_segments] == [
+        "悪い、遅れた",
+        "悪いと思う",
+    ]
+    assert result.local_segments == ()
+    assert result.has_results is True
 
 
-@pytest.mark.parametrize("count", (2, 6))
-def test_expression_candidate_list_rejects_counts_outside_three_to_five(count: int) -> None:
-    with pytest.raises(ValidationError):
-        ExpressionCandidates(
-            candidates=[_candidate(f"候補{index}", index) for index in range(count)]
-        )
-
-
-def test_expression_candidate_schema_exposes_required_product_fields() -> None:
-    properties = ExpressionCandidate.model_json_schema()["properties"]
-
-    assert set(properties) == {"japanese", "reading", "meaning_ko", "register"}
-
-
-def test_rejects_ai_candidate_count_different_from_settings(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
+def test_selected_expression_search_retries_once_with_exact_match(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
 ) -> None:
-    generated = ExpressionCandidates(
-        candidates=[_candidate(f"候補{index}", index) for index in range(3)]
-    )
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: generated,
+    relation = _add_relation(database, "다시 말해 달라고 하는 말", "もう一回言って")
+    _activate_media(database, "anonymous-media-001")
+    client = RecordingNadeshiko(
+        {
+            # 첫 검색 결과는 표면형 판정을 모두 통과하지 못한다.
+            ("もう一回言って", False): _search_response("もう一回言ってください"),
+            ("もう一回言って", True): _search_response("もう一回 言って。"),
+        }
     )
 
-    with pytest.raises(ValueError, match="다른 개수"):
-        search_expressions(
-            _settings(tmp_path, service="provider-one", candidate_count=4),
-            "시험할 한국어 의미",
-            nadeshiko_client=object(),
+    result = search_selected_expression(
+        settings,
+        relation,
+        nadeshiko_client=client,
+        database=database,
+    )
+
+    assert client.calls == [
+        ("もう一回言って", False, 2, ("anonymous-media-001",)),
+        ("もう一回言って", True, 2, ("anonymous-media-001",)),
+    ]
+    assert [segment.text_ja.content for segment in result.nadeshiko_segments] == ["もう一回 言って。"]
+
+
+def test_selected_expression_search_stores_nothing(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    _activate_media(database, "anonymous-media-001")
+    client = RecordingNadeshiko(
+        {("大丈夫ですか", False): _search_response("あの、大丈夫ですか？")}
+    )
+    before = _row_counts(database)
+
+    result = search_selected_expression(
+        settings,
+        relation,
+        nadeshiko_client=client,
+        database=database,
+    )
+
+    assert [segment.text_ja.content for segment in result.nadeshiko_segments] == [
+        "あの、大丈夫ですか？"
+    ]
+    assert _row_counts(database) == before
+    assert before["work_scenes"] == 0
+
+
+def test_searching_the_same_expression_again_calls_nadeshiko_again(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    _activate_media(database, "anonymous-media-001")
+    client = RecordingNadeshiko(
+        {("大丈夫ですか", False): _search_response("あの、大丈夫ですか？")}
+    )
+
+    first = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+    second = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    # 검색 결과를 캐시하지 않으므로 같은 표현이라도 다시 호출한다.
+    assert len(client.calls) == 2
+    assert client.calls[0] == client.calls[1]
+    assert [segment.text_ja.content for segment in second.nadeshiko_segments] == [
+        segment.text_ja.content for segment in first.nadeshiko_segments
+    ]
+
+
+def test_search_without_active_media_raises_before_calling_nadeshiko(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    _activate_media(database, "anonymous-media-001")
+    database.set_media_active("anonymous-media-001", False)
+    client = RecordingNadeshiko()
+
+    with pytest.raises(NoActiveMediaError, match="활성 선호 작품"):
+        search_selected_expression(
+            settings,
+            relation,
+            nadeshiko_client=client,
+            database=database,
         )
+
+    assert client.calls == []
+
+
+def test_local_subtitle_matches_come_back_separately_from_nadeshiko_segments(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    _activate_media(database, "anonymous-media-001")
+    local_media = database.register_local_media("로컬 자막 작품")
+    database.replace_local_segments(
+        local_media.id,
+        [
+            SubtitleCue(
+                episode=1,
+                position=0,
+                start_time_ms=1000,
+                end_time_ms=2500,
+                japanese_text="（ミサ）大丈夫ですか？",
+                source_file="ep01.srt",
+            ),
+            # LIKE 후보에는 들어오지만 표면형 판정에서 걸러진다.
+            SubtitleCue(
+                episode=1,
+                position=1,
+                start_time_ms=3000,
+                end_time_ms=4000,
+                japanese_text="大丈夫ですかね",
+                source_file="ep01.srt",
+            ),
+            SubtitleCue(
+                episode=2,
+                position=0,
+                start_time_ms=5000,
+                end_time_ms=6000,
+                japanese_text="気持ち悪いよ",
+                source_file="ep02.srt",
+            ),
+        ],
+    )
+    client = RecordingNadeshiko(
+        {("大丈夫ですか", False): _search_response("あの、大丈夫ですか？")}
+    )
+
+    result = search_selected_expression(
+        settings,
+        relation,
+        nadeshiko_client=client,
+        database=database,
+    )
+
+    assert client.calls == [("大丈夫ですか", False, 2, ("anonymous-media-001",))]
+    assert [segment.text_ja.content for segment in result.nadeshiko_segments] == [
+        "あの、大丈夫ですか？"
+    ]
+    assert [match.japanese_text for match in result.local_segments] == ["（ミサ）大丈夫ですか？"]
+    assert result.local_segments[0].media_display_name == "로컬 자막 작품"
+    assert result.local_segments[0].episode == 1
+    assert result.local_segments[0].source_file == "ep01.srt"
+
+
+def test_local_only_active_media_skips_nadeshiko_entirely(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫ですか")
+    local_media = database.register_local_media("로컬 자막 작품")
+    database.replace_local_segments(
+        local_media.id,
+        [
+            SubtitleCue(
+                episode=1,
+                position=0,
+                start_time_ms=1000,
+                end_time_ms=2500,
+                japanese_text="（ミサ）大丈夫ですか？",
+                source_file="ep01.srt",
+            )
+        ],
+    )
+    client = RecordingNadeshiko()
+
+    result = search_selected_expression(
+        settings,
+        relation,
+        nadeshiko_client=client,
+        database=database,
+    )
+
+    assert client.calls == []
+    assert result.nadeshiko_segments == ()
+    assert [match.japanese_text for match in result.local_segments] == ["（ミサ）大丈夫ですか？"]
+    assert result.has_results is True

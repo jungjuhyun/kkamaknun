@@ -55,7 +55,7 @@ def test_provider_returns_same_structured_response(
                 f"model = {json.dumps(model)}",
                 "",
                 "[search]",
-                "candidate_count = 5",
+                "expression_generation_limit = 5",
                 "nadeshiko_take = 5",
                 "",
             )

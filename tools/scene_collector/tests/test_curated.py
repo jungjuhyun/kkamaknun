@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 from nadeshiko.models import MediaSummary, SearchFilters, SearchQuery, SearchResponse
 
-import scene_collector.search as search_module
 from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
 from scene_collector.curated import (
     CuratedPoolError,
@@ -15,10 +14,13 @@ from scene_collector.curated import (
     load_curated_pool,
     set_curated_item_active,
 )
-from scene_collector.database import DatabaseError, SceneCollectorDatabase
+from scene_collector.database import (
+    DatabaseError,
+    SceneCollectorDatabase,
+    StoredMeaningExpression,
+)
 from scene_collector.media import store_media
-from scene_collector.models import ExpressionCandidate, ExpressionCandidates
-from scene_collector.search import search_expressions
+from scene_collector.search import NoActiveMediaError, search_selected_expression
 from scene_collector.subtitles import index_local_subtitles
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "nadeshiko_search_response.json"
@@ -33,7 +35,23 @@ def _settings(work_data_dir: Path) -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
         ai=AISettings(service="provider-one", model="model-one"),
-        search=SearchSettings(candidate_count=3, nadeshiko_take=2),
+        search=SearchSettings(expression_generation_limit=3, nadeshiko_take=2),
+    )
+
+
+def _relation(
+    database: SceneCollectorDatabase,
+    korean_meaning: str,
+    japanese: str,
+) -> StoredMeaningExpression:
+    """검색에 사용할 의미→표현 관계를 AI 없이 직접 저장한다."""
+    meaning = database.upsert_meaning(korean_meaning)
+    return database.add_meaning_expression(
+        meaning.id,
+        japanese=japanese,
+        reading="だいじょうぶですか",
+        meaning_ko="괜찮으세요?",
+        register_text="존댓말",
     )
 
 
@@ -179,25 +197,7 @@ def _empty_response() -> SearchResponse:
     return SearchResponse.from_dict(payload)
 
 
-def test_checked_items_drive_existing_search_media_filter(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        search_module,
-        "create_structured_response",
-        lambda *args, **kwargs: ExpressionCandidates(
-            candidates=[
-                ExpressionCandidate(
-                    japanese="大丈夫ですか",
-                    reading="だいじょうぶですか",
-                    meaning_ko="괜찮으세요?",
-                    register="존댓말",
-                )
-            ]
-            * 3
-        ),
-    )
+def test_checked_items_drive_selected_expression_media_filter(tmp_path: Path) -> None:
     pool = load_curated_pool()
     chainsaw = _item(pool, "chainsaw_man")
     settings = _settings(tmp_path)
@@ -205,9 +205,10 @@ def test_checked_items_drive_existing_search_media_filter(
 
     with SceneCollectorDatabase.open(settings) as database:
         set_curated_item_active(database, chainsaw, True)
+        relation = _relation(database, "괜찮냐고 묻는 말", "大丈夫ですか")
 
-        search_expressions(
-            settings, "괜찮냐고 묻는 말", nadeshiko_client=client, database=database
+        search_selected_expression(
+            settings, relation, nadeshiko_client=client, database=database
         )
         assert client.calls
         for _, _, included in client.calls:
@@ -216,9 +217,9 @@ def test_checked_items_drive_existing_search_media_filter(
         # 해제 후에는 활성 작품이 없어 기존 오류 동작으로 돌아간다
         set_curated_item_active(database, chainsaw, False)
         client.calls.clear()
-        with pytest.raises(search_module.NoActiveMediaError):
-            search_expressions(
-                settings, "괜찮냐고 묻는 말", nadeshiko_client=client, database=database
+        with pytest.raises(NoActiveMediaError):
+            search_selected_expression(
+                settings, relation, nadeshiko_client=client, database=database
             )
         assert client.calls == []
 

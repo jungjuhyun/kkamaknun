@@ -3,12 +3,14 @@
 [storage]
 work_data_dir = ""
 
-# 필수: 이후 AI 연결 작업에서 사용할 서비스와 모델의 식별자를 입력한다.
+# 필수: AI 연결에 사용할 서비스와 모델의 식별자를 입력한다.
 [ai]
 service = ""
 model = ""
 
-# AI 후보 수는 3~5, 후보별 Nadeshiko 조회량은 1~20 범위로 입력한다.
+# 한 번에 만들 일본어 표현 수의 상한은 1~20이며 기본값은 20이다.
+# AI는 자연스러운 표현만 만들고 상한까지 억지로 채우지 않는다.
+# 선택한 표현 하나를 검색할 때 조회할 장면 수는 1~20 범위로 입력한다.
 [search]
-candidate_count = 5
+expression_generation_limit = 20
 nadeshiko_take = 5

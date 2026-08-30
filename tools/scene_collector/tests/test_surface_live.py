@@ -58,7 +58,7 @@ def live_client(tmp_path_factory: pytest.TempPathFactory) -> Iterator[Nadeshiko]
                 'model = "unused-in-task-5"',
                 "",
                 "[search]",
-                "candidate_count = 5",
+                "expression_generation_limit = 5",
                 f"nadeshiko_take = {min(_take(), 20)}",
                 "",
             )

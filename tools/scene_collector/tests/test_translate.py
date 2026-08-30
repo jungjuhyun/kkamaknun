@@ -1,32 +1,38 @@
 import copy
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
-from nadeshiko.models import SearchResponse, SegmentContextResponse
+from nadeshiko.models import Segment, SegmentContextResponse
 from pydantic import ValidationError
 
 import scene_collector.ai as ai_module
-import scene_collector.translate as translate_module
 from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
-from scene_collector.database import SceneCollectorDatabase, StoredExpression
-from scene_collector.models import (
-    ExpressionCandidate,
-    SceneTranslation,
-    SceneTranslationBatch,
+from scene_collector.database import SceneCollectorDatabase, StoredMeaningExpression
+from scene_collector.models import SceneTranslation
+from scene_collector.translate import (
+    CONTEXT_TAKE,
+    TRANSLATION_INSTRUCTION_VERSION,
+    TranslatedScene,
+    translate_work_scene,
 )
-from scene_collector.search import CandidateSearchResult, ExpressionSearchResult
-from scene_collector.translate import CONTEXT_TAKE, translate_expression_scenes
 
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "nadeshiko_search_response.json"
 FIXTURE_PAYLOAD = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+
+KOREAN_MEANING = "괜찮냐고 묻는 말"
+RELATION_JAPANESE = "大丈夫ですか"
+RELATION_READING = "だいじょうぶですか"
+RELATION_MEANING_KO = "괜찮아요?"
+MEDIA_DISPLAY_NAME = "테스트 작품"
 
 
 def _settings(work_data_dir: Path, *, model: str = "model-one") -> AppSettings:
     return AppSettings(
         storage=StorageSettings(work_data_dir=work_data_dir),
         ai=AISettings(service="provider-one", model=model),
-        search=SearchSettings(candidate_count=3, nadeshiko_take=2),
+        search=SearchSettings(nadeshiko_take=2),
     )
 
 
@@ -51,65 +57,65 @@ def _segment_dict(
     return segment
 
 
-def _search_response(*segment_dicts: dict) -> SearchResponse:
-    payload = {
-        "segments": list(segment_dicts),
-        "pagination": {
-            "hasMore": False,
-            "estimatedTotalHits": len(segment_dicts),
-            "estimatedTotalHitsRelation": "EXACT",
-            "cursor": None,
-        },
-    }
-    return SearchResponse.from_dict(payload)
+def _segment(public_id: str, **overrides: object) -> Segment:
+    return Segment.from_dict(_segment_dict(public_id, **overrides))
 
 
 def _context_response(*segment_dicts: dict) -> SegmentContextResponse:
     return SegmentContextResponse.from_dict({"segments": list(segment_dicts)})
 
 
-def _candidate(japanese: str) -> ExpressionCandidate:
-    return ExpressionCandidate(
-        japanese=japanese,
-        reading="よみかた",
-        meaning_ko="의미",
-        register="말투",
+def _seed_relation(database: SceneCollectorDatabase) -> StoredMeaningExpression:
+    """한국어 의미와 일본어 표현 하나를 표현 자산으로 저장한다."""
+    meaning = database.upsert_meaning(KOREAN_MEANING)
+    return database.add_meaning_expression(
+        meaning.id,
+        japanese=RELATION_JAPANESE,
+        reading=RELATION_READING,
+        meaning_ko=RELATION_MEANING_KO,
+        register_text="정중체",
     )
 
 
-def _seed_expressions(
+def _work_scene_id(
     database: SceneCollectorDatabase,
-    *candidates_with_segments: tuple[str, tuple[dict, ...]],
-) -> list[StoredExpression]:
-    candidates = tuple(_candidate(japanese) for japanese, _ in candidates_with_segments)
-    searches = []
-    for candidate, (_, segment_dicts) in zip(candidates, candidates_with_segments):
-        response = _search_response(*segment_dicts)
-        searches.append(
-            CandidateSearchResult(
-                candidate=candidate,
-                response=response,
-                exact_match_response=None,
-                exact_segments=tuple(response.segments),
-            )
-        )
-    result = ExpressionSearchResult(
-        korean_intent="번역 시험 의도",
-        generated_candidates=candidates,
-        candidate_searches=tuple(searches),
+    relation: StoredMeaningExpression,
+    segment: Segment,
+) -> int:
+    """실제 화면처럼 작업이 발생하는 시점에 장면 스냅샷을 만든다."""
+    return database.upsert_work_scene(
+        relation.id,
+        segment_public_id=segment.public_id,
+        media_public_id=segment.media_public_id,
+        media_display_name=MEDIA_DISPLAY_NAME,
+        episode=segment.episode,
+        start_time_ms=segment.start_time_ms,
+        end_time_ms=segment.end_time_ms,
+        japanese_text=segment.text_ja.content,
     )
-    run_id = database.save_search_result(
-        result,
-        ai_service="provider-one",
-        ai_model="model-one",
-        instruction_version="candidate-v1",
+
+
+def _translate_scene(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+    client: "FakeContextNadeshiko",
+    relation: StoredMeaningExpression,
+    segment: Segment,
+) -> TranslatedScene:
+    """사용자가 장면 하나를 골라 번역을 요청하는 흐름을 그대로 따른다."""
+    return translate_work_scene(
+        settings,
+        relation=relation,
+        segment=segment,
+        work_scene_id=_work_scene_id(database, relation, segment),
+        nadeshiko_client=client,
+        database=database,
     )
-    run = database.load_search_run(run_id)
-    assert run is not None
-    return list(run.expressions)
 
 
 class FakeContextNadeshiko:
+    """문맥 조회 호출만 기록하는 fake Nadeshiko client."""
+
     def __init__(self, contexts: dict[str, SegmentContextResponse] | None = None) -> None:
         self.contexts = contexts or {}
         self.calls: list[tuple[str, int]] = []
@@ -120,37 +126,29 @@ class FakeContextNadeshiko:
 
 
 class FakeTranslationClient:
-    """prompt의 장면 JSON을 읽어 결정적 번역을 돌려주는 fake provider."""
+    """prompt를 기록하고 결정적 번역 하나를 돌려주는 fake provider."""
 
     def __init__(self) -> None:
-        self.calls: list[list[dict]] = []
-        self.responder = self._default_responder
+        self.prompts: list[str] = []
+        self.responder: Callable[[str], SceneTranslation] = self._default_responder
 
     def create(
         self,
         *,
-        response_model: type[SceneTranslationBatch],
+        response_model: type[SceneTranslation],
         messages: list[dict[str, str]],
-    ) -> SceneTranslationBatch:
-        assert response_model is SceneTranslationBatch
-        scenes = json.loads(messages[0]["content"].split("장면 JSON:\n", 1)[1])
-        self.calls.append(scenes)
-        return self.responder(scenes)
+    ) -> SceneTranslation:
+        assert response_model is SceneTranslation
+        prompt = messages[0]["content"]
+        self.prompts.append(prompt)
+        return self.responder(prompt)
 
     @staticmethod
-    def _default_responder(scenes: list[dict]) -> SceneTranslationBatch:
-        return SceneTranslationBatch(
-            translations=[
-                SceneTranslation(
-                    scene_key=scene["scene_key"],
-                    direct_meaning=(
-                        f"직접 {scene['target_expression']['japanese']} {scene['scene_key']}"
-                    ),
-                    natural_translation=f"자연 {scene['scene_key']}",
-                    scene_usage="상태 확인",
-                )
-                for scene in scenes
-            ]
+    def _default_responder(prompt: str) -> SceneTranslation:
+        return SceneTranslation(
+            direct_meaning="직접 뜻",
+            natural_translation="자연스러운 번역",
+            scene_usage="상태 확인",
         )
 
 
@@ -161,440 +159,253 @@ def fake_ai(monkeypatch: pytest.MonkeyPatch) -> FakeTranslationClient:
     return client
 
 
-def test_translates_stored_exact_segments_with_nearest_context(
+def test_requested_scene_uses_one_context_call_and_one_ai_call(
     tmp_path: Path,
     fake_ai: FakeTranslationClient,
 ) -> None:
+    """장면 하나 요청에 문맥 조회 1회, AI 1회만 쓰고 가장 가까운 앞뒤를 고른다.
+
+    문맥 응답의 순서를 믿지 않고 같은 작품·같은 화만 후보로 삼는지 함께 본다.
+    """
     settings = _settings(tmp_path)
-    contexts = {
-        "seg-one": _context_response(
-            _segment_dict("seg-one", position=10),
-            _segment_dict("noise-later-far", position=14),
-            _segment_dict("next-one", position=12, text_ja="次の台詞"),
-            _segment_dict("noise-other-media", media="other-media", position=9),
-            _segment_dict("noise-other-episode", episode=2, position=9),
-            _segment_dict("prev-one", position=8, text_ja="前の台詞"),
-            _segment_dict("noise-earlier-far", position=5),
-        ),
-        "seg-two": _context_response(
-            _segment_dict("prev-two", position=19, text_ja="前の台詞二"),
-            _segment_dict("next-two", position=21, text_ja="次の台詞二"),
-        ),
-    }
-    client = FakeContextNadeshiko(contexts)
-
-    with SceneCollectorDatabase.open(settings) as database:
-        expression = _seed_expressions(
-            database,
-            (
-                "大丈夫ですか",
-                (
-                    _segment_dict("seg-one", position=10, machine_translated=True),
-                    _segment_dict("seg-two", position=20, text_en=""),
-                ),
-            ),
-        )[0]
-
-        translated = translate_expression_scenes(
-            settings,
-            expression.id,
-            nadeshiko_client=client,
-            database=database,
-        )
-
-        assert sorted(client.calls) == [("seg-one", CONTEXT_TAKE), ("seg-two", CONTEXT_TAKE)]
-        assert len(fake_ai.calls) == 1
-        assert [scene["scene_key"] for scene in fake_ai.calls[0]] == ["seg-one", "seg-two"]
-
-        first, second = translated
-        assert first.previous_japanese == "前の台詞"
-        assert first.next_japanese == "次の台詞"
-        assert first.nadeshiko_english == "Are you all right? (기계번역)"
-        assert second.previous_japanese == "前の台詞二"
-        assert second.next_japanese == "次の台詞二"
-        assert second.nadeshiko_english is None
-
-        review = database.get_review(expression.id, first.segment_id)
-        assert review is not None
-        assert review.decision is None
-        assert review.direct_meaning == "직접 大丈夫ですか seg-one"
-        assert review.natural_translation == "자연 seg-one"
-        assert review.scene_usage == "상태 확인"
-        assert review.translation_ai_service == "provider-one"
-        assert review.translation_ai_model == "model-one"
-        assert review.translation_instruction_version == "scene-translation-v1"
-        assert review.translation_input_hash
-        assert review.translated_at
-
-
-def test_first_and_last_scenes_have_empty_context_sides(
-    tmp_path: Path,
-    fake_ai: FakeTranslationClient,
-) -> None:
-    settings = _settings(tmp_path)
-    contexts = {
-        "seg-first": _context_response(_segment_dict("after", position=2)),
-        "seg-last": _context_response(_segment_dict("before", position=98)),
-    }
-    client = FakeContextNadeshiko(contexts)
-
-    with SceneCollectorDatabase.open(settings) as database:
-        expression = _seed_expressions(
-            database,
-            (
-                "大丈夫ですか",
-                (
-                    _segment_dict("seg-first", position=1),
-                    _segment_dict("seg-last", position=99),
-                ),
-            ),
-        )[0]
-
-        translated = translate_expression_scenes(
-            settings,
-            expression.id,
-            nadeshiko_client=client,
-            database=database,
-        )
-
-        first, last = translated
-        assert first.previous_japanese is None
-        assert first.next_japanese is not None
-        assert last.previous_japanese is not None
-        assert last.next_japanese is None
-        sent = {scene["scene_key"]: scene for scene in fake_ai.calls[0]}
-        assert sent["seg-first"]["previous_japanese"] is None
-        assert sent["seg-last"]["next_japanese"] is None
-
-
-def test_context_cache_prevents_repeat_calls_even_after_reopen(
-    tmp_path: Path,
-    fake_ai: FakeTranslationClient,
-) -> None:
-    settings = _settings(tmp_path)
+    current = _segment("seg-one", position=10, machine_translated=True)
     client = FakeContextNadeshiko(
-        {"seg-one": _context_response(_segment_dict("prev", position=41))}
+        {
+            "seg-one": _context_response(
+                _segment_dict("seg-one", position=10),
+                _segment_dict("noise-later-far", position=14),
+                _segment_dict("next-one", position=12, text_ja="次の台詞"),
+                _segment_dict("noise-other-media", media="other-media", position=9),
+                _segment_dict("noise-other-episode", episode=2, position=9),
+                _segment_dict("prev-one", position=8, text_ja="前の台詞"),
+                _segment_dict("noise-earlier-far", position=5),
+            )
+        }
     )
 
     with SceneCollectorDatabase.open(settings) as database:
-        expression = _seed_expressions(
-            database,
-            ("大丈夫ですか", (_segment_dict("seg-one"),)),
-        )[0]
-        translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
-        )
-        assert client.calls == [("seg-one", CONTEXT_TAKE)]
-        assert len(fake_ai.calls) == 1
+        relation = _seed_relation(database)
+        work_scene_id = _work_scene_id(database, relation, current)
 
-        translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
+        translated = translate_work_scene(
+            settings,
+            relation=relation,
+            segment=current,
+            work_scene_id=work_scene_id,
+            nadeshiko_client=client,
+            database=database,
         )
-        assert client.calls == [("seg-one", CONTEXT_TAKE)]
-        assert len(fake_ai.calls) == 1
+
+    assert CONTEXT_TAKE == 2
+    assert client.calls == [("seg-one", CONTEXT_TAKE)]
+    assert len(fake_ai.prompts) == 1
+
+    assert translated.work_scene_id == work_scene_id
+    assert translated.segment_public_id == "seg-one"
+    assert translated.previous_japanese == "前の台詞"
+    assert translated.current_japanese == "大丈夫ですか？"
+    assert translated.next_japanese == "次の台詞"
+    assert translated.nadeshiko_english == "Are you all right? (기계번역)"
+    assert translated.translation.natural_translation == "자연스러운 번역"
+
+
+def test_missing_context_side_is_handled(
+    tmp_path: Path,
+    fake_ai: FakeTranslationClient,
+) -> None:
+    """앞이나 뒤 대사가 없어도 정상 처리하고 없는 쪽은 None으로 둔다."""
+    settings = _settings(tmp_path)
+    first = _segment("seg-first", position=1, text_en="")
+    last = _segment("seg-last", position=99, text_en="")
+    alone = _segment("seg-alone", position=50)
+    client = FakeContextNadeshiko(
+        {
+            "seg-first": _context_response(
+                _segment_dict("after", position=2, text_ja="次の台詞")
+            ),
+            "seg-last": _context_response(
+                _segment_dict("before", position=98, text_ja="前の台詞")
+            ),
+        }
+    )
+
+    with SceneCollectorDatabase.open(settings) as database:
+        relation = _seed_relation(database)
+        first_scene = _translate_scene(settings, database, client, relation, first)
+        last_scene = _translate_scene(settings, database, client, relation, last)
+        alone_scene = _translate_scene(settings, database, client, relation, alone)
+
+    assert first_scene.previous_japanese is None
+    assert first_scene.next_japanese == "次の台詞"
+    assert first_scene.nadeshiko_english is None
+    assert last_scene.previous_japanese == "前の台詞"
+    assert last_scene.next_japanese is None
+    assert alone_scene.previous_japanese is None
+    assert alone_scene.next_japanese is None
+
+    assert "앞 대사: (없음)" in fake_ai.prompts[0]
+    assert "뒤 대사: 次の台詞" in fake_ai.prompts[0]
+    assert "앞 대사: 前の台詞" in fake_ai.prompts[1]
+    assert "뒤 대사: (없음)" in fake_ai.prompts[1]
+    assert "nadeshiko_english: (없음)" in fake_ai.prompts[0]
+
+
+def test_prompt_contains_target_expression_and_context_lines(
+    tmp_path: Path,
+    fake_ai: FakeTranslationClient,
+) -> None:
+    """프롬프트에 목표 표현과 앞·현재·뒤 대사가 모두 들어간다."""
+    settings = _settings(tmp_path)
+    current = _segment("seg-one", position=10)
+    client = FakeContextNadeshiko(
+        {
+            "seg-one": _context_response(
+                _segment_dict("prev-one", position=9, text_ja="前の台詞"),
+                _segment_dict("next-one", position=11, text_ja="次の台詞"),
+            )
+        }
+    )
+
+    with SceneCollectorDatabase.open(settings) as database:
+        relation = _seed_relation(database)
+        _translate_scene(settings, database, client, relation, current)
+
+    prompt = fake_ai.prompts[0]
+    assert f"목표 표현: {RELATION_JAPANESE} ({RELATION_READING})" in prompt
+    assert f"목표 표현의 한국어 의미: {RELATION_MEANING_KO}" in prompt
+    assert "앞 대사: 前の台詞" in prompt
+    assert "현재 일본어 대사: 大丈夫ですか？" in prompt
+    assert "뒤 대사: 次の台詞" in prompt
+    assert "nadeshiko_english: Are you all right?" in prompt
+
+
+def test_translation_is_saved_to_work_scene_with_provenance(
+    tmp_path: Path,
+    fake_ai: FakeTranslationClient,
+) -> None:
+    """번역 결과와 provenance가 work_scenes에 저장되고 재시작 후에도 남는다."""
+    settings = _settings(tmp_path)
+    current = _segment("seg-one")
+    client = FakeContextNadeshiko()
+
+    with SceneCollectorDatabase.open(settings) as database:
+        relation = _seed_relation(database)
+        _translate_scene(settings, database, client, relation, current)
+
+        stored = database.get_work_scene(relation.id, "seg-one")
+        assert stored is not None
+        assert stored.decision is None
+        assert stored.has_translation
+        assert stored.direct_meaning == "직접 뜻"
+        assert stored.natural_translation == "자연스러운 번역"
+        assert stored.scene_usage == "상태 확인"
+        assert stored.translation_ai_service == "provider-one"
+        assert stored.translation_ai_model == "model-one"
+        assert stored.translation_instruction_version == TRANSLATION_INSTRUCTION_VERSION
+        assert stored.translated_at
 
     with SceneCollectorDatabase.open(settings) as reopened:
-        translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=reopened
-        )
-        assert client.calls == [("seg-one", CONTEXT_TAKE)]
-        assert len(fake_ai.calls) == 1
+        restored = reopened.get_work_scene(relation.id, "seg-one")
+        assert restored is not None
+        assert restored.natural_translation == "자연스러운 번역"
+        assert restored.translation_ai_model == "model-one"
+        assert restored.translation_instruction_version == TRANSLATION_INSTRUCTION_VERSION
 
 
-def test_ai_output_is_mapped_by_scene_key_not_order(
+def test_translation_and_user_work_do_not_overwrite_each_other(
     tmp_path: Path,
     fake_ai: FakeTranslationClient,
 ) -> None:
+    """번역 저장이 기존 판정·메모를 지우지 않고, 판정 저장도 번역을 지우지 않는다."""
     settings = _settings(tmp_path)
+    current = _segment("seg-one")
     client = FakeContextNadeshiko()
 
-    def reversed_responder(scenes: list[dict]) -> SceneTranslationBatch:
-        batch = FakeTranslationClient._default_responder(scenes)
-        return SceneTranslationBatch(translations=list(reversed(batch.translations)))
-
-    fake_ai.responder = reversed_responder
-
     with SceneCollectorDatabase.open(settings) as database:
-        expression = _seed_expressions(
-            database,
-            (
-                "大丈夫ですか",
-                (
-                    _segment_dict("seg-one", position=10),
-                    _segment_dict("seg-two", position=20),
-                ),
-            ),
-        )[0]
-        translated = translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
-        )
+        relation = _seed_relation(database)
+        work_scene_id = _work_scene_id(database, relation, current)
+        database.set_work_scene_decision(work_scene_id, "채택")
+        database.set_work_scene_notes(work_scene_id, "이 장면을 쓰자")
 
-        by_public_id = {scene.segment_public_id: scene for scene in translated}
-        assert by_public_id["seg-one"].translation.natural_translation == "자연 seg-one"
-        assert by_public_id["seg-two"].translation.natural_translation == "자연 seg-two"
+        _translate_scene(settings, database, client, relation, current)
+
+        after_translation = database.get_work_scene(relation.id, "seg-one")
+        assert after_translation is not None
+        assert after_translation.decision == "채택"
+        assert after_translation.notes == "이 장면을 쓰자"
+        assert after_translation.natural_translation == "자연스러운 번역"
+
+        database.set_work_scene_decision(work_scene_id, "예비")
+        after_decision = database.get_work_scene(relation.id, "seg-one")
+        assert after_decision is not None
+        assert after_decision.decision == "예비"
+        assert after_decision.notes == "이 장면을 쓰자"
+        assert after_decision.direct_meaning == "직접 뜻"
+        assert after_decision.natural_translation == "자연스러운 번역"
+        assert after_decision.scene_usage == "상태 확인"
 
 
-@pytest.mark.parametrize(
-    ("mutation", "message"),
-    (
-        ("duplicate", "여러 번 반환"),
-        ("missing", "누락"),
-        ("unknown", "알 수 없는 장면"),
-    ),
-)
-def test_rejects_invalid_ai_scene_mapping_without_saving(
+def test_context_and_ai_are_not_cached_between_translations(
     tmp_path: Path,
     fake_ai: FakeTranslationClient,
-    mutation: str,
-    message: str,
 ) -> None:
+    """같은 장면을 다시 번역하면 문맥 조회와 AI를 다시 호출한다(캐시 없음)."""
     settings = _settings(tmp_path)
-    client = FakeContextNadeshiko()
-
-    def broken_responder(scenes: list[dict]) -> SceneTranslationBatch:
-        batch = FakeTranslationClient._default_responder(scenes)
-        translations = list(batch.translations)
-        if mutation == "duplicate":
-            translations.append(translations[0])
-        elif mutation == "missing":
-            translations = translations[:-1]
-        else:
-            translations[0] = translations[0].model_copy(update={"scene_key": "unknown-key"})
-        return SceneTranslationBatch(translations=translations)
-
-    fake_ai.responder = broken_responder
-
-    with SceneCollectorDatabase.open(settings) as database:
-        expression = _seed_expressions(
-            database,
-            (
-                "大丈夫ですか",
-                (
-                    _segment_dict("seg-one", position=10),
-                    _segment_dict("seg-two", position=20),
-                ),
-            ),
-        )[0]
-
-        with pytest.raises(ValueError, match=message):
-            translate_expression_scenes(
-                settings, expression.id, nadeshiko_client=client, database=database
+    current = _segment("seg-one", position=10)
+    client = FakeContextNadeshiko(
+        {
+            "seg-one": _context_response(
+                _segment_dict("prev-one", position=9, text_ja="前の台詞")
             )
+        }
+    )
 
-        for stored in expression.segments:
-            assert database.get_review(expression.id, stored.id) is None
+    attempt = 0
+
+    def counting_responder(prompt: str) -> SceneTranslation:
+        nonlocal attempt
+        attempt += 1
+        return SceneTranslation(
+            direct_meaning=f"직접 뜻 {attempt}",
+            natural_translation=f"자연스러운 번역 {attempt}",
+            scene_usage="상태 확인",
+        )
+
+    fake_ai.responder = counting_responder
+
+    with SceneCollectorDatabase.open(settings) as database:
+        relation = _seed_relation(database)
+        _translate_scene(settings, database, client, relation, current)
+        assert client.calls == [("seg-one", CONTEXT_TAKE)]
+        assert len(fake_ai.prompts) == 1
+
+        _translate_scene(settings, database, client, relation, current)
+        assert client.calls == [("seg-one", CONTEXT_TAKE)] * 2
+        assert len(fake_ai.prompts) == 2
+
+    with SceneCollectorDatabase.open(settings) as reopened:
+        _translate_scene(settings, reopened, client, relation, current)
+        assert client.calls == [("seg-one", CONTEXT_TAKE)] * 3
+        assert len(fake_ai.prompts) == 3
+
+        # 다시 만든 번역이 저장된 작업물을 갱신한다.
+        stored = reopened.get_work_scene(relation.id, "seg-one")
+        assert stored is not None
+        assert stored.natural_translation == "자연스러운 번역 3"
 
 
-def test_scene_translation_model_rejects_empty_fields() -> None:
+def test_scene_translation_model_rejects_empty_fields_and_scene_key() -> None:
+    """장면 번역 자료형은 빈 값과 사라진 scene_key를 모두 거부한다."""
     with pytest.raises(ValidationError):
         SceneTranslation(
-            scene_key="scene",
             direct_meaning="",
-            natural_translation="자연",
-            scene_usage="쓰임",
+            natural_translation="자연스러운 번역",
+            scene_usage="상태 확인",
         )
     with pytest.raises(ValidationError):
-        SceneTranslationBatch(translations=[])
-
-
-def test_ai_cache_misses_on_model_instruction_or_input_change(
-    tmp_path: Path,
-    fake_ai: FakeTranslationClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    settings = _settings(tmp_path)
-    client = FakeContextNadeshiko(
-        {"seg-one": _context_response(_segment_dict("prev", position=41, text_ja="元の前文"))}
-    )
-
-    with SceneCollectorDatabase.open(settings) as database:
-        expression = _seed_expressions(
-            database,
-            ("大丈夫ですか", (_segment_dict("seg-one"),)),
-        )[0]
-
-        translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
+        SceneTranslation(
+            scene_key="seg-one",
+            direct_meaning="직접 뜻",
+            natural_translation="자연스러운 번역",
+            scene_usage="상태 확인",
         )
-        translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
-        )
-        assert len(fake_ai.calls) == 1
-
-        translate_expression_scenes(
-            _settings(tmp_path, model="model-two"),
-            expression.id,
-            nadeshiko_client=client,
-            database=database,
-        )
-        assert len(fake_ai.calls) == 2
-
-        monkeypatch.setattr(
-            translate_module,
-            "TRANSLATION_INSTRUCTION_VERSION",
-            "scene-translation-v2-test",
-        )
-        translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
-        )
-        assert len(fake_ai.calls) == 3
-        monkeypatch.setattr(
-            translate_module,
-            "TRANSLATION_INSTRUCTION_VERSION",
-            "scene-translation-v1",
-        )
-
-        database.put_nadeshiko_context_cache(
-            segment_public_id="seg-one",
-            take=CONTEXT_TAKE,
-            response=_context_response(
-                _segment_dict("prev", position=41, text_ja="바뀐前文")
-            ),
-        )
-        translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
-        )
-        assert len(fake_ai.calls) == 4
-        assert client.calls == [("seg-one", CONTEXT_TAKE)]
-
-
-def test_translation_and_user_review_fields_do_not_overwrite_each_other(
-    tmp_path: Path,
-    fake_ai: FakeTranslationClient,
-) -> None:
-    settings = _settings(tmp_path)
-    client = FakeContextNadeshiko()
-
-    with SceneCollectorDatabase.open(settings) as database:
-        expression = _seed_expressions(
-            database,
-            ("大丈夫ですか", (_segment_dict("seg-one"),)),
-        )[0]
-        segment_id = expression.segments[0].id
-
-        translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
-        )
-        database.set_review_decision(expression.id, segment_id, "채택")
-
-        review = database.get_review(expression.id, segment_id)
-        assert review is not None
-        assert review.decision == "채택"
-        assert review.natural_translation == "자연 seg-one"
-        assert review.translation_ai_model == "model-one"
-
-        database.put_nadeshiko_context_cache(
-            segment_public_id="seg-one",
-            take=CONTEXT_TAKE,
-            response=_context_response(_segment_dict("prev", position=41)),
-        )
-        translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
-        )
-        updated = database.get_review(expression.id, segment_id)
-        assert updated is not None
-        assert updated.decision == "채택"
-        assert updated.natural_translation == "자연 seg-one"
-        assert updated.translation_input_hash != review.translation_input_hash
-
-    with SceneCollectorDatabase.open(settings) as reopened:
-        restored = reopened.get_review(expression.id, segment_id)
-        assert restored is not None
-        assert restored.decision == "채택"
-        assert restored.direct_meaning == "직접 大丈夫ですか seg-one"
-        assert restored.natural_translation == "자연 seg-one"
-        assert restored.scene_usage == "상태 확인"
-        assert restored.translation_ai_service == "provider-one"
-        assert restored.translation_instruction_version == "scene-translation-v1"
-
-
-def test_shared_segment_reuses_context_but_keeps_relation_translations_apart(
-    tmp_path: Path,
-    fake_ai: FakeTranslationClient,
-) -> None:
-    settings = _settings(tmp_path)
-    client = FakeContextNadeshiko()
-    shared = _segment_dict("seg-shared", text_ja="もう大丈夫ですか？")
-
-    with SceneCollectorDatabase.open(settings) as database:
-        expressions = _seed_expressions(
-            database,
-            ("大丈夫ですか", (shared,)),
-            ("もう大丈夫", (shared,)),
-        )
-        first, second = expressions
-        shared_segment_id = first.segments[0].id
-        assert second.segments[0].id == shared_segment_id
-
-        translate_expression_scenes(
-            settings, first.id, nadeshiko_client=client, database=database
-        )
-        assert client.calls == [("seg-shared", CONTEXT_TAKE)]
-
-        translate_expression_scenes(
-            settings, second.id, nadeshiko_client=client, database=database
-        )
-        assert client.calls == [("seg-shared", CONTEXT_TAKE)]
-        assert len(fake_ai.calls) == 2
-
-        first_review = database.get_review(first.id, shared_segment_id)
-        second_review = database.get_review(second.id, shared_segment_id)
-        assert first_review is not None and second_review is not None
-        assert first_review.direct_meaning == "직접 大丈夫ですか seg-shared"
-        assert second_review.direct_meaning == "직접 もう大丈夫 seg-shared"
-
-
-def test_batches_are_bounded_and_all_scenes_translated(
-    tmp_path: Path,
-    fake_ai: FakeTranslationClient,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(translate_module, "TRANSLATION_BATCH_SIZE", 2)
-    settings = _settings(tmp_path)
-    client = FakeContextNadeshiko()
-
-    with SceneCollectorDatabase.open(settings) as database:
-        expression = _seed_expressions(
-            database,
-            (
-                "大丈夫ですか",
-                (
-                    _segment_dict("seg-one", position=10),
-                    _segment_dict("seg-two", position=20),
-                    _segment_dict("seg-three", position=30),
-                ),
-            ),
-        )[0]
-
-        translated = translate_expression_scenes(
-            settings, expression.id, nadeshiko_client=client, database=database
-        )
-
-        assert len(translated) == 3
-        assert [len(call) for call in fake_ai.calls] == [2, 1]
-        for stored in expression.segments:
-            assert database.get_review(expression.id, stored.id) is not None
-
-
-def test_unknown_expression_and_empty_expression_are_handled(
-    tmp_path: Path,
-    fake_ai: FakeTranslationClient,
-) -> None:
-    settings = _settings(tmp_path)
-    client = FakeContextNadeshiko()
-
-    with SceneCollectorDatabase.open(settings) as database:
-        with pytest.raises(ValueError, match="표현을 찾을 수 없습니다"):
-            translate_expression_scenes(
-                settings, 9999, nadeshiko_client=client, database=database
-            )
-
-        expression = _seed_expressions(database, ("結果なし", ()))[0]
-        assert (
-            translate_expression_scenes(
-                settings, expression.id, nadeshiko_client=client, database=database
-            )
-            == ()
-        )
-        assert client.calls == []
-        assert fake_ai.calls == []

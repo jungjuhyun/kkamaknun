@@ -3,7 +3,15 @@
 import tomllib
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SecretStr,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -69,12 +77,24 @@ class AISettings(BaseModel):
 
 
 class SearchSettings(BaseModel):
-    """표현 후보 생성과 Nadeshiko 1회 검색 범위."""
+    """일본어 표현 생성 상한과 Nadeshiko 1회 검색 범위."""
 
     model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
 
-    candidate_count: int = Field(strict=True, ge=3, le=5)
+    expression_generation_limit: int = Field(default=20, strict=True, ge=1, le=20)
     nadeshiko_take: int = Field(strict=True, ge=1, le=20)
+
+    @model_validator(mode="before")
+    @classmethod
+    def ignore_legacy_candidate_count(cls, data: object) -> object:
+        """옛 `candidate_count`는 의미가 달라졌으므로 값을 승계하지 않고 무시한다.
+
+        구 설정 파일이 오류를 내지 않게 키만 받아 버리고, 상한은 새 설정값
+        또는 기본값 20을 사용한다.
+        """
+        if isinstance(data, dict) and "candidate_count" in data:
+            return {key: value for key, value in data.items() if key != "candidate_count"}
+        return data
 
 
 class AppSettings(BaseSettings):
