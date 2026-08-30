@@ -62,6 +62,8 @@ uv run pytest --run-nadeshiko-live -m nadeshiko_live -ra
 
 [Instructor의 현재 통합 인터페이스](https://python.useinstructor.com/concepts/from_provider/)를 사용한다. OpenAI 지원은 Instructor 기본 설치에 포함되고, Google은 현재 권장 SDK용 `instructor[google-genai]` extra로 설치한다. `create_ai_client()`는 설정의 `ai.service`와 `ai.model`을 `service/model` 문자열로 합쳐 `instructor.from_provider()`에 전달한다. 구조화 출력은 provider와 무관하게 같은 `client.create(..., response_model=...)` 호출을 사용한다. 별도의 provider 추상화나 provider별 애플리케이션 로직은 두지 않는다.
 
+provider나 Instructor가 내는 예외는 종류가 제각각이고 표준 예외 계층 밖에 있을 때도 있어서, 그대로 두면 화면의 오류 처리에 걸리지 않고 진행 표시가 멈춘 채로 남는다. `create_structured_response()`는 이런 실패를 `AIError`(RuntimeError) 하나로 바꿔 화면이 항상 사용자에게 알릴 수 있게 한다. 오류 메시지에는 예외 종류만 담고, 모델의 원본 응답이 실려 있을 수 있는 원문은 `__cause__`로만 남긴다.
+
 일반 자동시험은 fake client로 설정 연결과 Pydantic 검증만 확인하므로 인터넷이나 API 키가 필요하지 않고 비용도 발생하지 않는다. 실제 연결 시험은 다음 환경변수가 모두 있을 때만 명시적으로 실행한다.
 
 - `OPENAI_API_KEY`
@@ -187,7 +189,9 @@ DB에는 사용자의 작업 자산만 둔다: 작품 상태(`media`, `local_seg
 
 검색 결과를 보기만 해서는 아무것도 저장되지 않는다. 번역은 캐시가 아니라 작업물이므로 생성 이력(서비스·모델·지시문 버전·시각)과 함께 `work_scenes`에 저장하고, 판정·메모와 서로 덮어쓰지 않는다.
 
-빈 작업 장면은 남기지 않는다. 아직 작업하지 않은 장면에 빈 메모를 저장하면 행을 만들지 않고, 메모만 있던 장면에서 메모를 지우면 `delete_work_scene_if_empty()`가 그 행을 지운다. 판정이나 번역이 남아 있으면 지우지 않는다.
+빈 작업 장면은 남기지 않는다. 아직 작업하지 않은 장면에 빈 메모를 저장하면 행을 만들지 않고, 메모만 있던 장면에서 메모를 지우면 `delete_work_scene_if_empty()`가 그 행을 지운다. 판정이나 번역이 남아 있으면 지우지 않는다. 공백이나 폭 없는 문자만 남은 메모는 `normalize_work_scene_notes()`가 메모 없음으로 본다.
+
+장면 스냅샷과 판정·번역·메모는 **한 transaction에서 함께 저장한다.** 두 번에 나눠 쓰면 뒤쪽이 실패했을 때(다른 프로그램이 DB를 쓰는 중이거나 도중에 종료되는 경우) 아무 작업도 없는 행이 남기 때문이다. 그래서 저장이 실패하면 장면 자체가 만들어지지 않고, 이미 작업하던 장면이라면 기존 내용이 그대로 남는다.
 
 현재 schema는 `SCHEMA_VERSION = 4`이며 `PRAGMA user_version`으로 확인한다. 구버전 파일 DB는 열 때 각 단계 전에 `backup_before_schema_change()`로 같은 작업 데이터 위치에 `.pre-schema-v{n}.` 사본을 만든 뒤 한 transaction에서 v1 → v2 → v3 → v4로 순차 이동하며, 실패하면 해당 단계 이전 데이터를 그대로 유지한다. v3 → v4에서는 작품 상태·로컬 자막 색인·저장된 표현과 의미 연결·실제 작업(판정/번역/메모)을 새 구조로 옮기고, 검색 이력·검색 결과 장면·캐시·영상 주소는 옮기지 않는다. 여러 옛 table을 버리므로 SQLite 공식 절차대로 foreign key 검사를 잠시 끄고 수행하며 커밋 전에 `PRAGMA foreign_key_check`로 참조 무결성을 확인한다. 현재 코드보다 높은 version은 데이터를 변경하지 않고 거부한다. 각 연결에서 foreign key 검사를 명시적으로 켜고, WAL은 활성화하지 않아 SQLite 기본 롤백 저널을 유지한다.
 
