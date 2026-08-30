@@ -226,8 +226,8 @@ def test_lookup_and_relation_selection_both_clear_the_scene_screen() -> None:
 
 def test_clear_call_check_catches_a_missing_clear_in_select_relation() -> None:
     mutated = _mutate(
-        "clear_scene_screen()\n        state.start_relation(chosen)",
-        "state.start_relation(chosen)",
+        "clear_scene_screen()\n        token = state.start_relation(chosen)",
+        "token = state.start_relation(chosen)",
     )
     with pytest.raises(AssertionError):
         _check_scene_screen_is_cleared_on_both_entries(mutated)
@@ -315,3 +315,68 @@ def test_scene_state_check_catches_state_scattered_back_into_nonlocals() -> None
     mutated = _mutate("nonlocal player", "nonlocal player, rows, selected_index")
     with pytest.raises(AssertionError):
         _check_scene_state_lives_in_scene_work_state(mutated)
+
+
+# ----------------------------------------------------------------------
+# 늦게 도착한 조회 결과가 새 화면을 덮지 않는다
+# ----------------------------------------------------------------------
+
+
+def _check_late_results_are_guarded(source: str) -> None:
+    """await 뒤에 결과를 반영하는 함수는 그 표가 아직 현재인지 먼저 확인한다."""
+    tree = _app_source_tree(source)
+    for name in ("select_relation", "refresh_rows"):
+        calls = _call_names(_function_def(tree, name))
+        assert "state.is_current" in calls, name
+
+
+def test_select_relation_and_refresh_rows_drop_stale_results() -> None:
+    _check_late_results_are_guarded(_app_source_text())
+
+
+def test_late_result_check_catches_a_missing_guard_in_refresh_rows() -> None:
+    """refresh_rows 의 단 하나뿐인 보호를 지우면 검사가 실패해야 한다."""
+    mutated = _mutate(
+        "        if not state.is_current(token):\n            return\n        state.rows = rows",
+        "        state.rows = rows",
+    )
+    with pytest.raises(AssertionError):
+        _check_late_results_are_guarded(mutated)
+
+
+def test_late_result_check_catches_a_renamed_guard() -> None:
+    """보호 장치의 이름만 바꿔 실제로는 확인하지 않게 만들어도 잡아야 한다."""
+    source = _app_source_text()
+    assert source.count("state.is_current(") >= 2
+    with pytest.raises(AssertionError):
+        _check_late_results_are_guarded(
+            source.replace("state.is_current(", "state.was_current(")
+        )
+
+
+def _check_expression_list_is_reset_on_a_new_meaning(source: str) -> None:
+    """의미를 새로 조회하면 이전 의미의 표현 버튼이 남지 않는다.
+
+    조회를 기다리는 동안 옛 표현 버튼이 눌리면 새 의미와 옛 표현이 섞인다.
+    """
+    tree = _app_source_tree(source)
+    lookup = _call_names(_function_def(tree, "do_lookup"))
+    assert "clear_scene_screen" in lookup
+    assert "render_expressions" in lookup
+    # 표현 더 찾기로 다른 의미를 조회한 경우에도 이전 장면 화면이 남으면 안 된다.
+    generate = _call_names(_function_def(tree, "do_generate"))
+    assert "clear_scene_screen" in generate
+    assert "normalize_korean_meaning" in generate
+
+
+def test_a_new_meaning_resets_the_expression_list_and_scene_screen() -> None:
+    _check_expression_list_is_reset_on_a_new_meaning(_app_source_text())
+
+
+def test_expression_reset_check_catches_a_generate_that_never_clears() -> None:
+    mutated = _mutate(
+        "            screen = None\n            clear_scene_screen()\n            render_expressions()",
+        "            screen = None",
+    )
+    with pytest.raises(AssertionError):
+        _check_expression_list_is_reset_on_a_new_meaning(mutated)

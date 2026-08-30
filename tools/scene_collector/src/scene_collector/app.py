@@ -28,6 +28,7 @@ from scene_collector.database import (
     SceneCollectorDatabase,
     StoredMeaningExpression,
     StoredMedia,
+    normalize_korean_meaning,
 )
 from scene_collector.export import export_accepted_scenes
 from scene_collector.media import media_display_name, search_media, store_media
@@ -210,8 +211,11 @@ async def main_page() -> None:
         if not text:
             ui.notify("한국어 의미를 입력하세요.", type="warning")
             return
-        # 의미가 바뀌면 이전 표현의 장면 결과는 더 이상 유효하지 않다.
+        # 의미가 바뀌면 이전 표현의 장면 결과도, 이전 의미의 표현 목록도 유효하지 않다.
+        # 조회를 기다리는 동안 옛 표현 버튼이 눌리면 새 의미와 옛 표현이 섞인다.
+        screen = None
         clear_scene_screen()
+        render_expressions()
         lookup_button.disable()
         search_status.set_text("저장된 표현을 찾는 중...")
         try:
@@ -251,6 +255,13 @@ async def main_page() -> None:
         if not text:
             ui.notify("한국어 의미를 입력하세요.", type="warning")
             return
+        # 입력창의 의미를 바꾼 뒤 눌렀다면 이전 표현의 장면 화면은 더 이상 맞지 않는다.
+        if screen is None or normalize_korean_meaning(text) != normalize_korean_meaning(
+            screen.korean_meaning
+        ):
+            screen = None
+            clear_scene_screen()
+            render_expressions()
         more_button.disable()
         search_status.set_text("AI로 표현을 만드는 중...")
         try:
@@ -321,8 +332,11 @@ async def main_page() -> None:
         """선택한 표현 하나만 검색한다. 검색 결과는 저장하지 않는다."""
         # 이전 표현의 장면·영상·번역 표시가 새 표현과 섞이면 안 된다.
         clear_scene_screen()
-        state.start_relation(chosen)
-        state.saved_scenes = await context.call(lambda: database.list_work_scenes(chosen.id))
+        token = state.start_relation(chosen)
+        saved = await context.call(lambda: database.list_work_scenes(chosen.id))
+        if not state.is_current(token):
+            return
+        state.saved_scenes = saved
         render_expressions()
         render_scene_header()
         render_saved_scenes()
@@ -340,12 +354,19 @@ async def main_page() -> None:
                 lambda: ui_controller.scene_rows(database, found, media_names)
             )
         except NoActiveMediaError:
+            # 사용자가 그 사이 다른 표현으로 넘어갔으면 이 화면은 더 이상 없다.
+            if not state.is_current(token):
+                return
             render_scene_list(message=NO_ACTIVE_MEDIA_GUIDE)
             ui.notify(NO_ACTIVE_MEDIA_GUIDE, type="warning", multi_line=True)
             return
         except _USER_ERRORS as error:
+            if not state.is_current(token):
+                return
             render_scene_list(message=f"검색 실패: {error}")
             _notify_error(error)
+            return
+        if not state.is_current(token):
             return
         state.show_results(found, rows)
         render_scene_list()
@@ -526,10 +547,16 @@ async def main_page() -> None:
         relation = state.relation
         if found is None or relation is None:
             return
-        state.rows = await context.call(
+        token = state.request_id
+        rows = await context.call(
             lambda: ui_controller.scene_rows(database, found, media_names)
         )
-        state.saved_scenes = await context.call(lambda: database.list_work_scenes(relation.id))
+        saved = await context.call(lambda: database.list_work_scenes(relation.id))
+        # 읽는 동안 사용자가 다른 표현으로 넘어갔으면 옛 결과를 되살리지 않는다.
+        if not state.is_current(token):
+            return
+        state.rows = rows
+        state.saved_scenes = saved
         render_saved_scenes()
         render_scene_list()
         render_detail()

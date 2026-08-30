@@ -43,6 +43,9 @@ _LOCKED_MESSAGE = (
 _MEANING_TERMINAL_PUNCTUATION = "?!.？！．。"
 _WHITESPACE_RUN = re.compile(r"\s+")
 
+# 메모가 비었는지 볼 때는 공백과 폭 없는 문자를 함께 제거한다.
+_BLANK_NOTE_CHARACTERS = " \t\n\r\v\f               　​‌‍﻿"
+
 
 def _raise_if_locked(error: sqlite3.OperationalError) -> None:
     """DB 잠김(BUSY/LOCKED)만 사용자용 DatabaseError로 바꾼다. 그 외는 그대로 둔다."""
@@ -56,6 +59,17 @@ class DatabaseError(RuntimeError):
 
 class UnsupportedSchemaVersionError(DatabaseError):
     """DB 스키마가 현재 코드보다 새 버전일 때 발생한다."""
+
+
+def normalize_work_scene_notes(notes: str | None) -> str | None:
+    """저장할 메모를 정리한다. 남는 글자가 없으면 메모 없음(None)으로 본다.
+
+    붙여넣기로 들어오는 폭 없는 문자만 남은 메모는 화면에서 비어 보이므로
+    실제 작업으로 세지 않는다.
+    """
+    if not isinstance(notes, str):
+        return None
+    return notes.strip(_BLANK_NOTE_CHARACTERS) or None
 
 
 def normalize_korean_meaning(text: str) -> str:
@@ -932,6 +946,19 @@ class SceneCollectorDatabase:
     # 실제 작업 장면
     # ------------------------------------------------------------------
 
+    @contextmanager
+    def _writing(self, connection: sqlite3.Connection | None) -> Iterator[sqlite3.Connection]:
+        """이미 열린 transaction이 있으면 그 안에서, 없으면 새 transaction에서 쓴다.
+
+        스냅샷과 판정·번역·메모를 한 번에 저장해야 중간에 실패했을 때 아무 작업도
+        없는 빈 행이 남지 않는다.
+        """
+        if connection is not None:
+            yield connection
+            return
+        with self.transaction() as owned:
+            yield owned
+
     def upsert_work_scene(
         self,
         meaning_expression_id: int,
@@ -943,11 +970,13 @@ class SceneCollectorDatabase:
         start_time_ms: int,
         end_time_ms: int,
         japanese_text: str,
+        connection: sqlite3.Connection | None = None,
     ) -> int:
         """작업 장면의 스냅샷을 저장하고 work_scene ID를 반환한다.
 
         이미 있는 장면이면 스냅샷만 갱신하고 판정·번역·메모는 보존한다.
         영상/음성/이미지 주소와 원본 응답은 저장하지 않는다.
+        connection을 주면 그 transaction 안에서 저장한다.
         """
         if not (segment_public_id or "").strip():
             raise ValueError("Nadeshiko 장면 ID가 필요합니다.")
@@ -955,7 +984,7 @@ class SceneCollectorDatabase:
             raise DatabaseError("작업 장면을 저장할 표현 연결을 찾을 수 없습니다.")
 
         now = _utc_now()
-        with self.transaction() as connection:
+        with self._writing(connection) as connection:
             connection.execute(
                 """
                 INSERT INTO work_scenes (
@@ -985,30 +1014,47 @@ class SceneCollectorDatabase:
                     now,
                 ),
             )
-        row = self.connection.execute(
-            """
-            SELECT id FROM work_scenes
-            WHERE meaning_expression_id = ? AND segment_public_id = ?
-            """,
-            (meaning_expression_id, segment_public_id),
-        ).fetchone()
-        if row is None:
-            raise DatabaseError("저장한 작업 장면을 다시 읽을 수 없습니다.")
-        return int(row["id"])
+            row = connection.execute(
+                """
+                SELECT id FROM work_scenes
+                WHERE meaning_expression_id = ? AND segment_public_id = ?
+                """,
+                (meaning_expression_id, segment_public_id),
+            ).fetchone()
+            if row is None:
+                raise DatabaseError("저장한 작업 장면을 다시 읽을 수 없습니다.")
+            return int(row["id"])
 
-    def set_work_scene_decision(self, work_scene_id: int, decision: ReviewDecision) -> None:
+    def set_work_scene_decision(
+        self,
+        work_scene_id: int,
+        decision: ReviewDecision,
+        *,
+        connection: sqlite3.Connection | None = None,
+    ) -> None:
         """사용자 판정만 저장하고 번역·메모는 보존한다."""
         if decision not in _REVIEW_DECISIONS:
             raise ValueError("검수 판정은 채택, 예비, 제외 중 하나여야 합니다.")
         self._update_work_scene(
-            work_scene_id, "decision = ?, updated_at = ?", (decision, _utc_now())
+            work_scene_id,
+            "decision = ?, updated_at = ?",
+            (decision, _utc_now()),
+            connection=connection,
         )
 
-    def set_work_scene_notes(self, work_scene_id: int, notes: str | None) -> None:
+    def set_work_scene_notes(
+        self,
+        work_scene_id: int,
+        notes: str | None,
+        *,
+        connection: sqlite3.Connection | None = None,
+    ) -> None:
         """사용자 메모만 저장하고 판정·번역은 보존한다."""
-        value = notes.strip() if isinstance(notes, str) else None
         self._update_work_scene(
-            work_scene_id, "notes = ?, updated_at = ?", (value or None, _utc_now())
+            work_scene_id,
+            "notes = ?, updated_at = ?",
+            (normalize_work_scene_notes(notes), _utc_now()),
+            connection=connection,
         )
 
     def save_work_scene_translation(
@@ -1021,6 +1067,7 @@ class SceneCollectorDatabase:
         ai_service: str,
         ai_model: str,
         instruction_version: str,
+        connection: sqlite3.Connection | None = None,
     ) -> None:
         """사용자가 요청해 만든 번역을 작업물로 저장한다. 판정·메모는 보존한다."""
         now = _utc_now()
@@ -1041,15 +1088,18 @@ class SceneCollectorDatabase:
                 now,
                 now,
             ),
+            connection=connection,
         )
 
-    def delete_work_scene_if_empty(self, work_scene_id: int) -> bool:
+    def delete_work_scene_if_empty(
+        self, work_scene_id: int, *, connection: sqlite3.Connection | None = None
+    ) -> bool:
         """판정·번역·메모가 하나도 없는 작업 장면 행을 지운다. 지웠으면 True.
 
         메모만 있던 장면에서 메모를 지웠을 때처럼, 실제 작업이 남지 않은 행이
         work_scenes에 쌓이지 않게 한다.
         """
-        with self.transaction() as connection:
+        with self._writing(connection) as connection:
             cursor = connection.execute(
                 """
                 DELETE FROM work_scenes
@@ -1064,8 +1114,15 @@ class SceneCollectorDatabase:
             )
             return cursor.rowcount > 0
 
-    def _update_work_scene(self, work_scene_id: int, assignment: str, values: tuple) -> None:
-        with self.transaction() as connection:
+    def _update_work_scene(
+        self,
+        work_scene_id: int,
+        assignment: str,
+        values: tuple,
+        *,
+        connection: sqlite3.Connection | None = None,
+    ) -> None:
+        with self._writing(connection) as connection:
             cursor = connection.execute(
                 f"UPDATE work_scenes SET {assignment} WHERE id = ?",
                 (*values, work_scene_id),
@@ -1388,6 +1445,14 @@ class SceneCollectorDatabase:
             relation_id = relation_ids.get(int(review["expression_id"]))
             if relation_id is None:
                 continue
+            # 메모가 공백뿐이면 실제 작업이 아니므로, 판정도 번역도 없으면 옮기지 않는다.
+            notes = normalize_work_scene_notes(review["notes"])
+            if (
+                review["decision"] is None
+                and review["natural_translation"] is None
+                and notes is None
+            ):
+                continue
             connection.execute(
                 """
                 INSERT INTO work_scenes (
@@ -1417,7 +1482,7 @@ class SceneCollectorDatabase:
                     review["translation_ai_model"],
                     review["translation_instruction_version"],
                     review["translated_at"],
-                    review["notes"],
+                    notes,
                     review["updated_at"] or now,
                     review["updated_at"] or now,
                 ),

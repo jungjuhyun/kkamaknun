@@ -13,6 +13,7 @@ from scene_collector.database import (
     StoredMeaningExpression,
     UnsupportedSchemaVersionError,
     normalize_korean_meaning,
+    normalize_work_scene_notes,
 )
 from scene_collector.subtitles import SubtitleCue
 
@@ -1167,6 +1168,11 @@ def _create_seeded_v3_database(path: Path) -> None:
                 "INSERT INTO reviews (expression_id, segment_id, updated_at)"
                 " VALUES (2, 2, 'past')"
             )
+            # 메모 칸이 공백뿐인 검수도 실제 작업이 아니다
+            connection.execute(
+                "INSERT INTO reviews (expression_id, segment_id, notes, updated_at)"
+                " VALUES (2, 1, '   ', 'past')"
+            )
             connection.execute("PRAGMA user_version = 3")
     finally:
         connection.close()
@@ -1394,3 +1400,44 @@ def test_v1_migration_failure_keeps_original_v1_data(
         assert "nadeshiko_context_cache" not in tables
         row = connection.execute("SELECT decision, notes FROM reviews").fetchone()
         assert tuple(row) == ("채택", "메모")
+
+
+def test_normalize_work_scene_notes_treats_invisible_text_as_no_note() -> None:
+    """공백과 폭 없는 문자만 남은 메모는 메모 없음으로 본다."""
+    for blank in ("", "   ", "\t\n", "\u3000", "\u00a0", "\u200b", "\ufeff", " \u200b\t"):
+        assert normalize_work_scene_notes(blank) is None
+    assert normalize_work_scene_notes(None) is None
+    assert normalize_work_scene_notes("도입부 후보") == "도입부 후보"
+    assert normalize_work_scene_notes("\u200b 도입부 후보 \u3000") == "도입부 후보"
+    # 안쪽 공백은 사용자가 쓴 그대로 둔다.
+    assert normalize_work_scene_notes(" 앞  뒤 ") == "앞  뒤"
+
+
+def test_blank_note_is_stored_as_no_note_and_row_can_be_cleaned(tmp_path: Path) -> None:
+    """공백뿐인 메모를 저장하면 메모 없음이 되고, 그 행은 빈 행으로 정리된다."""
+    settings = _settings(tmp_path)
+    with SceneCollectorDatabase.open(settings) as database:
+        meaning = database.upsert_meaning("괜찮냐고 묻는 말")
+        relation = database.add_meaning_expression(
+            meaning.id,
+            japanese="大丈夫ですか",
+            reading="だいじょうぶですか",
+            meaning_ko="괜찮으세요?",
+            register_text="존댓말",
+        )
+        work_scene_id = database.upsert_work_scene(
+            relation.id,
+            segment_public_id="segment-a",
+            media_public_id="anonymous-media-001",
+            media_display_name="테스트 작품",
+            episode=1,
+            start_time_ms=1_000,
+            end_time_ms=3_000,
+            japanese_text="あの、大丈夫ですか？",
+        )
+
+        database.set_work_scene_notes(work_scene_id, "\u200b   ")
+        stored = database.get_work_scene(relation.id, "segment-a")
+        assert stored is not None and stored.notes is None
+        assert database.delete_work_scene_if_empty(work_scene_id) is True
+        assert database.list_work_scenes(relation.id) == ()

@@ -21,6 +21,7 @@ from scene_collector.database import (
     StoredMeaningExpression,
     StoredWorkScene,
     database_path,
+    normalize_work_scene_notes,
 )
 from scene_collector.search import (
     SelectedExpressionScenes,
@@ -100,19 +101,30 @@ class SceneWorkState:
     rows: tuple[SceneRow, ...] = ()
     saved_scenes: tuple[StoredWorkScene, ...] = field(default_factory=tuple)
     selected_index: int | None = None
+    request_id: int = 0
 
     def clear(self) -> None:
-        """이전 의미·표현의 장면 결과를 하나도 남기지 않는다."""
+        """이전 의미·표현의 장면 결과를 하나도 남기지 않는다.
+
+        진행 중이던 조회에는 지금까지의 표를 무효로 만들어, 늦게 도착한 결과가
+        새 화면 위에 덮이지 않게 한다.
+        """
         self.relation = None
         self.found = None
         self.rows = ()
         self.saved_scenes = ()
         self.selected_index = None
+        self.request_id += 1
 
-    def start_relation(self, relation: StoredMeaningExpression) -> None:
-        """새 의미→표현 관계로 넘어간다. 이전 결과는 남기지 않는다."""
+    def start_relation(self, relation: StoredMeaningExpression) -> int:
+        """새 의미→표현 관계로 넘어가고 이번 조회를 가리키는 표를 돌려준다."""
         self.clear()
         self.relation = relation
+        return self.request_id
+
+    def is_current(self, request_id: int) -> bool:
+        """그 표가 아직 지금 화면의 것인지. 아니면 결과를 버려야 한다."""
+        return request_id == self.request_id
 
     def show_results(self, found: SelectedExpressionScenes, rows: tuple[SceneRow, ...]) -> None:
         """검색이 성공했을 때만 결과를 채운다. 장면은 아직 고르지 않은 상태다."""
@@ -246,8 +258,14 @@ def ensure_work_scene(
     relation: StoredMeaningExpression,
     segment: Segment,
     media_display_name: str | None,
+    *,
+    connection: object | None = None,
 ) -> int:
-    """실제 작업이 발생하는 순간에만 장면 스냅샷을 저장하고 ID를 돌려준다."""
+    """실제 작업이 발생하는 순간에만 장면 스냅샷을 저장하고 ID를 돌려준다.
+
+    connection을 주면 그 transaction 안에서 저장한다. 판정·번역·메모와 같은
+    transaction으로 묶어야 중간에 실패했을 때 빈 장면이 남지 않는다.
+    """
     return database.upsert_work_scene(
         relation.id,
         segment_public_id=segment.public_id,
@@ -257,6 +275,7 @@ def ensure_work_scene(
         start_time_ms=segment.start_time_ms,
         end_time_ms=segment.end_time_ms,
         japanese_text=segment.text_ja.content,
+        connection=connection,
     )
 
 
@@ -267,9 +286,18 @@ def save_decision(
     media_display_name: str | None,
     decision: ReviewDecision,
 ) -> StoredWorkScene:
-    """채택/예비/제외를 저장한다. 이 시점에 작업 장면이 생긴다."""
-    work_scene_id = ensure_work_scene(database, relation, segment, media_display_name)
-    database.set_work_scene_decision(work_scene_id, decision)
+    """채택/예비/제외를 저장한다. 이 시점에 작업 장면이 생긴다.
+
+    판정값을 먼저 확인하고 만들며, 판정 저장이 실패하면 방금 만든 빈 장면을
+    되돌린다. 그래서 실패한 저장이 빈 작업 장면으로 남지 않는다.
+    """
+    if decision not in REVIEW_DECISIONS:
+        raise ValueError("검수 판정은 채택, 예비, 제외 중 하나여야 합니다.")
+    with database.transaction() as connection:
+        work_scene_id = ensure_work_scene(
+            database, relation, segment, media_display_name, connection=connection
+        )
+        database.set_work_scene_decision(work_scene_id, decision, connection=connection)
     return _require_work_scene(database, relation, segment)
 
 
@@ -286,15 +314,19 @@ def save_notes(
     이미 있는 장면의 메모를 비우는 것은 허용하며, 그 결과 판정도 번역도 없이
     비어 버린 행은 지운다. 어느 경우든 None을 돌려준다.
     """
-    value = notes.strip() if isinstance(notes, str) else ""
-    if not value and database.get_work_scene(relation.id, segment.public_id) is None:
+    value = normalize_work_scene_notes(notes)
+    if value is None and database.get_work_scene(relation.id, segment.public_id) is None:
         return None
 
-    work_scene_id = ensure_work_scene(database, relation, segment, media_display_name)
-    database.set_work_scene_notes(work_scene_id, value or None)
-    if not value and database.delete_work_scene_if_empty(work_scene_id):
-        return None
-    return _require_work_scene(database, relation, segment)
+    with database.transaction() as connection:
+        work_scene_id = ensure_work_scene(
+            database, relation, segment, media_display_name, connection=connection
+        )
+        database.set_work_scene_notes(work_scene_id, value, connection=connection)
+        emptied = value is None and database.delete_work_scene_if_empty(
+            work_scene_id, connection=connection
+        )
+    return None if emptied else _require_work_scene(database, relation, segment)
 
 
 def translate_scene(
@@ -318,16 +350,20 @@ def translate_scene(
         segment=segment,
         nadeshiko_client=nadeshiko_client,
     )
-    work_scene_id = ensure_work_scene(database, relation, segment, media_display_name)
-    database.save_work_scene_translation(
-        work_scene_id,
-        direct_meaning=translated.translation.direct_meaning,
-        natural_translation=translated.translation.natural_translation,
-        scene_usage=translated.translation.scene_usage,
-        ai_service=settings.ai.service,
-        ai_model=settings.ai.model,
-        instruction_version=TRANSLATION_INSTRUCTION_VERSION,
-    )
+    with database.transaction() as connection:
+        work_scene_id = ensure_work_scene(
+            database, relation, segment, media_display_name, connection=connection
+        )
+        database.save_work_scene_translation(
+            work_scene_id,
+            direct_meaning=translated.translation.direct_meaning,
+            natural_translation=translated.translation.natural_translation,
+            scene_usage=translated.translation.scene_usage,
+            ai_service=settings.ai.service,
+            ai_model=settings.ai.model,
+            instruction_version=TRANSLATION_INSTRUCTION_VERSION,
+            connection=connection,
+        )
     return translated
 
 

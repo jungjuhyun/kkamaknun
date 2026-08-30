@@ -34,8 +34,6 @@ if TYPE_CHECKING:
         StoredMedia,
     )
 
-EXPRESSION_INSTRUCTION_VERSION = "expression-assets-v1"
-
 _EXPRESSION_RULES = """당신은 한국어 의미에 맞는 실제 일본어 회화 표현을 모으는 도우미입니다.
 
 규칙:
