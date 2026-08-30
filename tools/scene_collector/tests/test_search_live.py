@@ -238,9 +238,35 @@ _RECALL_ITEM_KEY = "kimetsu_no_yaiba"
 _RECALL_EXPRESSION = "大丈夫です"
 
 
+@pytest.fixture()
+def recall_settings(tmp_path: Path) -> AppSettings:
+    """회수 확인 전용 설정. AI는 부르지 않으므로 Nadeshiko 키만 요구한다."""
+    _required_environment("NADESHIKO_API_KEY")
+    work_data_dir = tmp_path / "work-data"
+    work_data_dir.mkdir()
+    settings_file = tmp_path / "settings.toml"
+    settings_file.write_text(
+        "\n".join(
+            (
+                "[storage]",
+                f"work_data_dir = {json.dumps(str(work_data_dir))}",
+                "",
+                "[ai]",
+                'service = "unused-in-this-check"',
+                'model = "unused-in-this-check"',
+                "",
+                "[search]",
+                "scene_result_limit = 5",
+                "",
+            )
+        ),
+        encoding="utf-8",
+    )
+    return load_settings(settings_file)
+
+
 def test_paged_search_recovers_a_common_expression_in_a_real_media(
-    live_settings: AppSettings,
-    tmp_path: Path,
+    recall_settings: AppSettings,
 ) -> None:
     """UAT에서 0건이 나왔던 조합을 실제 연결로 확인한다.
 
@@ -248,6 +274,7 @@ def test_paged_search_recovers_a_common_expression_in_a_real_media(
     AI도 부르지 않는다 — 표현을 직접 저장하고 그 표현 하나만 찾는다.
     보고할 값은 정확 일치 장면 수와 논리 검색 호출 수뿐이다.
     """
+    live_settings = recall_settings
     item = next(
         candidate for candidate in load_curated_pool() if candidate.key == _RECALL_ITEM_KEY
     )
