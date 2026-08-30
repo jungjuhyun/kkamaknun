@@ -2,7 +2,9 @@
 
 한국어로 찾고 싶은 뜻에서 출발해 실제 애니 표현 장면을 수집하기 위한 Windows 로컬 도구다.
 
-현재 브랜치에는 **작업 0 — 개발 골격**부터 **작업 9 — 화면 기술 확인**까지 완료되어 있다. Nadeshiko 공식 exact-match와 로컬 표면형 검증을 연결해 실제 원문에 같은 표현이 있는 segment만 남기고, 검색·검수 상태와 외부 요청 캐시를 작업 데이터 위치의 SQLite DB에 저장한다. 사용자 선호 작품은 Nadeshiko public ID 기준으로 관리하며, DB가 연결된 제품 검색은 활성 선호작만 공식 media filter로 검색한다. 정확 후보 장면에는 앞뒤 문맥을 조회해 AI가 직접 의미·자연스러운 한국어·장면 쓰임을 구조화 반환하고 재시작 후 재사용한다. 화면 기술은 Windows 실측 비교로 **NiceGUI(native mode)**를 선택했고, 실제 제품 화면(Task 10)은 아직 없다.
+한국어 의미에서 시작해 저장된 일본어 표현 자산을 보여주고(없으면 AI로 만들어 저장), 사용자가 고른 **의미→표현 관계 하나만** 실제 애니 대사에서 찾아 장면을 검수·내보내는 Windows 로컬 도구다.
+
+검색 응답·문맥 응답은 저장하거나 캐시하지 않는다. DB에는 사용자의 작업 자산만 남는다: 작품 상태, 표현 자산(의미↔표현 관계), 그리고 판정·번역·메모가 실제로 발생한 작업 장면. 화면은 NiceGUI(native mode)이며 영상 플레이어는 하나만 두고 선택한 장면만 로딩한다.
 
 ## 개발 환경
 
@@ -24,8 +26,10 @@ uv run ruff check .
 - `storage.work_data_dir`: 사용자가 지정한 기존 작업 데이터 디렉터리의 절대경로
 - `ai.service`: 사용할 AI 서비스 식별자
 - `ai.model`: 사용할 모델 식별자
-- `search.candidate_count`: AI가 생성할 후보 수, 3~5
-- `search.nadeshiko_take`: 후보 하나당 Nadeshiko 조회량, 1~20
+- `search.expression_generation_limit`: AI가 한 번에 만들 표현 수의 상한, 1~20 (기본 20, 생략 가능)
+- `search.nadeshiko_take`: 선택한 표현 하나를 검색할 때 조회할 장면 수, 1~20
+
+옛 `search.candidate_count` 키는 의미가 달라져 더 이상 사용하지 않는다. 남아 있어도 오류가 나지는 않지만 값은 승계되지 않으므로, 새 이름으로 바꾸는 것을 권장한다.
 
 기본 설정 파일 위치는 프로그램을 실행하는 현재 디렉터리의 `settings.toml`이다. 다른 위치를 사용할 때는 `load_settings()`에 경로를 전달한다.
 
@@ -79,9 +83,19 @@ uv run pytest --run-ai-live -m ai_live -ra
 
 실제 live 시험에서 OpenAI `gpt-5.4-nano`와 Google `gemini-3.6-flash`가 모두 같은 중립 프롬프트에 대해 `text: str`, `number: int`인 `ConnectivityProbe` Pydantic 자료형을 반환했다. 두 provider 모두 실제 호출과 자료형 검증에 성공해 작업 3은 PASS다. 이번 환경에서는 `gemini-2.5-flash` 호출이 404를 반환해 `gemini-3.6-flash`로 실제 검증했다.
 
-## 한국어 표현 찾기
+## 한국어 의미 → 일본어 표현 자산
 
-`search_expressions()`는 한국어 의도를 기존 Instructor 구조화 출력 경로에 전달해 `ExpressionCandidate` 3~5개를 받고, 일본어 문자열의 중복만 순서대로 제거한 뒤 공식 SDK로 각 후보를 일반 검색한다. 일반 검색 응답에서 로컬 표면형을 찾지 못한 경우에만 `SearchQuery(search=..., exact_match=True)`로 한 번 더 회수한다. 공식 exact 검색이 실제 동일표현을 놓치는 사례가 있어 일반 검색의 정상 결과를 대체하지 않는다. 두 경로 모두 반환 원문을 같은 로컬 검사에 통과시키며, 최종 `exact_segments`가 0개인 후보는 `corpus_backed_candidates`에서 제외한다. 일반 SDK 원본 `SearchResponse`와 실행한 경우의 `exact_match_response`는 검토용으로 유지한다.
+한국어 의미는 먼저 DB에서 조회한다. `search.find_saved_expressions(database, "괜찮아요")`가 저장된 표현을 돌려주면 **AI를 호출하지 않는다.** 의미는 NFKC·공백 정리·끝 문장부호 제거까지만 정규화(`database.normalize_korean_meaning`)해 조회 키로 쓰고, 화면에는 처음 입력한 원문을 보여준다.
+
+저장된 표현이 없거나 사용자가 [표현 더 찾기]를 누르면 `search.generate_expressions(settings, "괜찮아요", database=database)`가 AI를 한 번 호출한다. 프롬프트는 "실제 회화에서 자연스럽게 쓰는 서로 다른 표현을 가능한 한 폭넓게, 최대 `expression_generation_limit`(기본 20)개까지, 자연스러운 표현이 적으면 억지로 채우지 말 것"을 요구하고, 이미 저장된 표현이 있으면 그 목록을 함께 전달해 중복을 피한다. 반환 결과 중 기존 표현과 겹치는 항목은 저장하지 않는다.
+
+생성 결과는 캐시가 아니라 **표현 자산**으로 저장한다. 같은 일본어 표현은 `expressions`에 한 번만 저장하고, "이 한국어 의미에서의 뜻·말투"는 `meaning_expressions` 관계에 저장한다. 따라서 `괜찮아요 → 大丈夫`와 `문제없어요 → 大丈夫`는 같은 표현 하나에 서로 다른 설명 두 개로 연결된다.
+
+## 선택한 표현 하나만 검색
+
+사용자가 의미→표현 관계 하나를 고른 뒤에만 `search.search_selected_expression(settings, relation, nadeshiko_client=..., database=...)`가 그 일본어 표현 하나를 검색한다. AI가 표현을 만들었다는 이유로 표현들을 미리 검색하지 않는다.
+
+검색은 활성 선호작만 대상으로 하며(활성 작품이 없으면 `NoActiveMediaError`), 공식 SDK 일반 검색 → 로컬 표면형 판정 → 결과가 0이면 `exact_match=True`로 한 번 더 → 같은 표면형 판정 순서를 유지한다. **검색 응답과 결과는 DB에 저장하거나 캐시하지 않는다.** 같은 표현을 나중에 다시 찾으면 Nadeshiko를 다시 호출한다.
 
 로컬 검사는 다음 차이만 완화한다.
 
@@ -91,24 +105,21 @@ uv run pytest --run-ai-live -m ai_live -ra
 
 내부 문장부호와 활용형은 지우지 않는다. 응답에 Nadeshiko top-level token이 있으면 원문의 token 시작·끝 위치를 표현 경계의 보조 자료로 사용한다. 따라서 독립 token인 `悪い` 뒤에 다른 말이 이어지는 문장은 허용하면서도, `気持ち悪い` compound token 안의 `悪い`는 통과시키지 않는다. 문장부호 없이 바로 다음 token이 이어질 때는 매치 구간 자체가 하나의 top-level token인 경우만 허용해, 여러 token으로 된 표현에 문법 suffix가 덧붙은 결과를 보수적으로 제외한다. token이 없는 응답의 짧은 표면형은 복합어 내부 일치를 피하도록 보수적으로 판정한다. `ほんとそれ`도 `ほんと? それって...`에 걸리지 않는다.
 
-한자/가나 표기 차이는 자동 변환하지 않는다. `matches_surface()`의 `allowed_surfaces`에 검증한 가나 표기를 명시한 경우에만 허용한다. AI가 생성한 `ExpressionCandidate.reading`은 정확한 허용 표기라고 보장할 수 없으므로 자동 연결하지 않는다.
+한자/가나 표기 차이는 자동 변환하지 않는다. `matches_surface()`의 `allowed_surfaces`에 검증한 가나 표기를 명시한 경우에만 허용한다. AI가 생성한 읽기(`reading`)는 정확한 허용 표기라고 보장할 수 없으므로 자동 연결하지 않는다.
 
-영어 fallback과 앞뒤 문맥 조회는 아직 하지 않는다.
+영어 검색 대체 경로는 아직 하지 않는다.
 
-일반 `uv run pytest`는 AI와 Nadeshiko를 fake로 대체한다. 실제 10개 한국어 의도 품질 평가는 루트 `.env`에서 `GOOGLE_API_KEY`와 `NADESHIKO_API_KEY`만 현재 셸에 로드한 뒤 명시적으로 실행한다. 키 값과 `.env` 내용은 출력하거나 저장하지 않는다.
+일반 `uv run pytest`는 AI와 Nadeshiko를 가짜 객체로 대체한다. 실제 연결 품질 시험은 루트 `.env`에서 `GOOGLE_API_KEY`와 `NADESHIKO_API_KEY`만 현재 셸에 로드한 뒤 명시적으로 실행한다. 키 값과 `.env` 내용은 출력하거나 저장하지 않는다.
 
 ```powershell
 $env:SCENE_COLLECTOR_SEARCH_LIVE_SERVICE = "google"
 $env:SCENE_COLLECTOR_SEARCH_LIVE_MODEL = "gemini-3.6-flash"
-$env:SCENE_COLLECTOR_SEARCH_LIVE_CANDIDATE_COUNT = "5"
 $env:SCENE_COLLECTOR_SEARCH_LIVE_NADESHIKO_TAKE = "5"
 $env:SCENE_COLLECTOR_SEARCH_LIVE_REPORT = (Join-Path $env:TEMP "scene-collector-search-live.json")
 uv run pytest --run-search-live -m search_live -ra
 ```
 
-평가 입력은 `tests/fixtures/search_live_intents.json`에 둔다. 보고서에는 후보 자료형, 검색 결과 유무, 첫 일본어·영어 대사, fetch 수와 `has_more`만 기록하며 API 키·사용자 정보·segment/media ID는 넣지 않는다.
-
-## 정확 동일표현 live 비교
+## 정확 동일표현 실제 연결 비교
 
 작업 5의 실제 비교는 AI를 호출하지 않고 고정 일본어 target 6개만 사용한다. target마다 Nadeshiko 일반 검색과 `exact_match=True`를 한 번씩 호출하고, 두 응답의 로컬 표면형 수와 실제 파이프라인이 선택할 최종 수를 비교한다.
 
@@ -140,13 +151,12 @@ uv run pytest --run-media-live -m media_live -ra
 
 ## 한국어 장면 번역
 
-`translate.translate_expression_scenes(settings, expression_id, nadeshiko_client=..., database=...)`가 Task 8의 제품 진입점이다. 사용자가 선택한 표현 하나의 정확 surface 장면들만 번역하며, 모든 search run의 모든 후보를 자동 번역하지 않는다.
+`translate.translate_work_scene(settings, relation=..., segment=..., work_scene_id=..., nadeshiko_client=..., database=...)`가 제품 진입점이다. **사용자가 그 장면에서 명시적으로 요청했을 때만** 실행하며, 검색 결과 전체를 미리 번역하지 않는다.
 
-- 문맥은 이미 DB에 저장된 exact segment에만 공식 `get_segment_context(segment_public_id, take=2)`로 조회한다. 응답 리스트 순서를 믿지 않고 같은 `media_public_id`·같은 `episode` 중 position이 가장 가까운 앞/뒤 장면을 고르며, 첫/마지막 장면의 빈 문맥은 정상 상태다.
-- 문맥 원본 응답은 `nadeshiko_context_cache` table에 `(segment_public_id, take)` identity로 저장해 재시작 후에도 같은 조건이면 Nadeshiko를 다시 호출하지 않는다. 깨진 JSON은 cache miss로 처리한다.
-- 번역은 기존 `create_structured_response()` 경로와 `SceneTranslationBatch` Pydantic 자료형을 사용한다. 여러 장면을 canonical JSON으로 묶어 한 요청(내부 batch 크기 5)에 보내고, AI가 반환한 scene_key의 중복·누락·알 수 없는 ID를 검증한 뒤에만 저장한다. 배열 순서는 믿지 않는다.
-- 지시문 버전은 `scene-translation-v1`이며 Task 6 AI cache를 그대로 재사용한다. 같은 service/model/지시문/입력이면 provider를 다시 호출하지 않는다.
-- 번역 결과는 `reviews`의 번역 필드에 AI provenance(service/model/지시문 버전/입력 hash/생성 시각)와 함께 저장된다. `decision`이 NULL이면 번역은 있지만 사용자가 아직 판정하지 않은 상태다. `save_scene_translation()`은 decision/notes를 건드리지 않고, `set_review_decision()`은 번역을 건드리지 않는다. `save_review()`는 번역 필드까지 통째로 다시 쓰는 수동 경로이므로 AI provenance를 비운다.
+- 문맥은 요청한 장면 하나에만 공식 `get_segment_context(segment_public_id, take=2)`로 조회한다. 응답 리스트 순서를 믿지 않고 같은 `media_public_id`·같은 `episode` 중 position이 가장 가까운 앞/뒤 장면을 고르며, 첫/마지막 장면의 빈 문맥은 정상 상태다.
+- **문맥 원본 응답은 저장하거나 캐시하지 않는다.** 다시 번역하면 다시 조회한다.
+- 번역은 `create_structured_response()` 경로와 `SceneTranslation` 자료형을 사용하며 장면 하나만 요청한다. 지시문 버전은 `scene-translation-v2`다.
+- 번역 결과는 캐시가 아니라 작업물이므로 `work_scenes`에 생성 이력(서비스·모델·지시문 버전·시각)과 함께 저장된다. `save_work_scene_translation()`은 판정·메모를 건드리지 않고, `set_work_scene_decision()`/`set_work_scene_notes()`는 번역을 건드리지 않는다.
 
 실제 Nadeshiko 문맥 + AI 번역 검증은 API 사용량이 발생하므로 명시적으로 실행한다. 루트 `.env`에서 `NADESHIKO_API_KEY`와 사용할 provider의 키만 현재 셸에 로드하고 값은 출력하지 않는다.
 
@@ -159,7 +169,7 @@ uv run pytest --run-translation-live -m translation_live -ra
 
 이 시험은 실제 장면 2~3개를 한 AI batch로 번역하고, 같은 DB 재실행과 reopen 후 재실행에서 Nadeshiko 문맥·AI 호출이 다시 발생하지 않는 것을 확인한다. 검색어는 기본 `大丈夫`이며 필요할 때만 `SCENE_COLLECTOR_TRANSLATION_LIVE_QUERY`로 바꾼다. 보고서에는 장면 텍스트와 번역만 기록하고 key·사용자 정보·segment/media ID는 넣지 않는다.
 
-## 로컬 저장과 캐시
+## 로컬 저장 구조
 
 `SceneCollectorDatabase.open(settings)`는 새 경로 설정을 요구하지 않고 다음 파일을 관리한다.
 
@@ -167,15 +177,20 @@ uv run pytest --run-translation-live -m translation_live -ra
 <storage.work_data_dir>/scene_collector.sqlite3
 ```
 
-DB에는 `media`, `search_runs`, `expressions`, `segments`, `expression_segments`, `reviews`, `ai_cache`, `nadeshiko_search_cache`, `nadeshiko_context_cache`가 있다. 같은 Nadeshiko segment를 여러 표현과 검색에 연결할 수 있도록 `expression_segments`를 두고, 원본 segment JSON은 한 번만 저장한다. review 판정은 `채택`, `예비`, `제외`이며 판정 전의 AI 번역만 있는 상태는 `decision` NULL로 표현한다.
+DB에는 사용자의 작업 자산만 둔다: 작품 상태(`media`, `local_segments`), 표현 자산(`meanings`, `expressions`, `meaning_expressions`), 실제 작업(`work_scenes`). **검색 응답·문맥 응답·AI 응답 캐시는 없다.**
 
-`search_expressions(..., database=database)`처럼 열린 DB를 전달하면 검색 완료 결과를 한 transaction으로 저장한다. AI cache는 서비스·모델·지시문 버전·실제 입력의 canonical hash가 모두 같은 경우에만 사용하고, JSON을 요청한 Pydantic 자료형으로 다시 검증한다. Nadeshiko cache는 검색 문자열·`exact_match`·`take`·검색 조건을 구분해 SDK의 원본 `SearchResponse`를 저장하며, 복원된 응답에도 현재 로컬 surface matcher를 다시 적용한다.
+- `meanings`: 정규화한 한국어 의미(UNIQUE)와 표시용 원문.
+- `expressions`: 일본어 표현 자체(japanese UNIQUE, reading).
+- `meaning_expressions`: 의미↔표현 관계와 **그 의미에서의 뜻·말투**. 같은 표현이 여러 의미에 연결될 수 있다.
+- `work_scenes`: 판정(`채택`/`예비`/`제외`)·번역·메모 중 하나라도 실제로 발생한 장면만. 관계(`meaning_expression_id`)와 `segment_public_id` 기준으로 유일하며, 작품·화수·시각·일본어 원문은 그 시점의 작업물 스냅샷으로 저장한다. **영상/음성/이미지 주소와 원본 응답은 저장하지 않는다.**
 
-현재 schema는 `SCHEMA_VERSION = 3`이며 `PRAGMA user_version`으로 확인한다. Task 8에서 `reviews.decision`을 nullable로 바꾸고 번역 provenance column과 `nadeshiko_context_cache`를 추가했다(v2). subtitle fallback에서 `media.source`('nadeshiko'/'local')를 추가하고 로컬 작품의 `nadeshiko_media_id`를 NULL로 허용하며 `local_segments` table을 추가했다(v3). 구버전 파일 DB는 열 때 각 단계 전에 `backup_before_schema_change()`로 같은 작업 데이터 위치에 `.pre-schema-v{n}.` 사본을 만든 뒤 한 transaction에서 순차 migration하며, 실패하면 해당 단계 이전 데이터를 그대로 유지한다. media 재작성은 SQLite 공식 절차대로 foreign key 검사를 잠시 끄고 수행하며 commit 전에 `PRAGMA foreign_key_check`로 참조 무결성을 확인한다. 현재 코드보다 높은 version은 데이터를 변경하지 않고 거부한다. 각 연결에서 foreign key 검사를 명시적으로 켜고, WAL은 활성화하지 않아 SQLite 기본 rollback journal을 유지한다.
+검색 결과를 보기만 해서는 아무것도 저장되지 않는다. 번역은 캐시가 아니라 작업물이므로 생성 이력(서비스·모델·지시문 버전·시각)과 함께 `work_scenes`에 저장하고, 판정·메모와 서로 덮어쓰지 않는다.
 
-작업 6 자동시험은 파일 기반 임시 DB와 fake provider를 사용한다. 일반 `uv run pytest`에서 인터넷이나 실제 AI/Nadeshiko API를 호출하지 않는다.
+현재 schema는 `SCHEMA_VERSION = 4`이며 `PRAGMA user_version`으로 확인한다. 구버전 파일 DB는 열 때 각 단계 전에 `backup_before_schema_change()`로 같은 작업 데이터 위치에 `.pre-schema-v{n}.` 사본을 만든 뒤 한 transaction에서 v1 → v2 → v3 → v4로 순차 이동하며, 실패하면 해당 단계 이전 데이터를 그대로 유지한다. v3 → v4에서는 작품 상태·로컬 자막 색인·저장된 표현과 의미 연결·실제 작업(판정/번역/메모)을 새 구조로 옮기고, 검색 이력·검색 결과 장면·캐시·영상 주소는 옮기지 않는다. 여러 옛 table을 버리므로 SQLite 공식 절차대로 foreign key 검사를 잠시 끄고 수행하며 커밋 전에 `PRAGMA foreign_key_check`로 참조 무결성을 확인한다. 현재 코드보다 높은 version은 데이터를 변경하지 않고 거부한다. 각 연결에서 foreign key 검사를 명시적으로 켜고, WAL은 활성화하지 않아 SQLite 기본 롤백 저널을 유지한다.
 
-## 로컬 일본어 자막 fallback
+자동시험은 파일 기반 임시 DB와 가짜 서비스를 사용한다. 일반 `uv run pytest`에서 인터넷이나 실제 AI/Nadeshiko API를 호출하지 않는다.
+
+## 로컬 일본어 자막 대체 경로
 
 Nadeshiko에 없는 작품은 사용자가 직접 확보한 일본어 timed subtitle(SRT/ASS)로 검색한다. 자막 파일은 저장소 밖 사용자 위치에 두고, 자동 다운로드는 없다.
 
@@ -189,9 +204,11 @@ media, count = index_local_subtitles(database, "작품 표시명", Path("자막 
 
 화수는 파일명(`S1E01`, `第13話`, `Ep 7`, `- 02` 등 범용 패턴)에서 추정하며 극장판처럼 없으면 비워 둔다. 같은 작품을 다시 색인하면 기존 색인을 통째로 교체한다. 등록된 로컬 작품은 `media` table에 `source='local'`(Nadeshiko ID 없음)로 저장되어 기존 선호작처럼 `is_active`로 검색 포함 여부를 관리한다.
 
-`search_expressions(..., database=...)`는 활성 Nadeshiko 작품은 기존 공식 검색으로, 활성 로컬 작품은 색인에서 LIKE로 1차 축소한 뒤 기존 surface matcher로 판정해 **한 번의 검색에서 두 결과를 함께 반환**한다(`CandidateSearchResult.exact_segments` + `local_segments`). 활성 Nadeshiko 작품이 없으면 Nadeshiko API를 호출하지 않는다(`response=None`). 로컬 결과는 작품 표시명·화수·start/end ms를 담고 있어 사용자가 보유한 원본 영상에서 해당 위치를 찾는 데 쓴다. 자막과 원본의 판본 차이로 실측 기준 ±15초 안팎의 offset이 있을 수 있고 화마다 다를 수 있다.
+선택한 표현 하나를 검색할 때 활성 Nadeshiko 작품은 공식 검색으로, 활성 로컬 작품은 색인에서 LIKE로 1차 축소한 뒤 같은 표면형 판정으로 함께 조회한다(`SelectedExpressionScenes.nadeshiko_segments` + `local_segments`). 활성 Nadeshiko 작품이 없으면 Nadeshiko API를 호출하지 않는다.
 
-## 화면 기술 — Task 9 선택 결과
+**이번 범위에서 로컬 자막 결과는 그 표현이 자막 작품에 존재하는지 확인하는 참고 결과다.** 영상 재생·판정 저장·`work_scenes` 저장·내보내기는 Nadeshiko 장면만 지원한다. 로컬 결과는 작품 표시명·화수·start/end ms를 담고 있어 사용자가 보유한 원본 영상에서 위치를 찾는 데 쓰며, 자막과 원본의 판본 차이로 실측 기준 ±15초 안팎의 오프셋이 있을 수 있고 화마다 다를 수 있다.
+
+## 화면 기술 선택 결과
 
 Windows 11 + WebView2 Runtime에서 NiceGUI 3.16.0(native mode)과 pywebview 6.2.1을 같은 조건(같은 영상 목록·같은 창 구성·같은 EdgeChromium/WebView2 backend)의 작은 probe로 실측 비교해 **NiceGUI를 선택**했다.
 
@@ -213,7 +230,7 @@ uv run python experiments/ui_probe/fetch_probe_segments.py $env:SCENE_COLLECTOR_
 uv run python experiments/ui_probe/nicegui_probe.py
 ```
 
-## 사용자 화면 실행 — Task 10
+## 사용자 화면 실행
 
 ```powershell
 uv run python -m scene_collector.app
@@ -225,13 +242,13 @@ uv run python -m scene_collector.app
 
 1. **설정** 탭에서 작업 데이터 위치·AI 서비스/모델·Nadeshiko 키 상태를 확인한다. 키 값 자체는 화면에 표시하지 않는다.
 2. **선호 작품** 탭에서 작품을 활성화한다. 상단의 **추천 후보 목록(curated 97개, A군 63/B군 34)**에서 체크하면 그 항목에 연결된 Nadeshiko entry들이 함께 저장·활성화되고(예: 체인소 맨 = TV + 레제편), 해제하면 함께 비활성화된다. 전체/A군/B군 필터가 있고, 각 항목에 Tier·한국 인기 근거 등급(A/B/C)·자료 상태(`Nadeshiko 바로 사용`/`Nadeshiko 부분 커버`/`일본어 자막 준비 필요`)가 표시된다. `일본어 자막 준비 필요` 항목은 자막을 확보해 `index_local_subtitles`로 **curated 한국 제목과 같은 표시명**으로 색인한 뒤에만 체크할 수 있다(자동 다운로드 없음). curated 목록에 없는 작품은 아래의 작품 직접 검색으로 기존처럼 추가한다. 활성 작품이 하나도 없으면 검색은 실행되지 않고 "검색에 사용할 활성 작품이 없습니다" 안내가 표시된다. 97개 후보가 DB에 자동 삽입되지는 않으며, 체크한 작품만 저장된다.
-3. **표현 찾기** 탭에서 한국어 의미를 입력해 검색한다. AI 후보는 생성됐지만 활성 작품 corpus에서 정확 동일표현이 없으면 그 사실을 그대로 안내한다.
-4. **일본어 표현 선택** 탭에서 corpus-backed 후보(일본어/읽기/의미/말투) 하나를 선택한다.
-5. **장면 검수** 탭에서 Nadeshiko 장면은 영상·원문을 확인하고, 필요할 때 `문맥 조회 + 한국어 번역`을 실행한 뒤 채택/예비/제외를 저장한다. 로컬 자막 장면은 작품명·화수·타임코드·대사만 표시하며 영상 미리보기는 원래 없다.
-6. 프로그램을 종료 후 다시 실행하면 장면이 남아 있는 가장 최근 검색·선택·판정 상태가 복원된다.
-7. **장면 검수** 탭의 `채택 장면 내보내기` 버튼은 현재 DB의 채택(`채택` 판정) Nadeshiko 장면 전체를 `<작업 데이터 위치>/exports/`로 내보낸다. 영상은 `exports/videos/<segment_public_id>.mp4` 하나로 저장되어 같은 장면이 여러 표현에서 채택돼도 다시 다운로드하지 않으며(정상 파일 존재 시 재사용), metadata는 표현-장면 관계별로 `accepted_scenes.json`(UTF-8)과 `accepted_scenes.csv`(Excel용 BOM 포함 UTF-8)에 기록된다. `video_file`은 exports 기준 상대경로라 SSD를 옮겨도 유지된다. 로컬 자막 장면 영상 내보내기는 아직 지원하지 않는다.
+3. **표현 찾기** 탭에서 한국어 의미를 입력하고 `표현 찾기`를 누른다. 저장된 표현이 있으면 **AI를 호출하지 않고** 바로 보여준다. 없으면 `AI로 표현 생성`으로 표현 자산을 만든다.
+4. **일본어 표현 선택** 탭에서 저장된 표현이 전부 보인다(일본어·읽기·이 의미에서의 뜻·말투). `표현 더 찾기`는 기존 표현을 AI에 전달해 중복되지 않는 표현만 추가한다. **표현 하나에서 `이 표현으로 장면 찾기`를 누른 순간에만** 그 표현이 검색된다.
+5. **장면 검수** 탭은 현재 작업 맥락(한국어 의미 → 일본어 표현)을 보여주고, 찾은 장면을 텍스트 목록으로 표시한다. `이 장면 보기`를 누르면 **영상 플레이어 하나에 그 장면만** 로딩된다. 필요할 때만 `문맥 조회 + 한국어 번역`을 실행하고, 채택/예비/제외와 메모를 저장한다. 로컬 자막 결과는 그 표현이 자막 작품에 있는지 확인하는 참고 표시이며 영상·판정 대상이 아니다.
+6. 프로그램을 종료 후 다시 실행하면 **표현 자산과 실제 작업 장면이 유지된다.** 지난 검색 결과는 저장하지 않으므로 자동 복원되지 않고, 표현을 다시 고르면 그때 다시 검색한다.
+7. **장면 검수** 탭의 `채택 장면 내보내기`는 채택 판정된 작업 장면 전체를 `<작업 데이터 위치>/exports/`로 내보낸다. 영상은 `exports/videos/<segment_public_id>.mp4` 하나로 저장되어 같은 장면이 여러 의미→표현 관계에서 채택돼도 한 번만 받으며, 정상 파일이 있으면 Nadeshiko를 호출하지 않고 재사용한다. 파일이 없을 때만 장면 ID로 현재 장면을 다시 조회해 그 시점의 주소로 내려받는다. 메타데이터는 관계별로 `accepted_scenes.json`(UTF-8)과 `accepted_scenes.csv`(Excel용 BOM 포함 UTF-8)에 기록되고, 한국어 의미는 그 작업이 실제로 연결된 의미 하나만 출력한다. `video_file`은 `exports` 기준 상대경로라 SSD를 옮겨도 유지된다. 로컬 자막 장면 영상 내보내기는 아직 지원하지 않는다.
 
-검색·번역·판정 저장은 기존 검증된 `search_expressions`·`translate_expression_scenes`·`set_review_decision` 경로를 그대로 사용하고, 화면 상태(검색 결과·선택)는 창(클라이언트)별로 분리되어 다른 창의 조작이 내 화면을 바꾸지 않는다. DB·네트워크 호출은 단일 작업 thread에서만 실행한다.
+화면 상태(조회한 표현·선택한 관계·검색 결과)는 창(클라이언트)별로 분리되어 다른 창의 조작이 내 화면을 바꾸지 않는다. DB·네트워크 호출은 단일 작업 thread에서만 실행한다.
 
 ## 아직 없는 기능
 
