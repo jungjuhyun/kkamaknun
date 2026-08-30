@@ -17,12 +17,18 @@ import asyncio
 import os
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from typing import TypeVar
 
 from nicegui import ui
 
 from scene_collector import curated, ui_controller
-from scene_collector.config import AppSettings, ConfigurationError, load_settings
+from scene_collector.config import (
+    AppSettings,
+    ConfigurationError,
+    load_settings,
+    save_search_settings,
+)
 from scene_collector.database import (
     DatabaseError,
     SceneCollectorDatabase,
@@ -41,6 +47,16 @@ _USER_ERRORS = (ConfigurationError, NoActiveMediaError, DatabaseError, ValueErro
 NO_ACTIVE_MEDIA_GUIDE = (
     "검색에 사용할 활성 작품이 없습니다. 선호 작품 탭에서 작품을 추가하거나 활성화하세요."
 )
+# 제목 줄과 탭 줄을 쌓은 헤더의 대략적인 높이. Quasar가 실측 높이로 본문 여백을
+# 잡기 전 첫 프레임에만 쓰이므로 정확할 필요는 없고, 기본값 50px보다만 크면 된다.
+_HEADER_HEIGHT_HINT = 108
+
+# 한국어 IME는 조합을 확정하는 Enter에서도 keydown을 보낸다. 그 이벤트를 client에서
+# 버려야 (a) 같은 입력이 두 번 조회되지 않고 (b) 마지막 음절이 빠진 값으로 조회되지
+# 않는다. NiceGUI/Vue/Quasar에는 조합 상태를 걸러 주는 기능이 없어 공식 확장점인
+# js_handler로 처리한다.
+_ENTER_WITHOUT_IME = "(event) => { if (!event.isComposing && event.keyCode !== 229) emit(); }"
+
 LOCAL_SUBTITLE_NOTICE = (
     "로컬 자막 결과는 그 표현이 자막 작품에 있는지 확인하는 참고 표시입니다. "
     "영상 재생·판정 저장·내보내기는 Nadeshiko 장면만 지원합니다."
@@ -55,6 +71,7 @@ class AppContext:
         self.settings: AppSettings | None = None
         self.database: SceneCollectorDatabase | None = None
         self._nadeshiko = None
+        self.settings_file: Path | None = None
         self.startup_error: str | None = None
 
     async def call(self, fn: Callable[[], _T]) -> _T:
@@ -65,6 +82,8 @@ class AppContext:
     def _startup_sync(self) -> None:
         settings_file = os.environ.get("SCENE_COLLECTOR_SETTINGS_FILE", "settings.toml")
         self.settings = load_settings(settings_file)
+        # 설정을 저장할 때 같은 파일을 쓰려면 실행 위치와 무관한 절대경로가 필요하다.
+        self.settings_file = Path(settings_file).expanduser().resolve()
         self.database = SceneCollectorDatabase.open(self.settings)
 
     async def ensure_started(self) -> bool:
@@ -109,6 +128,7 @@ async def main_page() -> None:
     # 화면 상태는 이 클라이언트(창)에만 속한다. 지난 검색을 자동 복원하지 않는다.
     screen: ui_controller.ExpressionScreen | None = None
     state = ui_controller.SceneWorkState()
+    lookup_guard = ui_controller.ActionGuard()
     player = None
     media_rows: tuple[StoredMedia, ...] = ()
     media_names: dict[str, str] = {}
@@ -134,15 +154,20 @@ async def main_page() -> None:
     except curated.CuratedPoolError as error:
         curated_load_error = str(error)
 
-    with ui.header().classes("items-center"):
-        ui.label("까막눈 애니 표현 장면 수집기").style("font-size: 1.15rem; font-weight: 600")
-
-    with ui.tabs() as tabs:
-        search_tab = ui.tab("표현 찾기")
-        expressions_tab = ui.tab("일본어 표현 선택")
-        scenes_tab = ui.tab("장면 검수")
-        media_tab = ui.tab("선호 작품")
-        settings_tab = ui.tab("설정")
+    # 제목과 탭을 함께 헤더에 넣어 본문만 스크롤되게 한다. 헤더 안은 가로 배치라
+    # 전체 너비 세로 상자를 하나 두고 제목 줄과 탭 줄을 2단으로 쌓는다.
+    # 탭 내용(tab_panels)은 본문에 남겨 계속 스크롤되게 한다.
+    with ui.header().props(f"height-hint={_HEADER_HEIGHT_HINT}"):
+        with ui.column().classes("w-full gap-1"):
+            ui.label("까막눈 애니 표현 장면 수집기").style(
+                "font-size: 1.15rem; font-weight: 600"
+            )
+            with ui.tabs() as tabs:
+                search_tab = ui.tab("표현 찾기")
+                expressions_tab = ui.tab("일본어 표현 선택")
+                scenes_tab = ui.tab("장면 검수")
+                media_tab = ui.tab("선호 작품")
+                settings_tab = ui.tab("설정")
 
     with ui.tab_panels(tabs, value=search_tab).classes("w-full"):
         with ui.tab_panel(search_tab):
@@ -155,6 +180,10 @@ async def main_page() -> None:
             ).classes("w-96")
             search_status = ui.label("")
             lookup_button = ui.button("표현 찾기", on_click=lambda: do_lookup())
+            # Enter와 버튼이 같은 do_lookup 하나를 부른다.
+            meaning_input.on(
+                "keydown.enter", lambda: do_lookup(), js_handler=_ENTER_WITHOUT_IME
+            )
 
         with ui.tab_panel(expressions_tab):
             with ui.row().classes("items-center"):
@@ -180,8 +209,8 @@ async def main_page() -> None:
 
         with ui.tab_panel(media_tab):
             ui.label(
-                "추천 후보 목록 — 체크한 작품만 기본 검색 대상이 됩니다. "
-                "프랜차이즈 하나를 체크하면 연결된 entry가 함께 활성화됩니다."
+                "추천 작품 목록 — 체크한 작품만 검색에 사용합니다. "
+                "작품을 체크하면 현재 지원되는 연결 항목이 함께 검색 대상이 됩니다."
             ).style("font-weight: 600")
             curated_filter = ui.toggle(
                 ["전체", "A군", "B군"], value="전체", on_change=lambda: render_curated()
@@ -199,6 +228,27 @@ async def main_page() -> None:
 
         with ui.tab_panel(settings_tab):
             settings_box = ui.column().classes("w-full")
+            ui.separator()
+            ui.label("바꿀 수 있는 값").style("font-weight: 600")
+            with ui.row().classes("items-end"):
+                generation_limit_input = ui.number(
+                    "표현 생성 상한",
+                    value=settings.search.expression_generation_limit,
+                    min=1,
+                    max=20,
+                    precision=0,
+                ).classes("w-40")
+                scene_limit_input = ui.number(
+                    "표시할 장면 수",
+                    value=settings.search.scene_result_limit,
+                    min=1,
+                    max=20,
+                    precision=0,
+                ).classes("w-40")
+                save_settings_button = ui.button(
+                    "설정 저장", on_click=lambda: do_save_settings()
+                )
+            settings_save_status = ui.label("")
 
     # ------------------------------------------------------------------
     # 표현 찾기 / 표현 선택
@@ -210,6 +260,10 @@ async def main_page() -> None:
         text = (meaning_input.value or "").strip()
         if not text:
             ui.notify("한국어 의미를 입력하세요.", type="warning")
+            return
+        if not lookup_guard.try_begin():
+            # 이미 조회 중이면 두 번째 요청은 버린다. 버튼은 비활성으로 막히지만
+            # 입력창의 Enter는 그렇게 막히지 않는다.
             return
         # 의미가 바뀌면 이전 표현의 장면 결과도, 이전 의미의 표현 목록도 유효하지 않다.
         # 조회를 기다리는 동안 옛 표현 버튼이 눌리면 새 의미와 옛 표현이 섞인다.
@@ -230,6 +284,7 @@ async def main_page() -> None:
             return
         finally:
             lookup_button.enable()
+            lookup_guard.finish()
         screen = result.screen
         if not result.used_ai:
             search_status.set_text(
@@ -298,8 +353,7 @@ async def main_page() -> None:
             ui.label(f"한국어 의미: {screen.korean_meaning}").style("font-weight: 600")
             for item in screen.relations:
                 with ui.card().classes("w-full"):
-                    ui.label(f"{item.japanese} ({item.reading})").style("font-size: 1.1rem")
-                    ui.label(f"이 의미에서의 뜻: {item.meaning_ko}")
+                    ui.label(ui_controller.expression_line(item)).style("font-size: 1.1rem")
                     ui.label(f"말투: {item.register_text}")
                     if state.relation is not None and state.relation.id == item.id:
                         ui.label("선택됨").style("color: #2e7d32; font-weight: 600")
@@ -379,7 +433,7 @@ async def main_page() -> None:
             scene_header.set_text("")
             return
         scene_header.set_text(
-            f"작업 맥락: {screen.korean_meaning} → {chosen.japanese} ({chosen.reading})"
+            f"작업 맥락: {screen.korean_meaning} → {ui_controller.expression_line(chosen)}"
         )
 
     def render_saved_scenes() -> None:
@@ -662,10 +716,7 @@ async def main_page() -> None:
                     )
                     if not view.checkable:
                         checkbox.disable()
-                    ui.label(
-                        f"[{item.group}{item.tier} · 근거 {item.popularity_evidence_grade}] "
-                        f"{item.korean_title}"
-                    )
+                    ui.label(item.korean_title)
                     ui.label(view.status_label).style("color: #666; font-size: 0.85rem")
 
     async def do_media_search() -> None:
@@ -778,8 +829,13 @@ async def main_page() -> None:
         summary = ui_controller.settings_summary(settings)
         with settings_box:
             ui.label("현재 설정").style("font-weight: 600")
-            ui.label(f"작업 데이터 위치: {summary.work_data_dir}")
+            ui.label(
+                f"작업 데이터 위치: {summary.work_data_dir} "
+                "(실행 중에 바꾸면 열려 있는 데이터베이스와 어긋나므로 파일에서만 바꿉니다)"
+            )
             ui.label(f"데이터베이스 파일: {summary.database_file}")
+            if context.settings_file is not None:
+                ui.label(f"설정 파일: {context.settings_file}")
             ui.label(f"AI 서비스 / 모델: {summary.ai_service} / {summary.ai_model}")
             ui.label(
                 f"표현 생성 상한: {summary.expression_generation_limit} · "
@@ -803,6 +859,48 @@ async def main_page() -> None:
                 connection_label.set_text("Nadeshiko 연결 상태: 연결 성공 (get_me 확인)")
 
             ui.button("Nadeshiko 연결 확인 (실제 API 1회 호출)", on_click=do_check_connection)
+
+    async def do_save_settings() -> None:
+        """설정 파일의 검색 값 두 개를 저장하고 지금 실행에도 반영한다."""
+        nonlocal settings
+        if context.settings_file is None:
+            return
+        settings_file = context.settings_file
+        try:
+            # ui.number는 실수를 주고 범위 제한도 포커스를 잃을 때만 걸린다.
+            limit = ui_controller.parse_setting_number(
+                generation_limit_input.value, label="표현 생성 상한"
+            )
+            scene_limit = ui_controller.parse_setting_number(
+                scene_limit_input.value, label="표시할 장면 수"
+            )
+        except _USER_ERRORS as error:
+            settings_save_status.set_text(f"설정 저장 실패: {error}")
+            _notify_error(error)
+            return
+
+        save_settings_button.disable()
+        settings_save_status.set_text("설정을 저장하는 중...")
+        try:
+            saved = await context.call(
+                lambda: save_search_settings(
+                    settings_file,
+                    expression_generation_limit=limit,
+                    scene_result_limit=scene_limit,
+                )
+            )
+        except _USER_ERRORS as error:
+            settings_save_status.set_text(f"설정 저장 실패: {error}")
+            _notify_error(error)
+            return
+        finally:
+            save_settings_button.enable()
+
+        # 다시 읽어 확인한 설정을 지금 열려 있는 화면에도 그대로 쓴다.
+        settings = saved
+        context.settings = saved
+        settings_save_status.set_text("설정을 저장하고 다시 읽어 확인했습니다.")
+        render_settings()
 
     render_expressions()
     render_scene_header()

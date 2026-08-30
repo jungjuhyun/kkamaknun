@@ -380,3 +380,250 @@ def test_expression_reset_check_catches_a_generate_that_never_clears() -> None:
     )
     with pytest.raises(AssertionError):
         _check_expression_list_is_reset_on_a_new_meaning(mutated)
+
+
+# ----------------------------------------------------------------------
+# UAT 수정: Enter 검색 · 카드 단순화 · 고정 메뉴 · 설정 편집
+# ----------------------------------------------------------------------
+
+
+def _attribute_names(node: ast.AST) -> set[str]:
+    """노드 안에서 읽는 속성 이름을 모은다."""
+    return {child.attr for child in ast.walk(node) if isinstance(child, ast.Attribute)}
+
+
+def _event_bindings(tree: ast.Module, target: str) -> dict[str, ast.Call]:
+    """`<target>.on("<type>", ...)` 호출을 이벤트 이름으로 모은다."""
+    bindings: dict[str, ast.Call] = {}
+    for node in ast.walk(tree):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "on"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == target
+            and node.args
+            and isinstance(node.args[0], ast.Constant)
+            and isinstance(node.args[0].value, str)
+        ):
+            bindings[node.args[0].value] = node
+    return bindings
+
+
+def _module_constant(tree: ast.Module, name: str) -> str:
+    """모듈 수준 문자열 상수 하나를 읽는다."""
+    for node in tree.body:
+        if (
+            isinstance(node, ast.Assign)
+            and any(isinstance(t, ast.Name) and t.id == name for t in node.targets)
+            and isinstance(node.value, ast.Constant)
+            and isinstance(node.value.value, str)
+        ):
+            return node.value.value
+    raise AssertionError(f"모듈 상수 {name}을(를) 찾지 못했습니다.")
+
+
+def _with_ui_blocks(tree: ast.Module, widget: str) -> list[ast.With]:
+    """`with ui.<widget>(...)` 블록을 모은다. 메서드를 이어 붙여도 찾는다."""
+    blocks: list[ast.With] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.With):
+            continue
+        for item in node.items:
+            if f"ui.{widget}" in _call_names(ast.Expression(body=item.context_expr)):
+                blocks.append(node)
+                break
+    return blocks
+
+
+def _check_enter_runs_the_same_lookup(source: str) -> None:
+    """Enter와 버튼이 같은 do_lookup 하나를 부르고, 중복 실행을 막는다."""
+    tree = _app_source_tree(source)
+    bindings = _event_bindings(tree, "meaning_input")
+    assert "keydown.enter" in bindings
+    enter = bindings["keydown.enter"]
+    assert "do_lookup" in _call_names(enter)
+    # 한국어 IME 조합 확정 Enter를 client에서 걸러야 한다.
+    assert "js_handler" in {keyword.arg for keyword in enter.keywords}
+    assert "isComposing" in _module_constant(tree, "_ENTER_WITHOUT_IME")
+    # 버튼도 그대로 남아 같은 함수를 부른다.
+    assert "표현 찾기" in _ui_labels(tree, "button")
+    lookup = _call_names(_function_def(tree, "do_lookup"))
+    assert "lookup_guard.try_begin" in lookup
+    assert "lookup_guard.finish" in lookup
+    # 빈 입력 경고는 그대로 둔다.
+    assert "ui.notify" in lookup
+
+
+def test_enter_and_the_button_share_one_lookup() -> None:
+    _check_enter_runs_the_same_lookup(_app_source_text())
+
+
+@pytest.mark.parametrize(
+    ("anchor", "replacement"),
+    [
+        ('meaning_input.on(\n                "keydown.enter"', "meaning_input.on(\n                \"blur\""),
+        ("if (!event.isComposing && event.keyCode !== 229) emit();", "emit();"),
+        (
+            "        if not lookup_guard.try_begin():",
+            "        if False:",
+        ),
+    ],
+)
+def test_enter_check_catches_a_broken_binding(anchor: str, replacement: str) -> None:
+    with pytest.raises(AssertionError):
+        _check_enter_runs_the_same_lookup(_mutate(anchor, replacement))
+
+
+def _check_expression_card_is_simplified(source: str) -> None:
+    """카드에는 일본어와 한글 독음, 말투만 둔다."""
+    tree = _app_source_tree(source)
+    used = _attribute_names(tree)
+    # 히라가나 읽기와 "이 의미에서의 뜻"은 화면에 직접 내지 않는다.
+    assert "reading" not in used
+    assert "meaning_ko" not in used
+    card = _function_def(tree, "render_expressions")
+    assert "ui_controller.expression_line" in _call_names(card)
+    assert "register_text" in _attribute_names(card)
+
+
+def test_expression_card_shows_a_korean_reading_only() -> None:
+    _check_expression_card_is_simplified(_app_source_text())
+
+
+@pytest.mark.parametrize(
+    ("anchor", "replacement"),
+    [
+        (
+            "ui.label(ui_controller.expression_line(item)).style",
+            'ui.label(f"{item.japanese} ({item.reading})").style',
+        ),
+        (
+            '                    ui.label(f"말투: {item.register_text}")',
+            '                    ui.label(f"말투: {item.register_text}")\n'
+            '                    ui.label(f"뜻: {item.meaning_ko}")',
+        ),
+    ],
+)
+def test_expression_card_check_catches_a_restored_line(anchor: str, replacement: str) -> None:
+    with pytest.raises(AssertionError):
+        _check_expression_card_is_simplified(_mutate(anchor, replacement))
+
+
+def _check_curated_hides_internal_classification(source: str) -> None:
+    """추천 목록에 tier·근거 등급 같은 내부 분류가 노출되지 않는다."""
+    tree = _app_source_tree(source)
+    whole = _attribute_names(tree)
+    assert "tier" not in whole
+    assert "popularity_evidence_grade" not in whole
+    assert "note" not in whole
+    node = _function_def(tree, "render_curated")
+    names = _attribute_names(node)
+    assert "korean_title" in names
+    assert "status_label" in names
+    # A군/B군 필터는 계속 살아 있어야 한다.
+    assert "group" in names
+    # 사용자가 몰라도 되는 내부 용어를 안내 문구에 쓰지 않는다.
+    assert not any("entry" in label for label in _ui_labels(tree, "label"))
+
+
+def test_curated_list_hides_internal_classification() -> None:
+    _check_curated_hides_internal_classification(_app_source_text())
+
+
+@pytest.mark.parametrize(
+    ("anchor", "replacement"),
+    [
+        (
+            "                    ui.label(item.korean_title)",
+            '                    ui.label(f"[{item.group}{item.tier}] {item.korean_title}")',
+        ),
+        (
+            '"작품을 체크하면 현재 지원되는 연결 항목이 함께 검색 대상이 됩니다."',
+            '"프랜차이즈 하나를 체크하면 연결된 entry가 함께 활성화됩니다."',
+        ),
+        (
+            # 두 갈래를 함께 지워야 group 참조가 실제로 사라진다.
+            '                or (selected == "A군" and view.item.group == "A")\n'
+            '                or (selected == "B군" and view.item.group == "B")\n',
+            "",
+        ),
+    ],
+)
+def test_curated_check_catches_restored_internals(anchor: str, replacement: str) -> None:
+    with pytest.raises(AssertionError):
+        _check_curated_hides_internal_classification(_mutate(anchor, replacement))
+
+
+def _check_tabs_live_in_the_fixed_header(source: str) -> None:
+    """제목과 탭이 함께 고정 헤더 안에 있고 본문(패널)만 스크롤된다."""
+    tree = _app_source_tree(source)
+    headers = _with_ui_blocks(tree, "header")
+    assert len(headers) == 1
+    header_calls = _call_names(headers[0])
+    assert "ui.tabs" in header_calls
+    # 본문에는 탭 생성이 남아 있지 않다(스크롤하면 사라지던 옛 배치).
+    assert _call_names(tree).count("ui.tabs") == header_calls.count("ui.tabs")
+    # 탭 내용은 헤더 밖에 있어 계속 스크롤된다.
+    assert "ui.tab_panels" not in header_calls
+    assert "ui.tab_panels" in _call_names(tree)
+
+
+def test_title_and_tabs_are_both_in_the_fixed_header() -> None:
+    _check_tabs_live_in_the_fixed_header(_app_source_text())
+
+
+@pytest.mark.parametrize(
+    ("anchor", "replacement"),
+    [
+        (
+            "    with ui.header().props(f\"height-hint={_HEADER_HEIGHT_HINT}\"):",
+            '    with ui.column().classes("items-center"):',
+        ),
+        (
+            '    with ui.tab_panels(tabs, value=search_tab).classes("w-full"):',
+            "    ui.tabs()\n"
+            '    with ui.tab_panels(tabs, value=search_tab).classes("w-full"):',
+        ),
+    ],
+)
+def test_fixed_header_check_catches_tabs_outside_it(anchor: str, replacement: str) -> None:
+    with pytest.raises(AssertionError):
+        _check_tabs_live_in_the_fixed_header(_mutate(anchor, replacement))
+
+
+def _check_settings_tab_edits_known_keys(source: str) -> None:
+    """설정 탭에서 숫자 두 개를 바꿔 저장할 수 있다."""
+    tree = _app_source_tree(source)
+    numbers = _ui_labels(tree, "number")
+    assert "표현 생성 상한" in numbers
+    assert "표시할 장면 수" in numbers
+    assert "설정 저장" in _ui_labels(tree, "button")
+
+    save = _function_def(tree, "do_save_settings")
+    calls = _call_names(save)
+    # 저장 책임은 config에 있고 화면은 부르기만 한다.
+    assert "save_search_settings" in calls
+    assert "ui_controller.parse_setting_number" in calls
+    # 화면이 직접 파일을 쓰지 않는다.
+    assert "open" not in calls
+    assert "write_text" not in calls
+    # 작업 데이터 위치와 API 키는 편집 대상이 아니다.
+    assert "작업 데이터 위치" not in numbers
+    assert not any("API 키" in label for label in _ui_labels(tree, "input"))
+
+
+def test_settings_tab_can_save_the_two_numbers() -> None:
+    _check_settings_tab_edits_known_keys(_app_source_text())
+
+
+@pytest.mark.parametrize(
+    ("anchor", "replacement"),
+    [
+        ('                    "표시할 장면 수",', '                    "장면 검색 조회량 값",'),
+        ("                lambda: save_search_settings(", "                lambda: load_settings("),
+    ],
+)
+def test_settings_tab_check_catches_a_broken_save(anchor: str, replacement: str) -> None:
+    with pytest.raises(AssertionError):
+        _check_settings_tab_edits_known_keys(_mutate(anchor, replacement))
