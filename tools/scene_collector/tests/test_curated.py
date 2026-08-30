@@ -291,3 +291,36 @@ def test_load_rejects_corrupted_pool(tmp_path: Path) -> None:
     dup_path.write_text(json.dumps(duplicated, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(CuratedPoolError, match="중복"):
         load_curated_pool(dup_path)
+
+
+def test_partial_items_say_only_the_linked_titles_are_searchable(tmp_path: Path) -> None:
+    """부분 지원 작품은 전체가 아니라 연결된 것만 검색된다는 사실을 알린다."""
+    pool = load_curated_pool()
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        views = {view.item.key: view for view in curated_views(database, pool)}
+
+        kimetsu = views["kimetsu_no_yaiba"]
+        assert kimetsu.item.source_status == "nadeshiko_partial"
+        assert kimetsu.status_label == "연결된 일부만 장면 검색 가능 · 연결 1개"
+
+        # 전체 지원 작품에는 개수를 붙이지 않는다.
+        assert views["chainsaw_man"].status_label == "장면 검색 바로 가능"
+
+        for view in views.values():
+            if view.item.source_status == "nadeshiko_partial":
+                assert "일부" in view.status_label
+                assert f"연결 {len(view.item.nadeshiko_media_ids)}개" in view.status_label
+
+
+def test_status_labels_never_leak_internal_data(tmp_path: Path) -> None:
+    """공개 ID와 내부 note는 사용자 화면 문자열에 들어가지 않는다."""
+    pool = load_curated_pool()
+    with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
+        for view in curated_views(database, pool):
+            for media_id in view.item.nadeshiko_media_ids:
+                assert media_id not in view.status_label
+            if view.item.note:
+                assert view.item.note not in view.status_label
+            # 등급·tier 같은 내부 분류도 상태 문구에 없다.
+            assert "Tier" not in view.status_label
+            assert "근거" not in view.status_label

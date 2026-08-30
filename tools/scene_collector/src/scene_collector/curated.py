@@ -23,8 +23,8 @@ _STATUSES = frozenset({"nadeshiko", "nadeshiko_partial", "jimaku_required"})
 _NADESHIKO_ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]{12}$")
 
 STATUS_LABELS = {
-    "nadeshiko": "Nadeshiko 바로 사용",
-    "nadeshiko_partial": "Nadeshiko 부분 커버",
+    "nadeshiko": "장면 검색 바로 가능",
+    "nadeshiko_partial": "연결된 일부만 장면 검색 가능",
     "jimaku_required": "일본어 자막 준비 필요",
 }
 
@@ -135,6 +135,19 @@ def _local_rows_for(item: CuratedItem, media_rows: tuple[StoredMedia, ...]) -> t
     )
 
 
+def _nadeshiko_status_label(item: CuratedItem) -> str:
+    """Nadeshiko 작품의 상태 문구.
+
+    부분 지원 작품은 전체 시리즈가 아니라 연결된 것만 검색된다는 사실과 그 개수를
+    함께 알린다. 공개 ID는 사용자에게 의미가 없으므로 노출하지 않고, 어느 시즌이
+    빠졌는지는 자료에 없으므로 추측하지 않는다.
+    """
+    label = STATUS_LABELS[item.source_status]
+    if item.source_status != "nadeshiko_partial":
+        return label
+    return f"{label} · 연결 {len(item.nadeshiko_media_ids)}개"
+
+
 def curated_views(
     database: SceneCollectorDatabase,
     pool: tuple[CuratedItem, ...],
@@ -161,7 +174,7 @@ def curated_views(
                     checkable=True,
                     checked=checked,
                     local_media_row_ids=(),
-                    status_label=STATUS_LABELS[item.source_status],
+                    status_label=_nadeshiko_status_label(item),
                 )
             )
         else:
