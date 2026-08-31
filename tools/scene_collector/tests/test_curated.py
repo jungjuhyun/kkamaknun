@@ -11,8 +11,10 @@ from scene_collector.config import AISettings, AppSettings, SearchSettings, Stor
 from scene_collector.curated import (
     CuratedPoolError,
     curated_views,
+    index_source_unit_subtitles,
     load_curated_pool,
     set_curated_item_active,
+    unit_local_media_title,
 )
 from scene_collector.database import (
     DatabaseError,
@@ -299,15 +301,18 @@ def test_partial_items_say_only_the_linked_titles_are_searchable(tmp_path: Path)
     with SceneCollectorDatabase.open(_settings(tmp_path)) as database:
         views = {view.item.key: view for view in curated_views(database, pool)}
 
+        # source unit이 있는 항목은 unit 기준의 정직한 커버리지 요약을 쓴다.
         kimetsu = views["kimetsu_no_yaiba"]
         assert kimetsu.item.source_status == "nadeshiko_partial"
-        assert kimetsu.status_label == "연결된 일부만 장면 검색 가능 · 연결 1개"
+        assert kimetsu.status_label == "검색 가능 1개 · 자막 준비 필요 5개 · 검색 불가 1개"
 
         # 전체 지원 작품에는 개수를 붙이지 않는다.
         assert views["chainsaw_man"].status_label == "장면 검색 바로 가능"
 
         for view in views.values():
-            if view.item.source_status == "nadeshiko_partial":
+            if view.item.source_units:
+                assert "검색 가능" in view.status_label
+            elif view.item.source_status == "nadeshiko_partial":
                 assert "일부" in view.status_label
                 assert f"연결 {len(view.item.nadeshiko_media_ids)}개" in view.status_label
 
@@ -324,3 +329,198 @@ def test_status_labels_never_leak_internal_data(tmp_path: Path) -> None:
             # 등급·tier 같은 내부 분류도 상태 문구에 없다.
             assert "Tier" not in view.status_label
             assert "근거" not in view.status_label
+
+
+# ----------------------------------------------------------------------
+# source unit (UAT FIX 3-A)
+# ----------------------------------------------------------------------
+
+UNIT_SRT = """1
+00:00:01,000 --> 00:00:02,500
+（ミサ）大丈夫ですか？
+
+2
+00:00:05,000 --> 00:00:06,000
+ありがとう
+"""
+
+
+def _unit_srt_dir(tmp_path: Path, name: str, episodes: tuple[int, ...]) -> Path:
+    directory = tmp_path / name
+    directory.mkdir()
+    for episode in episodes:
+        (directory / f"자막 - {episode:02d}.srt").write_text(UNIT_SRT, encoding="utf-8")
+    return directory
+
+
+def _unit(item, key):
+    matches = [unit for unit in item.source_units if unit.key == key]
+    assert len(matches) == 1, key
+    return matches[0]
+
+
+def test_kimetsu_source_units_match_verified_coverage() -> None:
+    pool = load_curated_pool()
+    kimetsu = _item(pool, "kimetsu_no_yaiba")
+
+    assert len(kimetsu.source_units) == 7
+    kinds = Counter(unit.kind for unit in kimetsu.source_units)
+    assert kinds == Counter({"jimaku": 5, "nadeshiko": 1, "unavailable": 1})
+
+    s1 = _unit(kimetsu, "s1_tv")
+    assert s1.nadeshiko_media_id == kimetsu.nadeshiko_media_ids[0]
+    assert s1.media_type == "tv"
+
+    jimaku_ids = sorted(
+        unit.jimaku_entry_id for unit in kimetsu.source_units if unit.kind == "jimaku"
+    )
+    assert jimaku_ids == sorted(kimetsu.jimaku_entry_ids)
+
+    unavailable = _unit(kimetsu, "mugen_jou_movie_1")
+    assert unavailable.kind == "unavailable"
+
+    labels = [unit.label for unit in kimetsu.source_units]
+    assert len(set(labels)) == 7
+
+
+def test_franchise_check_toggles_nadeshiko_and_indexed_units(tmp_path: Path) -> None:
+    pool = load_curated_pool()
+    kimetsu = _item(pool, "kimetsu_no_yaiba")
+    yuukaku = _unit(kimetsu, "yuukaku")
+    settings = _settings(tmp_path)
+    directory = _unit_srt_dir(tmp_path, "yuukaku-subs", (1, 2))
+
+    with SceneCollectorDatabase.open(settings) as database:
+        unrelated = database.register_local_media("무관한 로컬 작품")
+        assert unrelated.is_active is True
+
+        # 체크가 꺼진 상태에서 색인: 색인은 되지만 검색 대상에는 들어가지 않는다.
+        media, report = index_source_unit_subtitles(
+            database, kimetsu, yuukaku, directory
+        )
+        assert media.display_name == unit_local_media_title(kimetsu, yuukaku)
+        assert media.display_name == "귀멸의 칼날 · 유곽편"
+        assert media.is_active is False
+        assert report.file_count == 2
+        assert report.episodes == (1, 2)
+        assert report.cue_count == 4
+
+        view = _view(database, pool, "kimetsu_no_yaiba")
+        assert view.checked is False
+        statuses = {u.unit.key: u.status for u in view.unit_views}
+        assert statuses["s1_tv"] == "nadeshiko_ready"
+        assert statuses["yuukaku"] == "indexed"
+        assert statuses["katanakaji"] == "needs_subtitles"
+        assert statuses["mugen_jou_movie_1"] == "unavailable"
+
+        # 체크 ON: Nadeshiko + 색인된 unit 로컬 media가 함께 활성.
+        set_curated_item_active(database, kimetsu, True)
+        assert database.get_media(kimetsu.nadeshiko_media_ids[0]).is_active is True
+        assert database.find_local_media("귀멸의 칼날 · 유곽편").is_active is True
+        assert _view(database, pool, "kimetsu_no_yaiba").checked is True
+
+        # 체크 OFF: 둘 다 비활성. 무관한 로컬 media는 영향 없음.
+        set_curated_item_active(database, kimetsu, False)
+        assert database.get_media(kimetsu.nadeshiko_media_ids[0]).is_active is False
+        assert database.find_local_media("귀멸의 칼날 · 유곽편").is_active is False
+        assert database.find_local_media("무관한 로컬 작품").is_active is True
+        assert _view(database, pool, "kimetsu_no_yaiba").checked is False
+
+        set_curated_item_active(database, kimetsu, True)
+
+    # 재시작 후 체크 상태와 unit 상태가 복원된다.
+    with SceneCollectorDatabase.open(settings) as reopened:
+        view = _view(reopened, pool, "kimetsu_no_yaiba")
+        assert view.checked is True
+        statuses = {u.unit.key: u.status for u in view.unit_views}
+        assert statuses["yuukaku"] == "indexed"
+
+
+def test_index_source_unit_respects_current_check_state_and_scope(tmp_path: Path) -> None:
+    pool = load_curated_pool()
+    kimetsu = _item(pool, "kimetsu_no_yaiba")
+    settings = _settings(tmp_path)
+
+    with SceneCollectorDatabase.open(settings) as database:
+        set_curated_item_active(database, kimetsu, True)
+
+        # 체크가 켜진 상태에서 색인하면 새 unit도 즉시 검색 대상이 된다.
+        directory = _unit_srt_dir(tmp_path, "katanakaji-subs", (1,))
+        media, _ = index_source_unit_subtitles(
+            database, kimetsu, _unit(kimetsu, "katanakaji"), directory
+        )
+        assert media.is_active is True
+
+        # nadeshiko/unavailable unit은 색인 대상이 아니다.
+        with pytest.raises(CuratedPoolError, match="색인 대상이 아닙니다"):
+            index_source_unit_subtitles(
+                database, kimetsu, _unit(kimetsu, "s1_tv"), directory
+            )
+        with pytest.raises(CuratedPoolError, match="색인 대상이 아닙니다"):
+            index_source_unit_subtitles(
+                database, kimetsu, _unit(kimetsu, "mugen_jou_movie_1"), directory
+            )
+
+        # 이 색인은 귀멸 항목에만 연결된다: 다른 jimaku 항목은 그대로 색인 필요 상태다.
+        chihiro_view = _view(database, pool, "sen_to_chihiro")
+        assert chihiro_view.checkable is False
+
+
+def test_search_uses_indexed_units_only_while_checked(tmp_path: Path) -> None:
+    pool = load_curated_pool()
+    kimetsu = _item(pool, "kimetsu_no_yaiba")
+    settings = _settings(tmp_path)
+    client = RecordingNadeshiko(_empty_response())
+    directory = _unit_srt_dir(tmp_path, "yuukaku-subs", (3,))
+
+    with SceneCollectorDatabase.open(settings) as database:
+        set_curated_item_active(database, kimetsu, True)
+        index_source_unit_subtitles(database, kimetsu, _unit(kimetsu, "yuukaku"), directory)
+        relation = _relation(database, "괜찮냐고 묻는 말", "大丈夫ですか")
+
+        found = search_selected_expression(
+            settings, relation, nadeshiko_client=client, database=database
+        )
+        for _, _, included in client.calls:
+            assert included == tuple(sorted(kimetsu.nadeshiko_media_ids))
+        assert [scene.media_display_name for scene in found.local_segments] == [
+            "귀멸의 칼날 · 유곽편"
+        ]
+        assert [scene.episode for scene in found.local_segments] == [3]
+
+        # 체크 해제 한 번으로 Nadeshiko와 로컬 unit이 모두 검색에서 빠진다.
+        set_curated_item_active(database, kimetsu, False)
+        client.calls.clear()
+        with pytest.raises(NoActiveMediaError):
+            search_selected_expression(
+                settings, relation, nadeshiko_client=client, database=database
+            )
+        assert client.calls == []
+
+
+def test_pool_rejects_inconsistent_source_units(tmp_path: Path) -> None:
+    pool_path = (
+        Path(__file__).parent.parent / "src" / "scene_collector" / "curated_media_pool.json"
+    )
+    payload = json.loads(pool_path.read_text(encoding="utf-8"))
+
+    broken_kind = copy.deepcopy(payload)
+    next(
+        item for item in broken_kind["items"] if item["key"] == "kimetsu_no_yaiba"
+    )["source_units"][0]["kind"] = "unknown"
+    broken_path = tmp_path / "broken_kind.json"
+    broken_path.write_text(json.dumps(broken_kind, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(CuratedPoolError, match="unit kind"):
+        load_curated_pool(broken_path)
+
+    missing_unit = copy.deepcopy(payload)
+    target = next(
+        item for item in missing_unit["items"] if item["key"] == "kimetsu_no_yaiba"
+    )
+    target["source_units"] = [
+        unit for unit in target["source_units"] if unit["key"] != "yuukaku"
+    ]
+    missing_path = tmp_path / "missing_unit.json"
+    missing_path.write_text(json.dumps(missing_unit, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(CuratedPoolError, match="jimaku_entry_ids"):
+        load_curated_pool(missing_path)

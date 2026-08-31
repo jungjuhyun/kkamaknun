@@ -453,12 +453,23 @@ async def main_page() -> None:
                     "이 표현으로 찾은 Nadeshiko 장면이 없습니다. "
                     "다른 표현을 고르거나 활성 작품을 늘려 보세요."
                 )
+                local_count = len(state.local_segments)
+                if local_count:
+                    ui.label(
+                        f"로컬 자막 위치 후보 {local_count}개가 아래에 있습니다"
+                        "(위치 확인만 가능, 제작 대상 아님)."
+                    )
                 return
             japanese = state.relation.japanese
             ui.label(
-                f"`{japanese}` 정확 동일표현 장면 {len(state.rows)}개 — "
-                "장면을 고르면 영상 하나만 불러옵니다."
+                f"`{japanese}` 정확 동일표현 — "
+                + ui_controller.scene_count_summary(
+                    len(state.rows), len(state.local_segments)
+                )
             ).style("font-weight: 600")
+            ui.label("장면을 고르면 영상 하나만 불러옵니다.").style(
+                "color: #666; font-size: 0.85rem"
+            )
             for index, row in enumerate(state.rows):
                 with ui.row().classes("items-center w-full"):
                     decision = row.decision
@@ -617,7 +628,13 @@ async def main_page() -> None:
             return
         with local_box:
             ui.separator()
-            ui.label(f"로컬 자막 참고 결과 {len(local_segments)}개").style("font-weight: 600")
+            ui.label(
+                f"로컬 자막 위치 후보 {len(local_segments)}개 — 위치 확인만 가능(제작 대상 아님)"
+            ).style("font-weight: 600")
+            counts = ui_controller.local_counts_by_title(local_segments)
+            ui.label(" · ".join(f"{title} {count}개" for title, count in counts)).style(
+                "color: #666; font-size: 0.85rem"
+            )
             ui.label(LOCAL_SUBTITLE_NOTICE).style("color: #666; font-size: 0.85rem")
             for scene in local_segments:
                 ui.label(ui_controller.local_scene_line(scene))
@@ -670,6 +687,53 @@ async def main_page() -> None:
         )
         render_curated()
 
+    async def do_index_unit(
+        item: curated.CuratedItem, unit: curated.CuratedSourceUnit
+    ) -> None:
+        """source unit 하나의 자막 폴더를 사용자에게 받아 검증·색인한다."""
+        with ui.dialog() as dialog, ui.card():
+            ui.label(f"{item.korean_title} · {unit.label} — 자막 폴더 색인").style(
+                "font-weight: 600"
+            )
+            ui.label(
+                "폴더에는 사용할 자막 판본 하나만 두세요. "
+                "TV는 화당 파일 1개, 극장판은 파일 1개입니다. "
+                "같은 화의 판본이 여러 개면 색인하지 않고 알려 드립니다."
+            ).style("color: #666; font-size: 0.85rem")
+            folder_input = ui.input("자막 폴더 절대경로").classes("w-96")
+            with ui.row():
+                ui.button("색인", on_click=lambda: dialog.submit(folder_input.value))
+                ui.button("취소", on_click=dialog.close)
+        value = await dialog
+        if not value or not str(value).strip():
+            return
+        directory = Path(str(value).strip())
+        try:
+            _, report = await context.call(
+                lambda: curated.index_source_unit_subtitles(
+                    database, item, unit, directory
+                )
+            )
+        except _USER_ERRORS as error:
+            _notify_error(error)
+            return
+        if report.episodes:
+            recognized = (
+                f"인식 화수 {len(report.episodes)}개"
+                f"({report.episodes[0]}~{report.episodes[-1]}화)"
+            )
+        else:
+            recognized = "극장판 1편"
+        ui.notify(
+            f"{unit.label} 색인 완료 — 자막 파일 {report.file_count}개 · "
+            f"{recognized} · 대사 {report.cue_count}개",
+            type="positive",
+            multi_line=True,
+        )
+        await refresh_media_state()
+        render_media_list()
+        await refresh_curated()
+
     async def do_toggle_curated(item: curated.CuratedItem, active: bool) -> None:
         try:
             await context.call(lambda: curated.set_curated_item_active(database, item, active))
@@ -713,6 +777,24 @@ async def main_page() -> None:
                         checkbox.disable()
                     ui.label(item.korean_title)
                     ui.label(view.status_label).style("color: #666; font-size: 0.85rem")
+                for unit_view in view.unit_views:
+                    with ui.row().classes("items-center w-full").style(
+                        "margin-left: 2.5rem"
+                    ):
+                        ui.label(unit_view.unit.label).style("font-size: 0.9rem")
+                        ui.label(unit_view.status_label).style(
+                            "color: #666; font-size: 0.85rem"
+                        )
+                        if unit_view.indexable:
+                            button_label = (
+                                "재색인" if unit_view.status == "indexed" else "자막 색인"
+                            )
+                            ui.button(
+                                button_label,
+                                on_click=lambda it=item, un=unit_view.unit: do_index_unit(
+                                    it, un
+                                ),
+                            ).props("dense flat")
 
     async def do_media_search() -> None:
         query = (media_query_input.value or "").strip()

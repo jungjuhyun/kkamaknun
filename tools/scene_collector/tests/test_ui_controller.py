@@ -1388,3 +1388,19 @@ def test_parse_setting_number_rejects_everything_else(value: object) -> None:
     """ui.number는 실수를 주고 범위 제한도 포커스를 잃을 때만 걸리므로 여기서 막는다."""
     with pytest.raises(ValueError, match="표시할 장면 수"):
         ui_controller.parse_setting_number(value, label="표시할 장면 수")
+
+
+def test_scene_count_summary_never_merges_production_and_location_counts() -> None:
+    line = ui_controller.scene_count_summary(2, 11)
+    assert "제작 가능 장면(영상 검수 대상) 2개" in line
+    assert "로컬 자막 위치 후보(위치 확인만 가능) 11개" in line
+    assert "검색 확인 합계 13개" in line
+    # 합계는 '검색 확인'으로만 부르고, 제작 가능 수에 로컬을 섞지 않는다.
+    assert "제작 가능 장면(영상 검수 대상) 13개" not in line
+
+
+def test_local_counts_by_title_groups_by_source_unit() -> None:
+    first = _local_match()
+    second = _local_match()
+    counts = ui_controller.local_counts_by_title((first, second))
+    assert counts == ((first.media_display_name, 2),)

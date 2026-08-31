@@ -14,8 +14,11 @@ from scene_collector.database import (
 from scene_collector.media import store_media
 from scene_collector.search import search_selected_expression
 from scene_collector.subtitles import (
+    SubtitleVersionError,
     episode_from_filename,
     index_local_subtitles,
+    index_source_unit,
+    parse_source_unit_directory,
     parse_subtitle_directory,
 )
 
@@ -319,3 +322,102 @@ def test_search_merges_nadeshiko_and_local_results(tmp_path: Path) -> None:
             "本当に大丈夫ですか？",
         ]
         assert found.has_results
+
+
+# ----------------------------------------------------------------------
+# source unit 판본 중복 검증 (UAT FIX 3-A)
+# ----------------------------------------------------------------------
+
+UNIT_SRT_BODY = """1
+00:00:01,000 --> 00:00:02,000
+大丈夫です
+
+2
+00:00:03,000 --> 00:00:04,000
+ありがとう
+"""
+
+
+def test_source_unit_tv_indexes_one_file_per_episode(tmp_path: Path) -> None:
+    directory = tmp_path / "tv"
+    directory.mkdir()
+    for episode in range(1, 12):
+        (directory / f"작품 - {episode:02d}.srt").write_text(
+            UNIT_SRT_BODY, encoding="utf-8"
+        )
+
+    cues, report = parse_source_unit_directory(directory, media_type="tv")
+
+    assert report.file_count == 11
+    assert report.episodes == tuple(range(1, 12))
+    assert report.cue_count == 22
+    assert len(cues) == 22
+    assert {cue.episode for cue in cues} == set(range(1, 12))
+
+
+def test_source_unit_tv_rejects_duplicate_episode_versions(tmp_path: Path) -> None:
+    directory = tmp_path / "tv"
+    directory.mkdir()
+    (directory / "Netflix - 03.srt").write_text(UNIT_SRT_BODY, encoding="utf-8")
+    (directory / "Judas - 03.srt").write_text(UNIT_SRT_BODY, encoding="utf-8")
+    (directory / "작품 - 04.srt").write_text(UNIT_SRT_BODY, encoding="utf-8")
+
+    with pytest.raises(SubtitleVersionError, match="같은 화의 자막 파일이 여러 개"):
+        parse_source_unit_directory(directory, media_type="tv")
+
+
+def test_source_unit_tv_rejects_files_without_episode_number(tmp_path: Path) -> None:
+    directory = tmp_path / "tv"
+    directory.mkdir()
+    (directory / "판본없는파일.srt").write_text(UNIT_SRT_BODY, encoding="utf-8")
+
+    with pytest.raises(SubtitleVersionError, match="화수를 인식할 수 없는"):
+        parse_source_unit_directory(directory, media_type="tv")
+
+
+def test_source_unit_movie_rejects_multiple_versions(tmp_path: Path) -> None:
+    directory = tmp_path / "movie"
+    directory.mkdir()
+    (directory / "BD판.srt").write_text(UNIT_SRT_BODY, encoding="utf-8")
+    (directory / "Netflix판.srt").write_text(UNIT_SRT_BODY, encoding="utf-8")
+
+    with pytest.raises(SubtitleVersionError, match="판본 파일 하나만"):
+        parse_source_unit_directory(directory, media_type="movie")
+
+
+def test_source_unit_movie_single_file_has_no_episode(tmp_path: Path) -> None:
+    directory = tmp_path / "movie"
+    directory.mkdir()
+    # 파일명에 숫자가 있어도 극장판은 화수를 붙이지 않는다.
+    (directory / "극장판 - 01.srt").write_text(UNIT_SRT_BODY, encoding="utf-8")
+
+    cues, report = parse_source_unit_directory(directory, media_type="movie")
+
+    assert report.file_count == 1
+    assert report.episodes == ()
+    assert report.cue_count == 2
+    assert all(cue.episode is None for cue in cues)
+
+
+def test_index_source_unit_registers_and_replaces(tmp_path: Path) -> None:
+    settings = _settings(tmp_path)
+    directory = tmp_path / "movie"
+    directory.mkdir()
+    (directory / "극장판.srt").write_text(UNIT_SRT_BODY, encoding="utf-8")
+
+    with SceneCollectorDatabase.open(settings) as database:
+        media, report = index_source_unit(
+            database, "작품 · 극장판", directory, media_type="movie"
+        )
+        assert media.source == "local"
+        assert report.cue_count == 2
+
+        again, report_again = index_source_unit(
+            database, "작품 · 극장판", directory, media_type="movie"
+        )
+        assert again.id == media.id
+        assert report_again.cue_count == 2
+        stored = database.connection.execute(
+            "SELECT COUNT(*) FROM local_segments"
+        ).fetchone()[0]
+        assert stored == 2

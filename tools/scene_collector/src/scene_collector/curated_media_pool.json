@@ -15,11 +15,71 @@
     "xwRBLXH18XkY"
    ],
    "jimaku_entry_ids": [
-    3337,
+    3335,
     3336,
+    3337,
+    3338,
     4038
    ],
-   "note": "Nadeshiko entry 커버 범위 미확정. 후속 시즌은 Jimaku 확인(무한성편 극장판은 usable 미확정)."
+   "source_units": [
+    {
+     "key": "s1_tv",
+     "label": "1기 TV",
+     "media_type": "tv",
+     "kind": "nadeshiko",
+     "nadeshiko_media_id": "xwRBLXH18XkY",
+     "coverage": "26화"
+    },
+    {
+     "key": "mugen_ressha_tv",
+     "label": "무한열차편 TV판",
+     "media_type": "tv",
+     "kind": "jimaku",
+     "jimaku_entry_id": 3335,
+     "coverage": "7화"
+    },
+    {
+     "key": "mugen_ressha_movie",
+     "label": "무한열차편 극장판",
+     "media_type": "movie",
+     "kind": "jimaku",
+     "jimaku_entry_id": 3338,
+     "coverage": "극장판 1편"
+    },
+    {
+     "key": "yuukaku",
+     "label": "유곽편",
+     "media_type": "tv",
+     "kind": "jimaku",
+     "jimaku_entry_id": 3337,
+     "coverage": "11화"
+    },
+    {
+     "key": "katanakaji",
+     "label": "도공마을편",
+     "media_type": "tv",
+     "kind": "jimaku",
+     "jimaku_entry_id": 3336,
+     "coverage": "11화"
+    },
+    {
+     "key": "hashira_geiko",
+     "label": "주합훈련편",
+     "media_type": "tv",
+     "kind": "jimaku",
+     "jimaku_entry_id": 4038,
+     "coverage": "8화"
+    },
+    {
+     "key": "mugen_jou_movie_1",
+     "label": "무한성편 극장판 1부",
+     "media_type": "movie",
+     "kind": "unavailable",
+     "jimaku_entry_id": 12471,
+     "coverage": "텍스트 자막 없음(.sup 이미지 자막만 존재)"
+    }
+   ],
+   "note": "Nadeshiko는 1기 TV(26화, 2026-08-28 공식 search_media/get_media 재확인)만 보유. 후속 편은 Jimaku 일본어 자막 경로(entry별 화수는 2026-08-28 파일 목록 실측). 무한성편 극장판(entry 12471)은 텍스트 자막이 없어 현재 검색 불가."
   },
   {
    "key": "jujutsu_kaisen",

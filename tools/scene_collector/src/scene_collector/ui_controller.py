@@ -426,6 +426,27 @@ def _require_work_scene(
     return stored
 
 
+def scene_count_summary(nadeshiko_count: int, local_count: int) -> str:
+    """검색 결과 머리줄. 제작 가능 장면과 위치 후보를 절대 합산 표기하지 않는다."""
+    total = nadeshiko_count + local_count
+    return (
+        f"제작 가능 장면(영상 검수 대상) {nadeshiko_count}개 · "
+        f"로컬 자막 위치 후보(위치 확인만 가능) {local_count}개 · "
+        f"검색 확인 합계 {total}개"
+    )
+
+
+def local_counts_by_title(
+    local_segments: tuple[LocalSegmentMatch, ...],
+) -> tuple[tuple[str, int], ...]:
+    """로컬 위치 후보를 source unit(작품 표시명)별로 센다. 처음 나온 순서 유지."""
+    counts: dict[str, int] = {}
+    for scene in local_segments:
+        title = scene.media_display_name or "(작품명 없음)"
+        counts[title] = counts.get(title, 0) + 1
+    return tuple(counts.items())
+
+
 def format_timecode(milliseconds: int) -> str:
     """장면의 원본 위치 표시용 HH:MM:SS.mmm."""
     seconds, milli = divmod(max(0, int(milliseconds)), 1000)
