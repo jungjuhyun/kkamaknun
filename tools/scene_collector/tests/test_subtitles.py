@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 from nadeshiko.models import MediaSummary, SearchFilters, SearchQuery, SearchResponse
 
+from conftest import FakeSearchStats
 from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
 from scene_collector.database import (
     DatabaseError,
@@ -113,7 +114,7 @@ def _search_response(*segments: tuple[str, str]) -> SearchResponse:
     return SearchResponse.from_dict(payload)
 
 
-class RecordingNadeshiko:
+class RecordingNadeshiko(FakeSearchStats):
     def __init__(self, response: SearchResponse | None = None) -> None:
         self.response = response if response is not None else _search_response()
         self.calls: list[tuple[str, bool, tuple[str, ...]]] = []
@@ -124,6 +125,7 @@ class RecordingNadeshiko:
         query: SearchQuery,
         take: int,
         filters: SearchFilters,
+        sort: object = None,
     ) -> SearchResponse:
         included = tuple(item.media_public_id for item in filters.media.include)
         self.calls.append((query.search, bool(query.exact_match), included))

@@ -467,6 +467,11 @@ async def main_page() -> None:
                     len(state.rows), len(state.local_segments)
                 )
             ).style("font-weight: 600")
+            if state.found is not None:
+                coverage_line = ui_controller.search_coverage_line(state.found)
+                if coverage_line:
+                    color = "#b00020" if not state.found.search_fully_checked else "#666"
+                    ui.label(coverage_line).style(f"color: {color}; font-size: 0.85rem")
             ui.label("장면을 고르면 영상 하나만 불러옵니다.").style(
                 "color: #666; font-size: 0.85rem"
             )
@@ -916,8 +921,10 @@ async def main_page() -> None:
             ui.label(f"AI 서비스 / 모델: {summary.ai_service} / {summary.ai_model}")
             ui.label(f"표현 생성 상한: {summary.expression_generation_limit}")
             ui.label(
-                "찾은 장면 수에는 제한이 없습니다. 활성 작품 안에 있는 정확 동일표현 "
-                "장면을 가능한 한 다 찾습니다."
+                "찾은 장면 수에는 제한이 없습니다. 검색이 매칭한 결과는 페이지 끝까지 "
+                "모두 받아 오고, 작품별 검색 통계와 대조해 빠뜨린 것이 없는지 확인합니다. "
+                "다만 Nadeshiko 검색은 문자열이 아니라 형태소 기준으로 매칭하므로, "
+                "작품 안의 모든 문자열 출현을 찾았다고 보장하지는 않습니다."
             )
             ui.label(
                 "Nadeshiko API 키: 설정됨 (값은 표시하지 않습니다)"

@@ -427,12 +427,39 @@ def _require_work_scene(
 
 
 def scene_count_summary(nadeshiko_count: int, local_count: int) -> str:
-    """검색 결과 머리줄. 제작 가능 장면과 위치 후보를 절대 합산 표기하지 않는다."""
+    """검색 결과 머리줄. 제작 가능 장면과 위치 후보를 절대 합산 표기하지 않는다.
+
+    "Nadeshiko 검색에서 확인된"이라고 적는다. 이 수는 검색이 매칭해 준 것 중
+    정확 동일표현인 장면 수이지, 작품 안의 모든 출현 수가 아니다.
+    """
     total = nadeshiko_count + local_count
     return (
-        f"제작 가능 장면(영상 검수 대상) {nadeshiko_count}개 · "
+        f"Nadeshiko 검색에서 확인된 제작 가능 장면(영상 검수 대상) {nadeshiko_count}개 · "
         f"로컬 자막 위치 후보(위치 확인만 가능) {local_count}개 · "
         f"검색 확인 합계 {total}개"
+    )
+
+
+def search_coverage_line(found: SelectedExpressionScenes) -> str:
+    """검색이 매칭한 결과를 실제로 다 확인했는지 사용자에게 알린다.
+
+    공식 검색 통계가 알려 준 작품별 매칭 수와 실제로 받은 수를 대조한 결과다.
+    작품 공개 ID는 사용자에게 의미가 없으므로 노출하지 않는다.
+    """
+    coverage = found.coverage
+    if not coverage:
+        return ""
+    checked = len([item for item in coverage if item.expected_hits or item.retrieved_hits])
+    if not found.search_fully_checked:
+        missing = len(found.unverified_sources)
+        return (
+            f"⚠ 검색이 매칭했다고 알려 준 결과 중 일부를 받지 못했습니다"
+            f"(작품 {missing}개). 아래 목록은 완전하지 않을 수 있습니다."
+        )
+    return (
+        f"검색이 매칭한 {found.retrieved_hits}건을 작품 {checked}개에서 빠짐없이 확인한 결과입니다. "
+        "다만 검색은 문자열이 아니라 형태소 기준으로 찾으므로, 작품 안의 모든 출현을 "
+        "찾았다고 보장하지는 않습니다."
     )
 
 

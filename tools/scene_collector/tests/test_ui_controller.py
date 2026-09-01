@@ -17,6 +17,7 @@ from pydantic import BaseModel
 import scene_collector.search as search_module
 import scene_collector.translate as translate_module
 import scene_collector.ui_controller as ui_controller
+from conftest import FakeSearchStats
 from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
 from scene_collector.database import (
     DATABASE_FILENAME,
@@ -233,7 +234,7 @@ class FakeAI:
         return len(self.prompts)
 
 
-class FakeNadeshiko:
+class FakeNadeshiko(FakeSearchStats):
     """검색·문맥 조회 호출을 기록하는 대역. 실제 network를 사용하지 않는다."""
 
     def __init__(self, response: SearchResponse) -> None:
@@ -247,6 +248,7 @@ class FakeNadeshiko:
         query: SearchQuery,
         take: int,
         filters: SearchFilters,
+        sort: object = None,
     ) -> SearchResponse:
         self.search_calls.append((query.search, bool(query.exact_match)))
         return self.response

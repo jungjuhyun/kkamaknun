@@ -68,3 +68,36 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
                     reason="--run-translation-live로만 실제 장면 번역 시험을 실행합니다."
                 )
             )
+
+
+# ----------------------------------------------------------------------
+# 검색 통계(oracle) 가짜 구현 — 모든 가짜 Nadeshiko client가 공유한다.
+# ----------------------------------------------------------------------
+
+
+def search_stats_response(counts: "dict[str, int] | None" = None):
+    """작품별 매칭 수만 담은 공식 SearchStatsResponse를 만든다."""
+    from nadeshiko.models import SearchStatsResponse
+
+    return SearchStatsResponse.from_dict(
+        {
+            "media": [
+                {"mediaPublicId": media_id, "matchCount": count, "episodeHits": []}
+                for media_id, count in (counts or {}).items()
+            ],
+            "categories": [],
+        }
+    )
+
+
+class FakeSearchStats:
+    """가짜 client에 붙이는 기본 oracle.
+
+    기본값은 "통계가 알려 줄 매칭이 없다"이므로 수집 검증은 항상 통과한다.
+    검증 실패를 시험할 때만 expected_hits를 지정한다.
+    """
+
+    expected_hits: "dict[str, int] | None" = None
+
+    def get_search_stats(self, **kwargs: object):
+        return search_stats_response(self.expected_hits)

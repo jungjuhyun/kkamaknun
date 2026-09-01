@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from nadeshiko.models import MediaSummary, SearchFilters, SearchQuery, SearchResponse
 
+from conftest import FakeSearchStats
 from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
 from scene_collector.curated import (
     CuratedPoolError,
@@ -170,7 +171,7 @@ def test_unchecking_missing_rows_is_safe(tmp_path: Path) -> None:
         assert database.list_media() == ()
 
 
-class RecordingNadeshiko:
+class RecordingNadeshiko(FakeSearchStats):
     def __init__(self, response: SearchResponse) -> None:
         self.response = response
         self.calls: list[tuple[str, bool, tuple[str, ...]]] = []
@@ -181,6 +182,7 @@ class RecordingNadeshiko:
         query: SearchQuery,
         take: int,
         filters: SearchFilters,
+        sort: object = None,
     ) -> SearchResponse:
         included = tuple(item.media_public_id for item in filters.media.include)
         self.calls.append((query.search, bool(query.exact_match), included))

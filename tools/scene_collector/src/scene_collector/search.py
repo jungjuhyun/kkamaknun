@@ -18,6 +18,7 @@ from nadeshiko.models import (
     SearchFiltersMedia,
     SearchQuery,
     SearchResponse,
+    SearchSort,
     Segment,
 )
 
@@ -40,6 +41,15 @@ SEARCH_PAGE_TAKE = 50
 
 내부 효율값이며 사용자 설정이 아니다. 같은 수의 후보를 보는 데 필요한 요청
 수가 가장 적어서 상한을 그대로 쓴다.
+"""
+
+COLLECTION_SORT_MODE = "TIME_ASC"
+"""수집용 정렬. 화수와 화 안의 위치 기준이라 결정적이다.
+
+공식 검색은 Elasticsearch `search_after`(keyset) 커서로 페이지를 넘긴다.
+기본 `RELEVANCE` 정렬은 점수 동점이 많아 커서가 가리키는 자리가 흔들릴 수
+있는 반면 화수·위치는 장면마다 갈리므로 순회가 안정적이다. 결과 순서도
+사용자가 읽기 쉬운 화수 순이 된다.
 """
 
 
@@ -69,6 +79,33 @@ class NoActiveMediaError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class SourceCoverage:
+    """작품 하나에서 이번 검색이 실제로 무엇을 확인했는지 남기는 진단 자료.
+
+    DB에 저장하지 않고 세션 동안만 산다. 사용자 화면에는 공개 ID를 노출하지
+    않고 합계와 검증 여부만 쓴다.
+
+    expected_hits는 공식 검색 통계(`get_search_stats`)가 알려 준 그 작품의
+    매칭 수이고, retrieved_hits는 우리가 페이지를 끝까지 넘겨 실제로 받은
+    수다. 둘을 대조해야 "검색이 준다고 한 것을 다 봤다"고 말할 수 있다.
+    """
+
+    media_public_id: str
+    expected_hits: int
+    retrieved_hits: int
+    matched_scenes: int
+
+    @property
+    def verified(self) -> bool:
+        """검색이 매칭했다고 알려 준 수만큼 실제로 다 받았는지.
+
+        `exact_match=True` 경로가 일반 검색보다 넓은 결과를 주는 경우가 있어
+        받은 수가 더 많을 수 있다. 모자란 경우만 검증 실패로 본다.
+        """
+        return self.retrieved_hits >= self.expected_hits
+
+
+@dataclass(frozen=True)
 class SelectedExpressionScenes:
     """선택한 의미→표현 관계 하나의 검색 결과. 세션 동안만 사용한다.
 
@@ -79,10 +116,34 @@ class SelectedExpressionScenes:
     relation: StoredMeaningExpression
     nadeshiko_segments: tuple[Segment, ...]
     local_segments: tuple[LocalSegmentMatch, ...]
+    coverage: tuple[SourceCoverage, ...] = ()
 
     @property
     def has_results(self) -> bool:
         return bool(self.nadeshiko_segments) or bool(self.local_segments)
+
+    @property
+    def expected_hits(self) -> int:
+        return sum(item.expected_hits for item in self.coverage)
+
+    @property
+    def retrieved_hits(self) -> int:
+        return sum(item.retrieved_hits for item in self.coverage)
+
+    @property
+    def unverified_sources(self) -> tuple[SourceCoverage, ...]:
+        """검색이 매칭했다고 한 만큼 받지 못한 작품."""
+        return tuple(item for item in self.coverage if not item.verified)
+
+    @property
+    def search_fully_checked(self) -> bool:
+        """검색이 매칭한 결과를 작품마다 빠짐없이 확인했는지.
+
+        이것은 "작품 안의 모든 문자열 출현을 찾았다"는 뜻이 **아니다.**
+        공식 검색은 문자열이 아니라 형태소 기준으로 매칭하므로, 검색이
+        애초에 잡지 않은 출현은 이 검증으로도 알 수 없다.
+        """
+        return not self.unverified_sources
 
 
 def find_saved_expressions(
@@ -183,23 +244,32 @@ def search_selected_expression(
     media_ids, local_media = _split_active_media(database)
 
     segments: tuple[Segment, ...] = ()
+    coverage: tuple[SourceCoverage, ...] = ()
     if media_ids:
+        # 공식 검색 통계에 먼저 물어 작품별로 몇 건이 매칭되는지 받아 둔다.
+        # 이 수와 실제로 받은 수를 대조해야 "검색이 준다고 한 것을 다 봤다"고
+        # 말할 수 있다. 페이지가 끝났다는 사실만으로는 알 수 없다.
+        expected = _search_hit_counts(
+            relation.japanese, nadeshiko_client=nadeshiko_client, media_ids=media_ids
+        )
         # 두 검색 경로가 정확히 같은 결과를 준다는 공식 보장이 없으므로 둘 다 끝까지
         # 훑어 합친다. 제작 재료는 많을수록 좋고, 여기서 개수를 자르지 않는다.
-        segments = _unique_segments(
-            _collect_surface_segments(
+        raw = _unique_segments(
+            _collect_search_segments(
                 relation.japanese,
                 exact_match=False,
                 nadeshiko_client=nadeshiko_client,
                 media_ids=media_ids,
             ),
-            _collect_surface_segments(
+            _collect_search_segments(
                 relation.japanese,
                 exact_match=True,
                 nadeshiko_client=nadeshiko_client,
                 media_ids=media_ids,
             ),
         )
+        segments = _surface_segments(raw, relation.japanese)
+        coverage = _build_coverage(raw, segments, expected=expected, media_ids=media_ids)
 
     local_segments: tuple[LocalSegmentMatch, ...] = ()
     if local_media:
@@ -209,24 +279,75 @@ def search_selected_expression(
         relation=relation,
         nadeshiko_segments=segments,
         local_segments=local_segments,
+        coverage=coverage,
     )
 
 
-def _collect_surface_segments(
+def _search_hit_counts(
+    search_text: str,
+    *,
+    nadeshiko_client: Nadeshiko,
+    media_ids: tuple[str, ...],
+) -> dict[str, int]:
+    """공식 검색 통계로 작품별 매칭 수를 미리 받는다(요청 1회).
+
+    결과 장면을 받지 않고 개수만 주는 공식 경로라 값이 싸다. 통계에 없는
+    작품은 매칭이 0건이라는 뜻이다.
+    """
+    stats = nadeshiko_client.get_search_stats(
+        query=SearchQuery(search=search_text),
+        filters=_media_filters(media_ids),
+    )
+    return {item.media_public_id: int(item.match_count) for item in stats.media}
+
+
+def _build_coverage(
+    raw: tuple[Segment, ...],
+    matched: tuple[Segment, ...],
+    *,
+    expected: dict[str, int],
+    media_ids: tuple[str, ...],
+) -> tuple[SourceCoverage, ...]:
+    """작품별로 예상 매칭 수·실제 수신 수·최종 장면 수를 모은다."""
+    retrieved: dict[str, int] = {}
+    for segment in raw:
+        retrieved[segment.media_public_id] = retrieved.get(segment.media_public_id, 0) + 1
+    scenes: dict[str, int] = {}
+    for segment in matched:
+        scenes[segment.media_public_id] = scenes.get(segment.media_public_id, 0) + 1
+
+    # 검색한 작품과 결과에만 등장한 작품을 모두 확인 대상으로 둔다.
+    keys = sorted(set(media_ids) | set(expected) | set(retrieved))
+    return tuple(
+        SourceCoverage(
+            media_public_id=key,
+            expected_hits=expected.get(key, 0),
+            retrieved_hits=retrieved.get(key, 0),
+            matched_scenes=scenes.get(key, 0),
+        )
+        for key in keys
+    )
+
+
+def _collect_search_segments(
     search_text: str,
     *,
     exact_match: bool,
     nadeshiko_client: Nadeshiko,
     media_ids: tuple[str, ...],
 ) -> tuple[Segment, ...]:
-    """정확히 같은 표현이 담긴 장면을 페이지가 끝날 때까지 전부 모은다.
+    """검색이 돌려주는 장면을 페이지가 끝날 때까지 거르지 않고 모두 모은다.
 
     이 도구의 목적은 고른 표현 하나를 여러 장면에서 반복해 보여줄 제작 재료를
     모으는 것이다. 그래서 "몇 개 찾았으니 그만"이나 "몇 페이지 봤으니 그만"으로
     정상 결과를 자르지 않고, Nadeshiko가 더 줄 것이 없을 때까지 훑는다.
 
-    작품 필터는 모든 페이지에 그대로 붙는다. 순회가 비정상으로 끝나면
-    SearchPaginationError를 내고, 모은 것만 조용히 완료로 돌려주지 않는다.
+    표면형 판정은 여기서 하지 않는다. 검색이 준 원본 수를 그대로 세어 공식
+    검색 통계와 대조해야 빠뜨린 페이지가 있는지 알 수 있기 때문이다.
+
+    작품 필터와 정렬은 모든 페이지에 똑같이 붙는다. 공식 커서는 요청의 정렬
+    구성과 짝이 맞아야 하므로 순회 도중 정렬을 바꾸지 않는다. 순회가 비정상으로
+    끝나면 SearchPaginationError를 내고, 모은 것만 조용히 완료로 돌려주지 않는다.
     """
     collected: list[Segment] = []
     seen_cursors: set[str] = set()
@@ -240,7 +361,7 @@ def _collect_surface_segments(
             media_ids=media_ids,
             cursor=cursor,
         )
-        collected.extend(_surface_segments(response, search_text))
+        collected.extend(response.segments)
 
         pagination = response.pagination
         if not pagination.has_more:
@@ -300,6 +421,14 @@ def _split_active_media(
     return nadeshiko_ids, local_media
 
 
+def _media_filters(media_ids: tuple[str, ...]) -> SearchFilters:
+    return SearchFilters(
+        media=SearchFiltersMedia(
+            include=[MediaFilterItem(media_public_id=media_id) for media_id in media_ids]
+        )
+    )
+
+
 def _search_nadeshiko(
     search_text: str,
     *,
@@ -310,14 +439,14 @@ def _search_nadeshiko(
     cursor: str | None = None,
 ) -> SearchResponse:
     query = SearchQuery(search=search_text, exact_match=exact_match)
-    media_filter = SearchFiltersMedia(
-        include=[MediaFilterItem(media_public_id=media_id) for media_id in media_ids]
-    )
-    filters = SearchFilters(media=media_filter)
+    filters = _media_filters(media_ids)
+    sort = SearchSort(mode=COLLECTION_SORT_MODE)
     if cursor is None:
         # 공식 API에서 cursor를 생략하는 것이 곧 첫 페이지다.
-        return nadeshiko_client.search(query=query, take=take, filters=filters)
-    return nadeshiko_client.search(query=query, take=take, cursor=cursor, filters=filters)
+        return nadeshiko_client.search(query=query, take=take, filters=filters, sort=sort)
+    return nadeshiko_client.search(
+        query=query, take=take, cursor=cursor, filters=filters, sort=sort
+    )
 
 
 def _search_local_segments(
@@ -339,10 +468,13 @@ def _search_local_segments(
     )
 
 
-def _surface_segments(response: SearchResponse, primary_surface: str) -> tuple[Segment, ...]:
+def _surface_segments(
+    segments: tuple[Segment, ...], primary_surface: str
+) -> tuple[Segment, ...]:
+    """검색이 준 장면 중 목표 표현이 같은 표면형으로 있는 것만 남긴다."""
     return tuple(
         segment
-        for segment in response.segments
+        for segment in segments
         if matches_surface(
             segment.text_ja.content,
             primary_surface,

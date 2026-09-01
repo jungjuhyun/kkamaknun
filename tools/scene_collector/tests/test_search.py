@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 from collections.abc import Iterator
 from pathlib import Path
@@ -7,6 +8,8 @@ import pytest
 from nadeshiko.models import SearchFilters, SearchQuery, SearchResponse, Token
 
 import scene_collector.search as search_module
+import scene_collector.ui_controller as ui_controller
+from conftest import FakeSearchStats
 from scene_collector.config import (
     AISettings,
     AppSettings,
@@ -68,7 +71,12 @@ def _generated(*japanese: str) -> GeneratedExpressions:
 
 
 def _search_response(*texts_ja: str, cursor: str | None = None) -> SearchResponse:
-    """검색 응답 한 페이지. cursor를 주면 다음 페이지가 있는 응답이 된다."""
+    """검색 응답 한 페이지. cursor를 주면 다음 페이지가 있는 응답이 된다.
+
+    장면 ID는 대사에서 만든다. 실제 API에서 공개 ID는 장면을 유일하게
+    가리키므로, 서로 다른 대사가 같은 ID를 갖는 응답을 흉내 내면 중복 제거
+    시험이 실제와 달라진다.
+    """
     payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
     payload["pagination"] = {
         "hasMore": cursor is not None,
@@ -80,14 +88,15 @@ def _search_response(*texts_ja: str, cursor: str | None = None) -> SearchRespons
     payload["segments"] = []
     for index, text_ja in enumerate(texts_ja, start=1):
         segment = copy.deepcopy(segment_template)
-        segment["publicId"] = f"anonymous-segment-{index:03d}"
+        digest = hashlib.sha1(text_ja.encode("utf-8")).hexdigest()[:8]
+        segment["publicId"] = f"anonymous-segment-{digest}"
         segment["position"] = index
         segment["textJa"]["content"] = text_ja
         payload["segments"].append(segment)
     return SearchResponse.from_dict(payload)
 
 
-class RecordingNadeshiko:
+class RecordingNadeshiko(FakeSearchStats):
     """검색 호출 인자를 기록하는 가짜 Nadeshiko client."""
 
     def __init__(self, responses: dict[tuple[str, bool], SearchResponse] | None = None) -> None:
@@ -101,6 +110,7 @@ class RecordingNadeshiko:
         query: SearchQuery,
         take: int,
         filters: SearchFilters | None = None,
+        sort: object = None,
     ) -> SearchResponse:
         included: tuple[str, ...] = ()
         if filters is not None:
@@ -109,7 +119,7 @@ class RecordingNadeshiko:
         return self.responses.get((query.search, bool(query.exact_match)), _search_response())
 
 
-class PagingNadeshiko:
+class PagingNadeshiko(FakeSearchStats):
     """(검색어, exact_match, cursor)마다 다른 페이지를 돌려주는 가짜 client.
 
     등록하지 않은 페이지를 요청하면 실패한다. "이 페이지는 요청하면 안 된다"를
@@ -128,6 +138,7 @@ class PagingNadeshiko:
         take: int,
         filters: SearchFilters | None = None,
         cursor: str | None = None,
+        sort: object = None,
     ) -> SearchResponse:
         included: tuple[str, ...] = ()
         if filters is not None:
@@ -139,7 +150,7 @@ class PagingNadeshiko:
         return self.pages[key]
 
 
-class RepeatingCursorNadeshiko:
+class RepeatingCursorNadeshiko(FakeSearchStats):
     """같은 cursor를 계속 돌려주는 비정상 client. 순환 안전장치 시험용이다."""
 
     def __init__(self, *texts_ja: str) -> None:
@@ -153,6 +164,7 @@ class RepeatingCursorNadeshiko:
         take: int,
         filters: SearchFilters | None = None,
         cursor: str | None = None,
+        sort: object = None,
     ) -> SearchResponse:
         self.calls.append((query.search, bool(query.exact_match), cursor))
         return _search_response(*self.texts_ja, cursor="stuck-page")
@@ -988,3 +1000,258 @@ def test_search_settings_no_longer_limit_the_scene_count() -> None:
     assert not hasattr(settings, "scene_result_limit")
     assert not hasattr(settings, "nadeshiko_take")
     assert set(SearchSettings.model_fields) == {"expression_generation_limit"}
+
+
+# ----------------------------------------------------------------------
+# UAT FIX 4 — 검색 회수 무결성
+# ----------------------------------------------------------------------
+
+
+class OracleNadeshiko(FakeSearchStats):
+    """작품별 매칭 수(oracle)와 페이지를 함께 흉내 내는 가짜 client."""
+
+    def __init__(
+        self,
+        pages: dict[tuple[str, bool, str | None], SearchResponse],
+        expected_hits: dict[str, int] | None = None,
+    ) -> None:
+        self.pages = pages
+        self.expected_hits = expected_hits
+        self.calls: list[tuple[str, bool, str | None, tuple[str, ...], object]] = []
+        self.stats_calls = 0
+
+    def get_search_stats(self, **kwargs: object):
+        self.stats_calls += 1
+        from conftest import search_stats_response
+
+        return search_stats_response(self.expected_hits)
+
+    def search(
+        self,
+        *,
+        query: SearchQuery,
+        take: int,
+        filters: SearchFilters | None = None,
+        cursor: str | None = None,
+        sort: object = None,
+    ) -> SearchResponse:
+        included: tuple[str, ...] = ()
+        if filters is not None:
+            included = tuple(item.media_public_id for item in filters.media.include)
+        self.calls.append((query.search, bool(query.exact_match), cursor, included, sort))
+        key = (query.search, bool(query.exact_match), cursor)
+        if key not in self.pages:
+            raise AssertionError(f"요청하지 않아야 할 페이지를 요청했습니다: {key}")
+        return self.pages[key]
+
+
+def _media_response(
+    *pairs: tuple[str, str],
+    cursor: str | None = None,
+) -> SearchResponse:
+    """(작품 ID, 대사) 쌍으로 한 페이지를 만든다."""
+    payload = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
+    payload["pagination"] = {
+        "hasMore": cursor is not None,
+        "estimatedTotalHits": len(pairs),
+        "estimatedTotalHitsRelation": "EXACT",
+        "cursor": cursor,
+    }
+    template = payload["segments"][0]
+    payload["segments"] = []
+    for index, (media_id, text_ja) in enumerate(pairs, start=1):
+        segment = copy.deepcopy(template)
+        digest = hashlib.sha1(f"{media_id}{text_ja}".encode("utf-8")).hexdigest()[:8]
+        segment["publicId"] = f"seg-{digest}"
+        segment["mediaPublicId"] = media_id
+        segment["position"] = index
+        segment["textJa"]["content"] = text_ja
+        payload["segments"].append(segment)
+    return SearchResponse.from_dict(payload)
+
+
+def test_collection_uses_deterministic_time_sort_on_every_page(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """커서 순회는 화수·위치 기준 결정적 정렬로 모든 페이지에서 같은 구성을 쓴다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a")
+    pages = {
+        ("大丈夫", False, None): _media_response(
+            ("media-a", "大丈夫。"), cursor="page-2"
+        ),
+        ("大丈夫", False, "page-2"): _media_response(("media-a", "もう大丈夫")),
+        ("大丈夫", True, None): _media_response(),
+    }
+    client = OracleNadeshiko(pages)
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    assert len(found.nadeshiko_segments) == 2
+    modes = {call[4].mode for call in client.calls}
+    assert modes == {"TIME_ASC"}
+    # 커서는 정렬 구성과 짝이 맞아야 하므로 페이지마다 정렬을 바꾸지 않는다.
+    assert len({call[4].mode for call in client.calls}) == 1
+
+
+def test_search_reports_full_coverage_when_oracle_counts_are_met(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """작품별 매칭 수를 다 받았으면 검증 통과로 보고한다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a", "media-b")
+    pages = {
+        ("大丈夫", False, None): _media_response(
+            ("media-a", "大丈夫。"), ("media-b", "もう大丈夫。"), ("media-b", "大丈夫。 ほんとに")
+        ),
+        ("大丈夫", True, None): _media_response(),
+    }
+    client = OracleNadeshiko(pages, expected_hits={"media-a": 1, "media-b": 2})
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    assert client.stats_calls == 1
+    assert found.search_fully_checked is True
+    assert found.unverified_sources == ()
+    assert found.expected_hits == 3
+    assert found.retrieved_hits == 3
+    by_media = {item.media_public_id: item for item in found.coverage}
+    assert by_media["media-a"].retrieved_hits == 1
+    assert by_media["media-b"].retrieved_hits == 2
+    assert by_media["media-b"].matched_scenes == 2
+
+
+def test_search_flags_the_source_it_could_not_fully_retrieve(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """검색이 매칭했다고 한 수보다 적게 받으면 조용히 완전한 척하지 않는다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a", "media-b")
+    pages = {
+        ("大丈夫", False, None): _media_response(("media-a", "大丈夫。")),
+        ("大丈夫", True, None): _media_response(),
+    }
+    # media-b는 5건이 매칭된다고 통계가 알려 줬지만 실제로는 하나도 받지 못했다.
+    client = OracleNadeshiko(pages, expected_hits={"media-a": 1, "media-b": 5})
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    assert found.search_fully_checked is False
+    unverified = found.unverified_sources
+    assert [item.media_public_id for item in unverified] == ["media-b"]
+    assert unverified[0].expected_hits == 5
+    assert unverified[0].retrieved_hits == 0
+    line = ui_controller.search_coverage_line(found)
+    assert "일부를 받지 못했습니다" in line
+    assert "빠짐없이" not in line
+
+
+def test_coverage_line_never_claims_every_occurrence(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """검증에 성공해도 '작품 안의 모든 출현'을 찾았다고 말하지 않는다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a")
+    pages = {
+        ("大丈夫", False, None): _media_response(("media-a", "大丈夫。")),
+        ("大丈夫", True, None): _media_response(),
+    }
+    client = OracleNadeshiko(pages, expected_hits={"media-a": 1})
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    line = ui_controller.search_coverage_line(found)
+    assert "빠짐없이 확인" in line
+    assert "형태소" in line
+    assert "보장하지는 않습니다" in line
+    assert "모두 찾았습니다" not in line
+
+    header = ui_controller.scene_count_summary(len(found.nadeshiko_segments), 0)
+    assert header.startswith("Nadeshiko 검색에서 확인된")
+
+
+def test_exact_only_and_general_only_scenes_are_both_kept(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """일반 검색에만 있는 장면과 정확 검색에만 있는 장면을 모두 남긴다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a")
+    shared = ("media-a", "大丈夫。")
+    pages = {
+        ("大丈夫", False, None): _media_response(shared, ("media-a", "まだ大丈夫")),
+        ("大丈夫", True, None): _media_response(shared, ("media-a", "もう大丈夫")),
+    }
+    client = OracleNadeshiko(pages, expected_hits={"media-a": 2})
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    texts = [segment.text_ja.content for segment in found.nadeshiko_segments]
+    assert texts == ["大丈夫。", "まだ大丈夫", "もう大丈夫"]
+    # 같은 장면이 두 경로에 나와도 한 번만 센다.
+    assert len({segment.public_id for segment in found.nadeshiko_segments}) == 3
+    assert found.retrieved_hits == 3
+
+
+def test_scenes_from_several_media_are_kept_apart_and_deduped(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """여러 작품이 한 번에 검색돼도 작품별로 집계하고 같은 장면은 한 번만 센다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a", "media-b")
+    pages = {
+        ("大丈夫", False, None): _media_response(
+            ("media-a", "大丈夫。"), ("media-b", "大丈夫。")
+        ),
+        ("大丈夫", True, None): _media_response(("media-a", "大丈夫。")),
+    }
+    client = OracleNadeshiko(pages, expected_hits={"media-a": 1, "media-b": 1})
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    # 같은 대사라도 작품이 다르면 다른 장면이다.
+    assert len(found.nadeshiko_segments) == 2
+    by_media = {item.media_public_id: item.retrieved_hits for item in found.coverage}
+    assert by_media == {"media-a": 1, "media-b": 1}
+
+
+def test_search_still_stores_nothing_and_keeps_no_scene_limit(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """검증을 붙여도 결과 저장은 없고 장면 수 제한도 생기지 않는다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a")
+    many = tuple(("media-a", f"大丈夫。 {index}番目") for index in range(120))
+    pages = {
+        ("大丈夫", False, None): _media_response(*many[:60], cursor="p2"),
+        ("大丈夫", False, "p2"): _media_response(*many[60:]),
+        ("大丈夫", True, None): _media_response(),
+    }
+    client = OracleNadeshiko(pages, expected_hits={"media-a": 120})
+    before = _row_counts(database)
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    assert len(found.nadeshiko_segments) == 120
+    assert found.search_fully_checked is True
+    assert _row_counts(database) == before

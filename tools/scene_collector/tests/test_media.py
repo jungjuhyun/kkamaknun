@@ -15,6 +15,7 @@ from nadeshiko.models import (
 )
 
 import scene_collector.search as search_module
+from conftest import FakeSearchStats
 from scene_collector.config import AISettings, AppSettings, SearchSettings, StorageSettings
 from scene_collector.database import (
     DatabaseError,
@@ -131,7 +132,7 @@ def _forbid_ai(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(search_module, "create_structured_response", fail)
 
 
-class FilterRecordingNadeshiko:
+class FilterRecordingNadeshiko(FakeSearchStats):
     """공식 media filter 전달을 기록하는 offline fake."""
 
     def __init__(self, response: SearchResponse | None = None) -> None:
@@ -144,6 +145,7 @@ class FilterRecordingNadeshiko:
         query: SearchQuery,
         take: int,
         filters: SearchFilters,
+        sort: object = None,
     ) -> SearchResponse:
         included = tuple(item.media_public_id for item in filters.media.include)
         self.calls.append((query.search, bool(query.exact_match), included))
