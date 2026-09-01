@@ -94,10 +94,22 @@ class FakeSearchStats:
     """가짜 client에 붙이는 기본 oracle.
 
     기본값은 "통계가 알려 줄 매칭이 없다"이므로 수집 검증은 항상 통과한다.
-    검증 실패를 시험할 때만 expected_hits를 지정한다.
+    검증 실패를 시험할 때만 expected_hits(일반 경로)와
+    exact_expected_hits(정확 경로)를 지정한다. 실제 API의 통계는 검색과 같은
+    exact_match 조건을 반영하므로 가짜도 경로를 구분한다.
     """
 
     expected_hits: "dict[str, int] | None" = None
+    exact_expected_hits: "dict[str, int] | None" = None
 
-    def get_search_stats(self, **kwargs: object):
-        return search_stats_response(self.expected_hits)
+    def get_search_stats(self, *, query=None, **kwargs: object):
+        exact = bool(getattr(query, "exact_match", False))
+        if exact:
+            counts = (
+                self.exact_expected_hits
+                if self.exact_expected_hits is not None
+                else self.expected_hits
+            )
+        else:
+            counts = self.expected_hits
+        return search_stats_response(counts)

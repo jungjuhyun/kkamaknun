@@ -79,30 +79,44 @@ class NoActiveMediaError(RuntimeError):
 
 
 @dataclass(frozen=True)
+class PathCoverage:
+    """검색 경로 하나(일반 또는 정확)의 회수 무결성.
+
+    expected_hits는 그 경로와 **같은 조건**으로 물어본 공식 검색 통계가 알려 준
+    매칭 수이고, retrieved_hits는 그 경로에서 페이지를 끝까지 넘겨 실제로 받은
+    서로 다른 장면 수다.
+    """
+
+    expected_hits: int
+    retrieved_hits: int
+
+    @property
+    def verified(self) -> bool:
+        return self.retrieved_hits >= self.expected_hits
+
+
+@dataclass(frozen=True)
 class SourceCoverage:
     """작품 하나에서 이번 검색이 실제로 무엇을 확인했는지 남기는 진단 자료.
 
     DB에 저장하지 않고 세션 동안만 산다. 사용자 화면에는 공개 ID를 노출하지
     않고 합계와 검증 여부만 쓴다.
 
-    expected_hits는 공식 검색 통계(`get_search_stats`)가 알려 준 그 작품의
-    매칭 수이고, retrieved_hits는 우리가 페이지를 끝까지 넘겨 실제로 받은
-    수다. 둘을 대조해야 "검색이 준다고 한 것을 다 봤다"고 말할 수 있다.
+    **검색 경로별로 따로 판정한다.** 두 경로를 합친 뒤에 세면, 정확 검색이
+    더 준 장면이 일반 검색에서 놓친 자리를 메워 검증이 통과해 버린다. 예를
+    들어 일반 검색이 10건 중 9건만 왔는데 정확 검색에만 있는 장면 하나가
+    합류하면 합계는 10이 되지만 일반 경로는 여전히 1건을 놓친 상태다.
     """
 
     media_public_id: str
-    expected_hits: int
-    retrieved_hits: int
+    normal: PathCoverage
+    exact: PathCoverage
     matched_scenes: int
 
     @property
     def verified(self) -> bool:
-        """검색이 매칭했다고 알려 준 수만큼 실제로 다 받았는지.
-
-        `exact_match=True` 경로가 일반 검색보다 넓은 결과를 주는 경우가 있어
-        받은 수가 더 많을 수 있다. 모자란 경우만 검증 실패로 본다.
-        """
-        return self.retrieved_hits >= self.expected_hits
+        """두 경로가 각각 자기 통계만큼 받았는지. 한쪽이라도 모자라면 실패다."""
+        return self.normal.verified and self.exact.verified
 
 
 @dataclass(frozen=True)
@@ -123,17 +137,31 @@ class SelectedExpressionScenes:
         return bool(self.nadeshiko_segments) or bool(self.local_segments)
 
     @property
-    def expected_hits(self) -> int:
-        return sum(item.expected_hits for item in self.coverage)
+    def normal_retrieved_hits(self) -> int:
+        return sum(item.normal.retrieved_hits for item in self.coverage)
 
     @property
-    def retrieved_hits(self) -> int:
-        return sum(item.retrieved_hits for item in self.coverage)
+    def exact_retrieved_hits(self) -> int:
+        return sum(item.exact.retrieved_hits for item in self.coverage)
 
     @property
     def unverified_sources(self) -> tuple[SourceCoverage, ...]:
-        """검색이 매칭했다고 한 만큼 받지 못한 작품."""
+        """어느 한 검색 경로라도 통계가 알려 준 만큼 받지 못한 작품."""
         return tuple(item for item in self.coverage if not item.verified)
+
+    @property
+    def checked_sources(self) -> int:
+        """이번 검색에서 실제로 매칭이 있었던 작품 수."""
+        return len(
+            [
+                item
+                for item in self.coverage
+                if item.normal.expected_hits
+                or item.exact.expected_hits
+                or item.normal.retrieved_hits
+                or item.exact.retrieved_hits
+            ]
+        )
 
     @property
     def search_fully_checked(self) -> bool:
@@ -246,30 +274,39 @@ def search_selected_expression(
     segments: tuple[Segment, ...] = ()
     coverage: tuple[SourceCoverage, ...] = ()
     if media_ids:
-        # 공식 검색 통계에 먼저 물어 작품별로 몇 건이 매칭되는지 받아 둔다.
-        # 이 수와 실제로 받은 수를 대조해야 "검색이 준다고 한 것을 다 봤다"고
-        # 말할 수 있다. 페이지가 끝났다는 사실만으로는 알 수 없다.
-        expected = _search_hit_counts(
-            relation.japanese, nadeshiko_client=nadeshiko_client, media_ids=media_ids
-        )
-        # 두 검색 경로가 정확히 같은 결과를 준다는 공식 보장이 없으므로 둘 다 끝까지
-        # 훑어 합친다. 제작 재료는 많을수록 좋고, 여기서 개수를 자르지 않는다.
-        raw = _unique_segments(
-            _collect_search_segments(
-                relation.japanese,
-                exact_match=False,
-                nadeshiko_client=nadeshiko_client,
-                media_ids=media_ids,
-            ),
-            _collect_search_segments(
-                relation.japanese,
-                exact_match=True,
-                nadeshiko_client=nadeshiko_client,
-                media_ids=media_ids,
-            ),
-        )
+        # 검색 경로마다 같은 조건으로 공식 통계에 먼저 물어 작품별 매칭 수를
+        # 받아 둔다. 이 수와 그 경로가 실제로 받은 수를 대조해야 "검색이
+        # 준다고 한 것을 다 봤다"고 말할 수 있다. 페이지가 끝났다는 사실만으로는
+        # 알 수 없다.
+        #
+        # 두 검색 경로가 정확히 같은 결과를 준다는 공식 보장이 없으므로 둘 다
+        # 끝까지 훑는다. 제작 재료는 많을수록 좋고, 여기서 개수를 자르지 않는다.
+        paths = {
+            exact_match: _SearchPath(
+                expected=_search_hit_counts(
+                    relation.japanese,
+                    exact_match=exact_match,
+                    nadeshiko_client=nadeshiko_client,
+                    media_ids=media_ids,
+                ),
+                segments=_collect_search_segments(
+                    relation.japanese,
+                    exact_match=exact_match,
+                    nadeshiko_client=nadeshiko_client,
+                    media_ids=media_ids,
+                ),
+            )
+            for exact_match in (False, True)
+        }
+        # 경로별 판정을 끝낸 뒤에만 합친다.
+        raw = _unique_segments(paths[False].segments, paths[True].segments)
         segments = _surface_segments(raw, relation.japanese)
-        coverage = _build_coverage(raw, segments, expected=expected, media_ids=media_ids)
+        coverage = _build_coverage(
+            normal=paths[False],
+            exact=paths[True],
+            matched=segments,
+            media_ids=media_ids,
+        )
 
     local_segments: tuple[LocalSegmentMatch, ...] = ()
     if local_media:
@@ -283,46 +320,82 @@ def search_selected_expression(
     )
 
 
+@dataclass(frozen=True)
+class _SearchPath:
+    """한 검색 경로의 통계와 실제로 받은 장면. 경로별 판정에만 쓴다."""
+
+    expected: dict[str, int]
+    segments: tuple[Segment, ...]
+
+    def retrieved_by_media(self) -> dict[str, int]:
+        """작품별로 서로 다른 장면 수를 센다.
+
+        같은 장면이 페이지 경계에서 두 번 와도 한 번만 센다. 그래야 중복 수신이
+        누락을 가리지 못한다.
+        """
+        seen: set[str] = set()
+        counts: dict[str, int] = {}
+        for segment in self.segments:
+            if segment.public_id in seen:
+                continue
+            seen.add(segment.public_id)
+            counts[segment.media_public_id] = counts.get(segment.media_public_id, 0) + 1
+        return counts
+
+
 def _search_hit_counts(
     search_text: str,
     *,
+    exact_match: bool,
     nadeshiko_client: Nadeshiko,
     media_ids: tuple[str, ...],
 ) -> dict[str, int]:
-    """공식 검색 통계로 작품별 매칭 수를 미리 받는다(요청 1회).
+    """공식 검색 통계로 작품별 매칭 수를 미리 받는다(경로당 요청 1회).
 
-    결과 장면을 받지 않고 개수만 주는 공식 경로라 값이 싸다. 통계에 없는
-    작품은 매칭이 0건이라는 뜻이다.
+    결과 장면을 받지 않고 개수만 주는 공식 경로라 값이 싸다. 통계는 검색과
+    같은 `exact_match` 조건을 반영하므로 경로마다 따로 물어야 그 경로의
+    회수를 검증할 수 있다. 통계에 없는 작품은 매칭이 0건이라는 뜻이다.
     """
     stats = nadeshiko_client.get_search_stats(
-        query=SearchQuery(search=search_text),
+        query=SearchQuery(search=search_text, exact_match=exact_match),
         filters=_media_filters(media_ids),
     )
     return {item.media_public_id: int(item.match_count) for item in stats.media}
 
 
 def _build_coverage(
-    raw: tuple[Segment, ...],
-    matched: tuple[Segment, ...],
     *,
-    expected: dict[str, int],
+    normal: _SearchPath,
+    exact: _SearchPath,
+    matched: tuple[Segment, ...],
     media_ids: tuple[str, ...],
 ) -> tuple[SourceCoverage, ...]:
-    """작품별로 예상 매칭 수·실제 수신 수·최종 장면 수를 모은다."""
-    retrieved: dict[str, int] = {}
-    for segment in raw:
-        retrieved[segment.media_public_id] = retrieved.get(segment.media_public_id, 0) + 1
+    """작품별로 두 경로의 예상·수신 수와 최종 장면 수를 따로 모은다."""
+    normal_retrieved = normal.retrieved_by_media()
+    exact_retrieved = exact.retrieved_by_media()
     scenes: dict[str, int] = {}
     for segment in matched:
         scenes[segment.media_public_id] = scenes.get(segment.media_public_id, 0) + 1
 
-    # 검색한 작품과 결과에만 등장한 작품을 모두 확인 대상으로 둔다.
-    keys = sorted(set(media_ids) | set(expected) | set(retrieved))
+    # 검색한 작품과 어느 경로에든 등장한 작품을 모두 확인 대상으로 둔다.
+    keys = sorted(
+        set(media_ids)
+        | set(normal.expected)
+        | set(exact.expected)
+        | set(normal_retrieved)
+        | set(exact_retrieved)
+    )
     return tuple(
         SourceCoverage(
             media_public_id=key,
-            expected_hits=expected.get(key, 0),
-            retrieved_hits=retrieved.get(key, 0),
+            normal=PathCoverage(
+                expected_hits=normal.expected.get(key, 0),
+                retrieved_hits=normal_retrieved.get(key, 0),
+            ),
+            exact=PathCoverage(
+                expected_hits=exact.expected.get(key, 0),
+                retrieved_hits=exact_retrieved.get(key, 0),
+            ),
             matched_scenes=scenes.get(key, 0),
         )
         for key in keys

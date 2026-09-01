@@ -1014,17 +1014,18 @@ class OracleNadeshiko(FakeSearchStats):
         self,
         pages: dict[tuple[str, bool, str | None], SearchResponse],
         expected_hits: dict[str, int] | None = None,
+        exact_expected_hits: dict[str, int] | None = None,
     ) -> None:
         self.pages = pages
         self.expected_hits = expected_hits
+        self.exact_expected_hits = exact_expected_hits
         self.calls: list[tuple[str, bool, str | None, tuple[str, ...], object]] = []
-        self.stats_calls = 0
+        # 통계도 검색 경로마다 따로 물어야 하므로 어떤 조건으로 물었는지 남긴다.
+        self.stats_calls: list[bool] = []
 
-    def get_search_stats(self, **kwargs: object):
-        self.stats_calls += 1
-        from conftest import search_stats_response
-
-        return search_stats_response(self.expected_hits)
+    def get_search_stats(self, *, query=None, **kwargs: object):
+        self.stats_calls.append(bool(getattr(query, "exact_match", False)))
+        return super().get_search_stats(query=query, **kwargs)
 
     def search(
         self,
@@ -1110,20 +1111,22 @@ def test_search_reports_full_coverage_when_oracle_counts_are_met(
         ),
         ("大丈夫", True, None): _media_response(),
     }
-    client = OracleNadeshiko(pages, expected_hits={"media-a": 1, "media-b": 2})
+    client = OracleNadeshiko(
+        pages, expected_hits={"media-a": 1, "media-b": 2}, exact_expected_hits={}
+    )
 
     found = search_selected_expression(
         settings, relation, nadeshiko_client=client, database=database
     )
 
-    assert client.stats_calls == 1
+    # 통계는 일반·정확 경로에 각각 물어본다.
+    assert client.stats_calls == [False, True]
     assert found.search_fully_checked is True
     assert found.unverified_sources == ()
-    assert found.expected_hits == 3
-    assert found.retrieved_hits == 3
+    assert found.normal_retrieved_hits == 3
     by_media = {item.media_public_id: item for item in found.coverage}
-    assert by_media["media-a"].retrieved_hits == 1
-    assert by_media["media-b"].retrieved_hits == 2
+    assert by_media["media-a"].normal.retrieved_hits == 1
+    assert by_media["media-b"].normal.retrieved_hits == 2
     assert by_media["media-b"].matched_scenes == 2
 
 
@@ -1139,7 +1142,9 @@ def test_search_flags_the_source_it_could_not_fully_retrieve(
         ("大丈夫", True, None): _media_response(),
     }
     # media-b는 5건이 매칭된다고 통계가 알려 줬지만 실제로는 하나도 받지 못했다.
-    client = OracleNadeshiko(pages, expected_hits={"media-a": 1, "media-b": 5})
+    client = OracleNadeshiko(
+        pages, expected_hits={"media-a": 1, "media-b": 5}, exact_expected_hits={}
+    )
 
     found = search_selected_expression(
         settings, relation, nadeshiko_client=client, database=database
@@ -1148,10 +1153,12 @@ def test_search_flags_the_source_it_could_not_fully_retrieve(
     assert found.search_fully_checked is False
     unverified = found.unverified_sources
     assert [item.media_public_id for item in unverified] == ["media-b"]
-    assert unverified[0].expected_hits == 5
-    assert unverified[0].retrieved_hits == 0
+    assert unverified[0].normal.expected_hits == 5
+    assert unverified[0].normal.retrieved_hits == 0
+    assert unverified[0].normal.verified is False
     line = ui_controller.search_coverage_line(found)
     assert "일부를 받지 못했습니다" in line
+    assert "일반 검색 1개 작품" in line
     assert "빠짐없이" not in line
 
 
@@ -1166,14 +1173,14 @@ def test_coverage_line_never_claims_every_occurrence(
         ("大丈夫", False, None): _media_response(("media-a", "大丈夫。")),
         ("大丈夫", True, None): _media_response(),
     }
-    client = OracleNadeshiko(pages, expected_hits={"media-a": 1})
+    client = OracleNadeshiko(pages, expected_hits={"media-a": 1}, exact_expected_hits={})
 
     found = search_selected_expression(
         settings, relation, nadeshiko_client=client, database=database
     )
 
     line = ui_controller.search_coverage_line(found)
-    assert "빠짐없이 확인" in line
+    assert "빠짐없이 받았습니다" in line
     assert "형태소" in line
     assert "보장하지는 않습니다" in line
     assert "모두 찾았습니다" not in line
@@ -1194,7 +1201,9 @@ def test_exact_only_and_general_only_scenes_are_both_kept(
         ("大丈夫", False, None): _media_response(shared, ("media-a", "まだ大丈夫")),
         ("大丈夫", True, None): _media_response(shared, ("media-a", "もう大丈夫")),
     }
-    client = OracleNadeshiko(pages, expected_hits={"media-a": 2})
+    client = OracleNadeshiko(
+        pages, expected_hits={"media-a": 2}, exact_expected_hits={"media-a": 2}
+    )
 
     found = search_selected_expression(
         settings, relation, nadeshiko_client=client, database=database
@@ -1204,7 +1213,8 @@ def test_exact_only_and_general_only_scenes_are_both_kept(
     assert texts == ["大丈夫。", "まだ大丈夫", "もう大丈夫"]
     # 같은 장면이 두 경로에 나와도 한 번만 센다.
     assert len({segment.public_id for segment in found.nadeshiko_segments}) == 3
-    assert found.retrieved_hits == 3
+    assert found.normal_retrieved_hits == 2
+    assert found.exact_retrieved_hits == 2
 
 
 def test_scenes_from_several_media_are_kept_apart_and_deduped(
@@ -1220,7 +1230,11 @@ def test_scenes_from_several_media_are_kept_apart_and_deduped(
         ),
         ("大丈夫", True, None): _media_response(("media-a", "大丈夫。")),
     }
-    client = OracleNadeshiko(pages, expected_hits={"media-a": 1, "media-b": 1})
+    client = OracleNadeshiko(
+        pages,
+        expected_hits={"media-a": 1, "media-b": 1},
+        exact_expected_hits={"media-a": 1},
+    )
 
     found = search_selected_expression(
         settings, relation, nadeshiko_client=client, database=database
@@ -1228,7 +1242,9 @@ def test_scenes_from_several_media_are_kept_apart_and_deduped(
 
     # 같은 대사라도 작품이 다르면 다른 장면이다.
     assert len(found.nadeshiko_segments) == 2
-    by_media = {item.media_public_id: item.retrieved_hits for item in found.coverage}
+    by_media = {
+        item.media_public_id: item.normal.retrieved_hits for item in found.coverage
+    }
     assert by_media == {"media-a": 1, "media-b": 1}
 
 
@@ -1245,7 +1261,9 @@ def test_search_still_stores_nothing_and_keeps_no_scene_limit(
         ("大丈夫", False, "p2"): _media_response(*many[60:]),
         ("大丈夫", True, None): _media_response(),
     }
-    client = OracleNadeshiko(pages, expected_hits={"media-a": 120})
+    client = OracleNadeshiko(
+        pages, expected_hits={"media-a": 120}, exact_expected_hits={}
+    )
     before = _row_counts(database)
 
     found = search_selected_expression(
@@ -1255,3 +1273,200 @@ def test_search_still_stores_nothing_and_keeps_no_scene_limit(
     assert len(found.nadeshiko_segments) == 120
     assert found.search_fully_checked is True
     assert _row_counts(database) == before
+
+
+# ----------------------------------------------------------------------
+# UAT FIX 4.1 — 경로별 회수 검증 (합친 뒤 세면 누락이 가려진다)
+# ----------------------------------------------------------------------
+
+
+def test_exact_extras_never_cover_a_general_search_shortfall(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """CASE A — 정확 검색의 추가 장면이 일반 검색의 누락을 메우면 안 된다.
+
+    일반 검색은 통계상 10건인데 9건만 왔고, 정확 검색에만 있는 장면 하나가
+    합류해 합계가 10이 된다. 합친 뒤에 세면 10 >= 10으로 검증을 통과해
+    버리지만, 일반 경로는 여전히 1건을 놓친 상태다.
+    """
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a")
+    normal_nine = tuple(("media-a", f"大丈夫。 {index}番目") for index in range(9))
+    pages = {
+        ("大丈夫", False, None): _media_response(*normal_nine),
+        ("大丈夫", True, None): _media_response(("media-a", "もう大丈夫。")),
+    }
+    client = OracleNadeshiko(
+        pages,
+        expected_hits={"media-a": 10},  # 일반 검색은 10건이라고 알려 줬다
+        exact_expected_hits={"media-a": 1},  # 정확 검색은 1건뿐이고 그건 다 받았다
+    )
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    # 합친 raw는 10건이지만 일반 경로가 모자라므로 검증은 실패해야 한다.
+    assert len(found.nadeshiko_segments) == 10
+    assert found.search_fully_checked is False
+    coverage = {item.media_public_id: item for item in found.coverage}["media-a"]
+    assert coverage.normal.expected_hits == 10
+    assert coverage.normal.retrieved_hits == 9
+    assert coverage.normal.verified is False
+    assert coverage.exact.verified is True
+    assert coverage.verified is False
+    line = ui_controller.search_coverage_line(found)
+    assert "일부를 받지 못했습니다" in line
+    assert "일반 검색 1개 작품" in line
+
+    # 합친 뒤 하나의 통계와만 비교하면 10 >= 10이라 통과해 버리는 상황이다.
+    # 이 시험은 그 허위 성공을 다시 만들지 않게 막는다.
+    union_raw = len({segment.public_id for segment in found.nadeshiko_segments})
+    assert union_raw >= coverage.normal.expected_hits
+
+
+def test_general_path_verified_even_when_exact_adds_more(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """CASE B — 일반 경로가 통계를 다 채웠으면 정확 경로의 추가분과 무관하게 통과."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a")
+    normal_ten = tuple(("media-a", f"大丈夫。 {index}番目") for index in range(10))
+    exact_extra = tuple(("media-a", f"もう大丈夫。 {index}回") for index in range(3))
+    pages = {
+        ("大丈夫", False, None): _media_response(*normal_ten),
+        ("大丈夫", True, None): _media_response(*exact_extra),
+    }
+    client = OracleNadeshiko(
+        pages, expected_hits={"media-a": 10}, exact_expected_hits={"media-a": 3}
+    )
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    assert found.search_fully_checked is True
+    assert found.normal_retrieved_hits == 10
+    assert found.exact_retrieved_hits == 3
+    assert len(found.nadeshiko_segments) == 13
+
+
+def test_exact_path_shortfall_is_not_hidden_by_a_complete_general_path(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """CASE C — 일반 경로가 완전해도 정확 경로의 누락을 숨기지 않는다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a")
+    pages = {
+        ("大丈夫", False, None): _media_response(
+            ("media-a", "大丈夫。"), ("media-a", "もう大丈夫。")
+        ),
+        ("大丈夫", True, None): _media_response(
+            ("media-a", "大丈夫。"), ("media-a", "まだ大丈夫。"), ("media-a", "全部大丈夫。")
+        ),
+    }
+    client = OracleNadeshiko(
+        pages,
+        expected_hits={"media-a": 2},  # 일반은 2건 다 받았다
+        exact_expected_hits={"media-a": 4},  # 정확은 4건이라는데 3건만 왔다
+    )
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    coverage = {item.media_public_id: item for item in found.coverage}["media-a"]
+    assert coverage.normal.verified is True
+    assert coverage.exact.expected_hits == 4
+    assert coverage.exact.retrieved_hits == 3
+    assert coverage.exact.verified is False
+    assert found.search_fully_checked is False
+    line = ui_controller.search_coverage_line(found)
+    assert "정확 검색 1개 작품" in line
+
+
+def test_the_same_scene_in_both_paths_counts_once_in_the_final_list(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """CASE D — 두 경로에 같은 장면이 있어도 최종 제작 장면은 하나다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a")
+    shared = ("media-a", "大丈夫。")
+    pages = {
+        ("大丈夫", False, None): _media_response(shared, ("media-a", "もう大丈夫。")),
+        ("大丈夫", True, None): _media_response(shared),
+    }
+    client = OracleNadeshiko(
+        pages, expected_hits={"media-a": 2}, exact_expected_hits={"media-a": 1}
+    )
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    ids = [segment.public_id for segment in found.nadeshiko_segments]
+    assert len(ids) == len(set(ids)) == 2
+    # 경로별 수신 수는 각자 세므로 중복 제거의 영향을 받지 않는다.
+    assert found.normal_retrieved_hits == 2
+    assert found.exact_retrieved_hits == 1
+    assert found.search_fully_checked is True
+
+
+def test_one_unverified_source_blocks_the_whole_search_from_reading_complete(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """CASE E — 작품 하나라도 검증 실패면 전체를 '빠짐없이'로 표시하지 않는다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a", "media-b")
+    pages = {
+        ("大丈夫", False, None): _media_response(
+            ("media-a", "大丈夫。"), ("media-b", "もう大丈夫。")
+        ),
+        ("大丈夫", True, None): _media_response(),
+    }
+    client = OracleNadeshiko(
+        pages,
+        expected_hits={"media-a": 1, "media-b": 3},  # media-b만 모자라다
+        exact_expected_hits={},
+    )
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    by_media = {item.media_public_id: item for item in found.coverage}
+    assert by_media["media-a"].verified is True
+    assert by_media["media-b"].verified is False
+    assert found.search_fully_checked is False
+    line = ui_controller.search_coverage_line(found)
+    assert "빠짐없이" not in line
+
+
+def test_duplicate_pages_do_not_inflate_a_paths_retrieved_count(
+    settings: AppSettings,
+    database: SceneCollectorDatabase,
+) -> None:
+    """같은 장면이 페이지 경계에서 두 번 와도 회수 수를 부풀리지 않는다."""
+    relation = _add_relation(database, KOREAN_MEANING, "大丈夫")
+    _activate_media(database, "media-a")
+    repeated = ("media-a", "大丈夫。")
+    pages = {
+        ("大丈夫", False, None): _media_response(repeated, cursor="p2"),
+        ("大丈夫", False, "p2"): _media_response(repeated),
+        ("大丈夫", True, None): _media_response(),
+    }
+    client = OracleNadeshiko(pages, expected_hits={"media-a": 2}, exact_expected_hits={})
+
+    found = search_selected_expression(
+        settings, relation, nadeshiko_client=client, database=database
+    )
+
+    # 같은 장면을 두 번 받았을 뿐 서로 다른 장면은 하나다.
+    assert found.normal_retrieved_hits == 1
+    assert found.search_fully_checked is False
+    assert len(found.nadeshiko_segments) == 1
