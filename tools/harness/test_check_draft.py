@@ -16,7 +16,7 @@ LOCK = json.loads((HERE / "EP0_LOCK.json").read_text(encoding="utf-8"))
 
 A = LOCK["잠금_문장"]["A"]
 B = LOCK["잠금_문장"]["B"]
-SIM = COMMON["반드시_들어갈_문장"][0]
+SIM, REAL = COMMON["출처_선언_하나만"]
 CLEAN = f"A: `{A}`\nB: \"{B}\"\n{SIM}\n| 클립화면 | 나레이션 |\n|---|---|\n| 첫 장면 | 무음 |\n"
 
 
@@ -43,7 +43,7 @@ def test_fail2_subtitle_body_claimed():
 def test_fail3_simulation_boundary_dropped():
     # 실패 3: 시뮬레이션 경계 상실 → 필수 문장 누락으로 잡힘 (경계 문장이 있으면서 흔드는 경우는 사람 판정)
     text = CLEAN.replace(SIM, "이 반응은 실제 촬영에서 확인됐다.")
-    assert any("필수 문장 없음" in f for f in run(text))
+    assert any("출처 선언 없음" in f for f in run(text))
 
 
 def test_fail4_process_skipped_not_machine_checkable():
@@ -54,6 +54,16 @@ def test_fail4_process_skipped_not_machine_checkable():
 def test_fail5_web_unverified_not_machine_checkable():
     # 실패 5: 웹 확인 없이 유튜브 지침 인용 → 검사기 범위 밖. PIPELINE 4단계 검수 기준(사람/AI 판정)
     assert run(CLEAN + "유튜브는 첫 30초 이탈률을 본다.\n") == []
+
+
+def test_real_event_declaration_alone_passes():
+    # 2026-09-03 실제 실패: 실제 사건 초안이 시뮬레이션 필수 문장에 걸림 → 출처 선언 택일
+    assert run(CLEAN.replace(SIM, REAL)) == []
+
+
+def test_both_declarations_fail():
+    text = CLEAN + REAL + "\n"
+    assert any("둘 다 있음" in f for f in run(text))
 
 
 if __name__ == "__main__":

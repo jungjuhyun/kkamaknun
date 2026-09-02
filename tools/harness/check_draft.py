@@ -1,7 +1,7 @@
 """기획 초안이 잠금 파일을 지켰는지 검사한다.
 
 읽는 파일 (같은 폴더):
-    COMMON_RULES.json  모든 편 공통. 필수 문장, 금지 표현.
+    COMMON_RULES.json  모든 편 공통. 출처 선언(택일), 금지 표현.
     EP0_LOCK.json      이번 편 잠금. A/B 원문.
 
 사용법:
@@ -45,9 +45,11 @@ def check(draft_text, common, lock):
         if norm(sentence) not in draft_norm:
             fails.append(f"잠금 {name} 원문이 없거나 바뀜: {sentence}")
 
-    for sentence in common["반드시_들어갈_문장"]:
-        if norm(sentence) not in draft_norm:
-            fails.append(f"필수 문장 없음: {sentence}")
+    present = [s for s in common["출처_선언_하나만"] if norm(s) in draft_norm]
+    if not present:
+        fails.append("출처 선언 없음")
+    elif len(present) > 1:
+        fails.append("출처 선언이 둘 다 있음(모순)")
 
     groups = [
         ("없는 자료를 있다고 씀", common["없는_자료를_있다고_쓰는_말"]),
