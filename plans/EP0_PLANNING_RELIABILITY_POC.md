@@ -320,7 +320,7 @@ runner 문제가 아니다. 기획 모델·외부 조사·평가 rubric·모델 
 - [x] **3. repo에서 RUN CONTRACT를 복원하고 잠근다.**
 - [x] **4. 0화 가상 완성본 1차안을 작성한다.**
 - [x] **5. HARD VALIDATION을 수행한다.**
-- [ ] **6. RED TEAM #1을 수행하고 PASS/WEAK/FAIL을 기록한다.**
+- [x] **6. RED TEAM #1을 수행하고 PASS/WEAK/FAIL을 기록한다.**
 - [ ] **7. FAIL/WEAK 항목만 수리한다.**
 - [ ] **8. HARD VALIDATION 재검증 + RED TEAM #2를 수행한다.**
 - [ ] **9. 최종 가상 완성본 + 기획 잠금 + 검증 결과를 사용자에게 공개한다.**
@@ -330,4 +330,4 @@ runner 문제가 아니다. 기획 모델·외부 조사·평가 rubric·모델 
 
 ## 현재 위치
 
-**다음 실행 항목: 6번 — RED TEAM #1을 수행하고 PASS/WEAK/FAIL을 기록한다.**
+**다음 실행 항목: 7번 — FAIL/WEAK 항목만 수리한다.**
