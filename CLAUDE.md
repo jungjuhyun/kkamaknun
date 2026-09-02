@@ -78,6 +78,6 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ## Claude project adapter
 
 이 파일은 Claude용 진입점일 뿐이며 프로젝트 사실이나 규칙을 소유하지 않는다.
-시작 순서·현재 상태의 권위·과거 자료 차단·외부 사실·수정 원칙·책임 분리는 `AGENTS.md`가 owner이며, 아래 import로 그대로 읽는다.
+시작 순서·현재 상태의 권위·과거 자료 차단·수정 원칙·책임 분리는 `AGENTS.md`가 owner이며, 아래 import로 그대로 읽는다.
 
 @AGENTS.md
