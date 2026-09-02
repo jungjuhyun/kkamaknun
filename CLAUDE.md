@@ -77,41 +77,7 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Claude project adapter
 
-이 파일은 Claude용 진입점일 뿐이며 현재 프로젝트 사실을 소유하지 않는다.
-프로젝트 사실과 판단은 아래 shared owner 문서를 사용한다.
+이 파일은 Claude용 진입점일 뿐이며 프로젝트 사실이나 규칙을 소유하지 않는다.
+시작 순서·현재 상태의 권위·과거 자료 차단·외부 사실·수정 원칙·책임 분리는 `AGENTS.md`가 owner이며, 아래 import로 그대로 읽는다.
 
-- `STATE.md` — 현재 상태와 다음 행동
-- `PROJECT_CONTEXT.md` — 오래 유지되는 프로젝트 정체성·목표
-- `PLAYBOOK.md` — 공통 판단·작업 원칙
-- `FIRST_VIDEO.md` — 현재 첫 콘텐츠 세부
-- `USER_PROFILE.md` — 사용자 적합성이 실제 판단을 바꿀 때만 읽는 안정적 사용자 프로필
-
-### 시작 순서
-
-1. `이어가자`, `지금 어디까지`, `다음 뭐야`처럼 **현재 프로젝트 연속성에 의존하는 요청이면 가장 먼저 `STATE.md`를 읽는다.**
-2. 그 다음 현재 요청에 실제로 필요한 owner만 추가로 읽는다.
-   - 첫 콘텐츠 세부 → `FIRST_VIDEO.md`
-   - 큰 기획·판단 → `PLAYBOOK.md`
-   - 프로젝트 정체성·목표 → `PROJECT_CONTEXT.md`
-   - 사용자 취향·성향·지속 가능성이 실제 판단을 바꿀 때 → `USER_PROFILE.md`
-3. 연속성에 의존하지 않는 큰 판단/기획에서는 `PLAYBOOK.md`를 필요에 따라 확인한다.
-4. 모든 문서를 무조건 한꺼번에 읽지 않는다.
-
-### 권위와 과거 자료
-
-- 현재 상태는 `STATE.md`, 첫 콘텐츠 세부는 `FIRST_VIDEO.md`가 우선한다.
-- 안정적 프로젝트 정체성·목표는 `PROJECT_CONTEXT.md`, 안정적 사용자 특성은 `USER_PROFILE.md`가 담당한다.
-- `AGENTS.md`와 이 파일은 adapter이며 별도의 프로젝트 사실 owner가 아니다.
-- git history, backup branch, 삭제된 과거 문서는 사용자가 명시적으로 과거 기록·복구를 요청한 경우에만 본다.
-- repo와 모델 기억이 충돌하면 해당 current owner를 우선한다.
-- repo를 확인할 수 없으면 과거 기억으로 현재 상태를 추측하지 않는다.
-
-### 수정 위치
-
-- 현재 상태 변경 → `STATE.md`
-- 안정적 프로젝트 정체성·목표 변경 → `PROJECT_CONTEXT.md`
-- 오래 유지될 판단·작업 원칙 변경 → `PLAYBOOK.md`
-- 첫 콘텐츠 세부 변경 → `FIRST_VIDEO.md`
-- 오래 유지되고 의사결정을 실제로 바꾸는 비민감 사용자 취향·성향 변경 → `USER_PROFILE.md`
-
-같은 사실을 `CLAUDE.md`에 다시 복제하지 않는다.
+@AGENTS.md
