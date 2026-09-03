@@ -606,7 +606,7 @@ def test_local_subtitle_matches_come_back_separately_from_nadeshiko_segments(
                 start_time_ms=1000,
                 end_time_ms=2500,
                 japanese_text="（ミサ）大丈夫ですか？",
-                source_file="ep01.srt",
+                source_file="ep11.srt",
             ),
             # LIKE 후보에는 들어오지만 표면형 판정에서 걸러진다.
             SubtitleCue(
@@ -615,7 +615,7 @@ def test_local_subtitle_matches_come_back_separately_from_nadeshiko_segments(
                 start_time_ms=3000,
                 end_time_ms=4000,
                 japanese_text="大丈夫ですかね",
-                source_file="ep01.srt",
+                source_file="ep11.srt",
             ),
             SubtitleCue(
                 episode=2,
@@ -623,7 +623,7 @@ def test_local_subtitle_matches_come_back_separately_from_nadeshiko_segments(
                 start_time_ms=5000,
                 end_time_ms=6000,
                 japanese_text="気持ち悪いよ",
-                source_file="ep02.srt",
+                source_file="ep12.srt",
             ),
         ],
     )
@@ -645,7 +645,7 @@ def test_local_subtitle_matches_come_back_separately_from_nadeshiko_segments(
     assert [match.japanese_text for match in result.local_segments] == ["（ミサ）大丈夫ですか？"]
     assert result.local_segments[0].media_display_name == "로컬 자막 작품"
     assert result.local_segments[0].episode == 1
-    assert result.local_segments[0].source_file == "ep01.srt"
+    assert result.local_segments[0].source_file == "ep11.srt"
 
 
 def test_local_only_active_media_skips_nadeshiko_entirely(
@@ -663,7 +663,7 @@ def test_local_only_active_media_skips_nadeshiko_entirely(
                 start_time_ms=1000,
                 end_time_ms=2500,
                 japanese_text="（ミサ）大丈夫ですか？",
-                source_file="ep01.srt",
+                source_file="ep11.srt",
             )
         ],
     )

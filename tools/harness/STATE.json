@@ -1,6 +1,6 @@
 {
   "공정": "tools/harness/PIPELINE.yaml",
-  "실행": "ep0_2026-09-02",
+  "실행": "ep1_2026-09-02",
   "완료_단계": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
   "현재_단계": null,
   "이관": {
@@ -12,7 +12,7 @@
     "패키징": "FAIL",
     "본편_구조": "FAIL",
     "분류": "기획 품질 실패",
-    "근거": "plans/EP0_PLANNING_RELIABILITY_POC.md 10절"
+    "근거": "plans/EP1_PLANNING_RELIABILITY_POC.md 10절"
   },
   "다음_할_일_owner": "STATE.md"
 }

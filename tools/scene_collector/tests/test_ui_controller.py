@@ -1020,7 +1020,7 @@ def test_scene_line_shows_media_episode_timecode_and_text() -> None:
         media_display_name="나데시코 작품",
         work_scene=None,
     )
-    assert scene_line(row) == "나데시코 작품 · 1화 · 00:02:03.400 · あの、大丈夫ですか？"
+    assert scene_line(row) == "나데시코 작품 · 2화 · 00:02:03.400 · あの、大丈夫ですか？"
 
     no_episode = SceneRow(
         segment=_segment("segment-b", "大丈夫ですか、先輩。", episode=None),
@@ -1041,21 +1041,21 @@ def test_work_scene_line_shows_decision_media_and_timecode(tmp_path: Path) -> No
         pending = database.get_work_scene(relation.id, "segment-a")
         assert pending is not None
         assert work_scene_line(pending) == (
-            "[판정 없음] 나데시코 작품 · 1화 · 00:02:03.400 · あの、大丈夫ですか？"
+            "[판정 없음] 나데시코 작품 · 2화 · 00:02:03.400 · あの、大丈夫ですか？"
         )
 
         database.set_work_scene_decision(named_id, "채택")
         decided = database.get_work_scene(relation.id, "segment-a")
         assert decided is not None
         assert work_scene_line(decided) == (
-            "[채택] 나데시코 작품 · 1화 · 00:02:03.400 · あの、大丈夫ですか？"
+            "[채택] 나데시코 작품 · 2화 · 00:02:03.400 · あの、大丈夫ですか？"
         )
 
         # 표시명이 없으면 작품 public ID로 대신 보여준다.
         ensure_work_scene(database, relation, _segment("segment-b", "大丈夫ですか、先輩。"), None)
         unnamed = database.get_work_scene(relation.id, "segment-b")
         assert unnamed is not None
-        assert work_scene_line(unnamed).startswith(f"[판정 없음] {MEDIA_PUBLIC_ID} · 1화 · ")
+        assert work_scene_line(unnamed).startswith(f"[판정 없음] {MEDIA_PUBLIC_ID} · 2화 · ")
 
 
 def test_local_scene_line_formats_title_episode_and_timecode(
@@ -1075,7 +1075,7 @@ def test_local_scene_line_formats_title_episode_and_timecode(
     assert [scene.japanese_text for scene in found.local_segments] == ["（ミサ）大丈夫ですか？"]
     assert format_timecode(found.local_segments[0].start_time_ms) == "00:00:01.000"
     assert local_scene_line(found.local_segments[0]) == (
-        "테스트 작품 · 1화 · 00:00:01.000 ~ 00:00:02.500 · （ミサ）大丈夫ですか？"
+        "테스트 작품 · 2화 · 00:00:01.000 ~ 00:00:02.500 · （ミサ）大丈夫ですか？"
     )
 
 

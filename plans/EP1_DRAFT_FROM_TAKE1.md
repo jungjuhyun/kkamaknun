@@ -1,10 +1,10 @@
-# EP0 시험 초안 — 1차 촬영본 실제 사건만으로 만든 0화 구성
+# EP1 시험 초안 — 1차 촬영본 실제 사건만으로 만든 1화 구성
 
 이 초안의 사건은 촬영본에서 사용자가 판정한 실제 사건이다. 나레이션은 초안이다.
 
 시험 기획이다. 완성본이 아니며 판정은 사용자가 한다.
 
-근거: `STATE.md` → `PLAYBOOK.md` 4·6·7장 → `materials/ep0_take1/후보표.md`(맨 위 사용자 판정 절) → `materials/ep0_take1/발언표.md` → `tools/harness/EP0_LOCK.json`.
+근거: `STATE.md` → `PLAYBOOK.md` 4·6·7장 → `materials/ep1_take1/후보표.md`(맨 위 사용자 판정 절) → `materials/ep1_take1/발언표.md` → `tools/harness/EP1_LOCK.json`.
 사건은 사용자 판정 "사건" 7개만 쓴다. 사건 번호는 후보표 사용자 판정 절의 원래 번호(1~9)다. 판정 "아님" 2개(part_04 05:45–05:52 자세 고침, part_05 03:29–07:07 졸림)는 쓰지 않는다. 새 사건·가상 대사·없는 반응은 만들지 않는다.
 
 ## A · B (잠금 원문)
@@ -63,7 +63,7 @@
 - C가 실제 시청자에게 생기는지는 예상 댓글·공유 문구로 아직 검증하지 않았다.
 - 출처 선언은 실제 사건 선언 하나만 썼다. 검사기 결과는 아래에 그대로 붙인다.
 
-## 검사기 결과 (python tools/harness/check_draft.py plans/EP0_DRAFT_FROM_TAKE1.md, 2026-09-03, 출처 선언 택일 반영 후)
+## 검사기 결과 (python tools/harness/check_draft.py plans/EP1_DRAFT_FROM_TAKE1.md, 2026-09-03, 출처 선언 택일 반영 후)
 
 ```
 PASS

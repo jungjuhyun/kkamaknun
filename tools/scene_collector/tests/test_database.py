@@ -435,7 +435,7 @@ def test_local_segments_are_replaced_and_searched_by_normalized_surface(tmp_path
         assert matches[0].media_display_name == "로컬 작품 1"
         assert matches[0].japanese_text == "大丈夫ですか？"
         assert matches[0].episode == 1
-        assert matches[0].source_file == "ep01.srt"
+        assert matches[0].source_file == "ep11.srt"
         assert matches[1].japanese_text == "もう大丈夫ですか"
 
         only_second = database.find_local_segments(
@@ -1109,7 +1109,7 @@ def _create_seeded_v3_database(path: Path) -> None:
                 INSERT INTO local_segments (
                     media_id, episode, position, start_time_ms, end_time_ms,
                     japanese_text, normalized_text, source_file
-                ) VALUES (2, 1, 1, 0, 900, '大丈夫ですか？', '大丈夫ですか？', 'ep01.srt')
+                ) VALUES (2, 1, 1, 0, 900, '大丈夫ですか？', '大丈夫ですか？', 'ep11.srt')
                 """
             )
             connection.executemany(
