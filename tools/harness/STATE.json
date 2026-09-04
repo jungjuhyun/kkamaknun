@@ -6,13 +6,13 @@
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "Step 4-B 완료",
-  "다음_실행": "Step 4-C — 콘텐츠 각 후보 생성·경쟁",
+  "현재_계획_단계": "Step 4-C 완료",
+  "다음_실행": "Step 4-D — 본편 구조·payoff·패키징",
   "Step4_배치": {
     "4-A": "실제 재료 복원 + 추가 해석표 세부 판정 — 완료",
     "4-B": "경쟁 영상 조사·해부 — 완료",
-    "4-C": "콘텐츠 각 후보 생성·경쟁 — 다음",
-    "4-D": "본편 구조·payoff·패키징 — 대기",
+    "4-C": "콘텐츠 각 후보 생성·경쟁 — 완료",
+    "4-D": "본편 구조·payoff·패키징 — 다음",
     "4-E": "deterministic 검증 + RED TEAM + 최종 제출 — 대기"
   },
   "EP1_재료_체크포인트": {
@@ -27,5 +27,6 @@
     "판정": "planning_quality_failure",
     "근거": "plans/EP1_PLANNING_RELIABILITY_POC.md 10절"
   },
-  "다음_할_일_owner": "STATE.md"
+  "다음_할_일_owner": "STATE.md",
+  "EP1_선택_콘텐츠_각": "20년 동안 일본어를 제대로 공부하지 않은 애니팬에게, 뜻과 이야기 흐름은 꽤 따라가지만 정확한 단어·문장 형태·문자는 군데군데 비어 있는 비대칭 귀가 실제로 남아 있었다는 것을 레제편의 서로 다른 사건으로 보여준다."
 }
