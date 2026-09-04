@@ -734,7 +734,9 @@ Step 4-E에서는 둘 중 하나를 미리 버리지 않고 **약속-본편-payo
 결과:
 > **PASS**
 
-이 PASS는 A/B 잠금·current truth·자료 경계의 기계 검사 통과만 뜻하며 기획 품질 인증이 아니다.
+타임라인 보정 뒤에도 현재 `check_draft.py`와 `STATE.json → EP1_LOCK.json` 경로로 **재실행해 PASS**를 확인했다.
+
+이 PASS는 A/B/타임라인 잠금·current truth·자료 경계의 기계 검사 통과만 뜻하며 기획 품질 인증이 아니다.
 
 ### RED TEAM 공격과 수리
 
@@ -891,7 +893,7 @@ Exit:
 
 ### Step 4-E 판정
 
-- deterministic: **PASS**
+- deterministic: **PASS — 타임라인 보정 후 재검증 포함**
 - RED TEAM: 사용자 사전 검수에서 발견된 **타임라인 무결성 문제**까지 포함해 공격 지점을 수리한 최종안으로 제출
 - Harness 성공 여부는 아직 확정하지 않는다.
 - 다음 단계는 **Step 5 — 사용자 품질 판정**이다.
