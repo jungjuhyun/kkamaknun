@@ -150,7 +150,7 @@
   - 번호: 9
     이름: 최종 검증
     하는_일:
-      - deterministic validator로 current truth·lock·자료 경계 같은 기계 검사를 수행한다.
+      - deterministic validator로 current truth·lock·자료 경계 같은 기계 검사를 수행한다. lock은 `tools/harness/STATE.json`의 `현재_lock`을 기본값으로 사용한다.
       - 그 뒤 RED TEAM으로 약속/본편 불일치, 초반 이후 견인, 반복, C, 인물성, payoff, 후속 욕구를 공격한다.
       - RED TEAM은 품질 인증이 아니라 명백한 약점을 찾는 마지막 공격이다.
     통과_조건:
