@@ -29,12 +29,12 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** 계획서 **Step 2 — 공통 기획 pipeline 교체 완료**.  
-**다음 실행:** **Step 3 — validator/router 정리**.
+**현재 실행 위치:** 계획서 **Step 3 — validator/router 정리 완료**.  
+**다음 실행:** **Step 4 — 1화 실전 검증**.
 
 `tools/harness/PIPELINE.yaml`은 2026-09-04 공통 `video_planning` 공정으로 교체했다. 실제 재료 존재 여부를 먼저 분기하고, `material_first`에서는 **실제 재료 → 사건·반응 → 경쟁 사례 해부 → 콘텐츠 각 후보 → 후보 경쟁 → 구조·payoff → 패키징 → 검증** 순서를 사용한다. 현재 1화는 `material_first` 경로다.
 
-최소 자동화로 존재하는 `check_draft.py`와 Claude Code hook은 유지하되, 현재 단계에서는 기획 품질을 보증하는 장치로 간주하지 않는다.
+`AGENTS.md`의 기획 라우팅은 실제 기획 요청을 `tools/harness/STATE.json` → 현재 `PIPELINE.yaml` → 현재 lock 순으로 연결한다. 현재 편은 `EP1`, lock은 `tools/harness/EP1_LOCK.json`, 입력 경로는 `material_first`다. `check_draft.py`는 이 lock을 `STATE.json`에서 선택하며 **current truth·잠금·자료 경계의 deterministic 오류만 검사**한다. PASS는 기획 품질 인증이 아니다.
 
 ## 1화 전 청해 베이스라인
 
