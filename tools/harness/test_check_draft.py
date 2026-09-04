@@ -12,7 +12,7 @@ sys.path.insert(0, str(HERE))
 from check_draft import check  # noqa: E402
 
 COMMON = json.loads((HERE / "COMMON_RULES.json").read_text(encoding="utf-8"))
-LOCK = json.loads((HERE / "EP0_LOCK.json").read_text(encoding="utf-8"))
+LOCK = json.loads((HERE / "EP1_LOCK.json").read_text(encoding="utf-8"))
 
 A = LOCK["잠금_문장"]["A"]
 B = LOCK["잠금_문장"]["B"]
