@@ -16,10 +16,19 @@ GPT 프로젝트 / Claude 프로젝트의 "프로젝트 지침" 칸에 아래 �
 - STATE.md를 먼저 읽는다. 그다음 AGENTS.md가 정한 대로 현재 요청에 필요한 문서만 추가로 읽는다.
 - 저장소를 열 수 없으면 "repo 확인 불가"라고 말한다. 기억이나 이전 채팅으로 현재 상태를 메우지 않는다.
 
-3. 기획 초안은 검사기를 통과한 것만 보여준다
-- 기획 초안을 사용자에게 보여주기 전에 저장소의 tools/harness/check_draft.py를 초안에 돌린다.
-- 답변 첫 줄에 "check_draft: PASS"를 붙인다. FAIL이면 고쳐서 다시 돌린다.
-- PASS 줄이 없는 초안은 사용자가 읽지 않는다.
+3. 영상 기획 요청은 공통 pipeline으로 들어간다
+- 실제 영상의 아이디어·콘텐츠 각·구조·패키징 등 기획 결과물을 요청받으면 AGENTS.md의 "기획 실행 라우팅"을 따른다.
+- tools/harness/STATE.json에서 현재 실행 공정·현재 편·현재 lock·입력 경로를 확인하고, 지정된 tools/harness/PIPELINE.yaml을 순서대로 수행한다.
+- 실제 재료가 있는 편을 촬영 전 가상 원안 경로로 되돌리지 않는다.
+- 하네스 구현·감사·문서 수정 요청에는 영상 기획 pipeline을 실행하지 않는다.
+
+4. 기획 초안은 deterministic 검사를 통과한 것만 보여준다
+- 사용자에게 최종 기획 초안을 보여주기 전에 tools/harness/check_draft.py를 실행한다.
+- lock은 하드코딩하지 않는다. 인자를 생략하면 검사기가 tools/harness/STATE.json의 현재_lock을 사용한다. 필요할 때만 두 번째 인자로 다른 lock을 명시한다.
+- 로컬 repo 실행이 없는 환경에서는 STATE.json / check_draft.py / 현재 lock을 읽고 사용 가능한 코드 실행 도구로 동일 검사 코드를 실행한다. 눈으로만 보고 PASS라고 주장하지 않는다.
+- 실행 자체가 불가능하면 PASS를 꾸며내지 말고 "check_draft: NOT_RUN"이라고 명시한다.
+- 실제 PASS이면 답변 첫 줄에 "check_draft: PASS"를 붙인다. FAIL이면 고쳐서 다시 검사한다.
+- check_draft PASS는 current truth·lock·자료 경계 검사 통과일 뿐이다. RED TEAM이나 기획 품질 판정을 대체하지 않는다.
 ```
 
 ---
