@@ -29,10 +29,10 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** 계획서 **Step 1 — current truth 정리 완료**.  
-**다음 실행:** **Step 2 — 공통 기획 pipeline 교체**.
+**현재 실행 위치:** 계획서 **Step 2 — 공통 기획 pipeline 교체 완료**.  
+**다음 실행:** **Step 3 — validator/router 정리**.
 
-기존 `tools/harness/PIPELINE.yaml`의 `ep1_planning_reliability_poc`는 실패한 과거 POC 정의로 닫고 현재 실행 공정으로 사용하지 않는다. Step 2에서 실제 재료 존재 여부를 분기하는 공통 기획 pipeline으로 교체한다.
+`tools/harness/PIPELINE.yaml`은 2026-09-04 공통 `video_planning` 공정으로 교체했다. 실제 재료 존재 여부를 먼저 분기하고, `material_first`에서는 **실제 재료 → 사건·반응 → 경쟁 사례 해부 → 콘텐츠 각 후보 → 후보 경쟁 → 구조·payoff → 패키징 → 검증** 순서를 사용한다. 현재 1화는 `material_first` 경로다.
 
 최소 자동화로 존재하는 `check_draft.py`와 Claude Code hook은 유지하되, 현재 단계에서는 기획 품질을 보증하는 장치로 간주하지 않는다.
 
