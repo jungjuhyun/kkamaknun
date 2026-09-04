@@ -6,7 +6,7 @@
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "보정된 공정으로 EP1 재실행 + deterministic 재검증 완료",
+  "현재_계획_단계": "EP1 최종안 유지 + 읽기 표현만 보정 + deterministic 재검증 완료",
   "다음_실행": "사용자 품질 판정",
   "Step4_배치": {
     "4-A": "실제 재료 복원 — 완료",
@@ -30,7 +30,7 @@
   "다음_할_일_owner": "STATE.md",
   "EP1_선택_콘텐츠_각": "일본어 글은 아직 잘 못 읽는데 `漢字読めないの？`라는 일본어 대사는 바로 알아듣고 `나랑 똑같네`라고 반응하는 사람. 레제편의 시간순 시청 경험에서 읽기 전반은 약하지만 정확 이해·소리만 포착·유사음 오해·작품 몰입이 함께 존재하는 비대칭 청해를 보여준다.",
   "Step4E_검증": {
-    "check_draft": "PASS_AFTER_PIPELINE_RERUN",
+    "check_draft": "PASS_AFTER_READING_WORDING_FIX",
     "red_team": "완료",
     "패키지_A": "제작 기본안",
     "패키지_B": "유지 — 중급권에 대한 제한적 직접 답을 payoff에 포함할 때만 사용",
