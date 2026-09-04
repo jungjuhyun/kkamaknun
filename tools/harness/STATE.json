@@ -1,19 +1,19 @@
 {
-  "상태": "WAITING_USER",
+  "상태": "RUNNING",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "Step 4-E 타임라인 보정 + deterministic 재검증 완료",
-  "다음_실행": "Step 5 — 사용자 품질 판정",
+  "현재_계획_단계": "Step 4-E 재개방 — Cold open 선정 보정",
+  "다음_실행": "패키지별 Cold open 후보 경쟁 → 원본 클립 확인 → deterministic 재검증",
   "Step4_배치": {
     "4-A": "실제 재료 복원 — 완료",
     "4-B": "경쟁 영상 조사·해부 — 완료",
     "4-C": "콘텐츠 각 후보 생성·경쟁 — 완료",
     "4-D": "본편 구조·payoff·패키징 — 완료",
-    "4-E": "deterministic 검증 + RED TEAM + 타임라인 보정 + 재검증 — 완료"
+    "4-E": "deterministic 검증 + RED TEAM + 타임라인 보정 완료, Cold open 선정 기준 보정으로 재개방"
   },
   "EP1_재료_체크포인트": {
     "사용자_확정_사건수": 7,
@@ -30,10 +30,11 @@
   "다음_할_일_owner": "STATE.md",
   "EP1_선택_콘텐츠_각": "20년 넘게 일본어를 제대로 공부하지 않은 채 취미로 좋아하는 애니를 봐온 시청자에게, 뜻과 이야기 흐름은 꽤 따라가지만 정확한 단어·문장 형태·문자는 군데군데 비어 있는 비대칭 귀가 실제로 남아 있었다는 것을 레제편의 서로 다른 사건으로 보여준다.",
   "Step4E_검증": {
-    "check_draft": "PASS_AFTER_TIMELINE_FIX",
+    "check_draft": "RECHECK_REQUIRED_AFTER_COLD_OPEN_FIX",
     "red_team": "완료",
     "패키지_A": "제작 기본안",
     "패키지_B": "유지 — 중급권에 대한 제한적 직접 답을 payoff에 포함할 때만 사용",
-    "timeline_integrity": "Cold open 제외 본편 1차 시청 chronology 보존. 구간 생략 가능, 남긴 사건 재배열 금지. 2·3차 촬영은 재확인으로 표시."
+    "timeline_integrity": "Cold open 제외 본편 1차 시청 chronology 보존. 구간 생략 가능, 남긴 사건 재배열 금지. 2·3차 촬영은 재확인으로 표시.",
+    "cold_open_issue": "planning_quality_failure: 결과 공개 자체를 과도하게 제한했고 설명형 증거(지누키)를 hook 강도와 혼동"
   }
 }
