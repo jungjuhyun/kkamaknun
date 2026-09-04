@@ -29,12 +29,15 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** 계획서 **Step 4-A — 1화 실제 재료 복원 완료**.  
+**현재 실행 위치:** 계획서 **Step 4-A — 추가 해석표 보정까지 완료**.  
 **다음 실행:** **Step 4-B — 경쟁 영상 조사·해부**.
 
 `tools/harness/PIPELINE.yaml`은 2026-09-04 공통 `video_planning` 공정으로 교체했다. 실제 재료 존재 여부를 먼저 분기하고, `material_first`에서는 **실제 재료 → 사건·반응 → 경쟁 사례 해부 → 콘텐츠 각 후보 → 후보 경쟁 → 구조·payoff → 패키징 → 검증** 순서를 사용한다. 현재 1화는 `material_first` 경로다.
 
 `AGENTS.md`의 기획 라우팅은 실제 기획 요청을 `tools/harness/STATE.json` → 현재 `PIPELINE.yaml` → 현재 lock 순으로 연결한다. 현재 편은 `EP1`, lock은 `tools/harness/EP1_LOCK.json`, 입력 경로는 `material_first`다. `check_draft.py`는 이 lock을 `STATE.json`에서 선택하며 **current truth·잠금·자료 경계의 deterministic 오류만 검사**한다. PASS는 기획 품질 인증이 아니다.
+
+
+2026-09-04 추가 엑셀 확인: 이번에 사용자가 수정한 새 source는 **`해석표` 시트 하나**다. 기존 판정 열은 보존하고 `평가 대상 / 이해 결과 / 포착 방식 / 오류·병목 / 세부 근거`로 1차 정규화했다. 청해 대상으로 분류된 68행의 작업 집계는 `정확 15 / 요지 이해 34 / 부분 이해 13 / 오해 2 / 미이해 4`이며 **객관 점수가 아니라 기획용 분류**다. 행별 일본어 대조 원문은 사용할 수 있지만 영화 전체 자막 완전 확보로 일반화하지 않는다.
 
 Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아님): **4-A 재료 복원 → 4-B 경쟁 영상 조사·해부 → 4-C 콘텐츠 각 후보 생성·경쟁 → 4-D 본편 구조·payoff·패키징 → 4-E deterministic 검증 + RED TEAM + 최종 제출**.
 
