@@ -29,8 +29,8 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** **보정된 공정으로 EP1 단계 3/5/6/7/8/9 재실행 완료 — deterministic 재검증 대기**.  
-**다음 실행:** **check_draft 재실행 → 사용자 품질 판정**.
+**현재 실행 위치:** **보정된 공정으로 EP1 단계 3/5/6/7/8/9 재실행 + deterministic 재검증 PASS 완료**.  
+**다음 실행:** **사용자 품질 판정**.
 
 `tools/harness/PIPELINE.yaml`은 2026-09-04 공통 `video_planning` 공정으로 교체했다. 실제 재료 존재 여부를 먼저 분기하고, `material_first`에서는 **실제 재료 → 사건·반응 → 경쟁 사례 해부 → 콘텐츠 각 후보 → 후보 경쟁 → 구조·payoff → 패키징 → 검증** 순서를 사용한다. 현재 1화는 `material_first` 경로다.
 
