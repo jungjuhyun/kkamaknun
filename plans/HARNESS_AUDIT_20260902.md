@@ -20,10 +20,10 @@
 | PLAYBOOK.md | 117 | 판단 원칙 |
 | PROJECT_CONTEXT.md | 49 | 채널 정체성 |
 | USER_PROFILE.md | 101 | 사용자 특성 |
-| FIRST_VIDEO.md | 590 | 0화 세부 |
-| IDEATION.md | 173 | 1화 아이디어 34개 |
+| FIRST_VIDEO.md | 590 | 1화 세부 |
+| IDEATION.md | 173 | 2화 아이디어 34개 |
 | README.md | 18 | 소개 |
-| plans/EP0_PLANNING_RELIABILITY_POC.md | 342 | 활성 체크리스트 |
+| plans/EP1_PLANNING_RELIABILITY_POC.md | 342 | 활성 체크리스트 |
 | references/YOON_SUNGWON_CONTENT_ESSENCE.md | 226 | 강의 전사 근거 |
 | references/YOON_SUNGWON_LECTURE_MATERIALS.md | 205 | 강의 자료 참고 (제목만 읽음) |
 | SCENE_COLLECTOR_PLAN.md | 912 | 장면 수집기 계획 (§17, §21~25 읽음, 나머지 제목만) |
@@ -110,7 +110,7 @@
 | D2 | 실제 실패 없이 공정·메타 시스템을 키우지 않는다 | PLAYBOOK.md:18-19 | PLAYBOOK.md:114-115, STATE.md:7-8, 프로젝트지침 §5·§6, 계획서 실행원칙 | 배경 | |
 | D3 | 미완료 단계를 건너뛰지 않는다 | 계획서 헤더·실행원칙 | STATE.md:33 | 기계 (상태 파일) | |
 | D4 | 저장소 수정은 계획 → 승인 → 반영 → 확인 | 프로젝트지침 §8 | 시작프롬프트 11 | 기계 (직접 커밋 차단, 브랜치+PR만) | |
-| D5 | 수정 위치: 상태는 STATE, 0화는 FIRST_VIDEO, 원칙은 PLAYBOOK… | AGENTS.md:41-49 | CLAUDE.md 수정위치, PROJECT_CONTEXT.md:41-49, 프로젝트지침 §7 | 배경 | |
+| D5 | 수정 위치: 상태는 STATE, 1화는 FIRST_VIDEO, 원칙은 PLAYBOOK… | AGENTS.md:41-49 | CLAUDE.md 수정위치, PROJECT_CONTEXT.md:41-49, 프로젝트지침 §7 | 배경 | |
 | D6 | 같은 사실을 여러 문서에 복제하지 않는다 | AGENTS.md:55-57 | PLAYBOOK.md:113, PROJECT_CONTEXT.md:49, USER_PROFILE.md:189, 프로젝트지침 §7, ESSENCE:9 | 배경 — **이 규칙 자체가 6곳에 있음** | |
 | D7 | 일회성 대화를 영구 지식으로 올리지 않는다 | AGENTS.md:57 | 프로젝트지침 §7, IDEATION.md:9, ESSENCE:8 | 배경 | |
 | D8 | 새 정보는 4가지로 분류 (이미 있음 / 구체화 / 신규 / 이번만) | 프로젝트지침 §7 | 시작프롬프트 7 | 배경 | |
@@ -120,7 +120,7 @@
 | D12 | 답은 결론 → 근거 → 다음 행동 | 프로젝트지침 §9 | 계정지침 2곳 | 버림 (계정 층에 있음) | |
 | D13 | "완료"는 사용자만 선언한다 | SCENE_COLLECTOR_PLAN §21·§24 | STATE.md UAT 절, Claude 맞춤설정 | 사람 (금지어 검사는 우회 가능) | |
 
-### E. 0화 잠금 (편마다 새로 쓰는 것)
+### E. 1화 잠금 (편마다 새로 쓰는 것)
 
 | 번호 | 규칙 | 위치 | 중복 | 제안 분류 | 사용자 분류 |
 |---|---|---|---|---|---|
@@ -133,7 +133,7 @@
 | E7 | 기획 HARD GOALS 11항목 | 계획서 §2 | 없음 | 사람 (칸 유무만 기계) | |
 | E8 | RED TEAM 질문 5묶음 | 계획서 §5 | ESSENCE 4-2·4-3 (원천) | 사람 | |
 | E9 | 출력 형식: 클립화면 \| 나레이션 표 | 계획서 §3 | Claude 맞춤설정, 계정지침 | 기계 (표 유무) | |
-| E10 | 1화·장면 수집기로 새지 않는다 | 계획서 §4 | STATE.md:37 | 사람 (금지어 검사는 오탐·우회 문제로 폐기) | |
+| E10 | 2화·장면 수집기로 새지 않는다 | 계획서 §4 | STATE.md:37 | 사람 (금지어 검사는 오탐·우회 문제로 폐기) | |
 
 ### F. 기획 원칙 (편과 무관, 사람이 판단)
 
@@ -153,7 +153,7 @@
 | F12 | 작품군 A/B 포트폴리오 | PLAYBOOK.md:88-96 | FIRST_VIDEO.md:443-448 | 배경 | |
 | F13 | 원본 → 재료 지도 → 기획 (긴 영상을 통째로 기억한다고 가정 안 함) | PLAYBOOK.md:100-107 | FIRST_VIDEO.md:290-315 | 배경 | |
 | F14 | 저작권을 AI가 먼저 대화 중심으로 만들지 않는다 | PLAYBOOK.md:118 | FIRST_VIDEO.md:441 | 배경 | |
-| F15 | 1화 후보 선별 기준 5개 | IDEATION.md:23-29 | 없음 | 사람 | |
+| F15 | 2화 후보 선별 기준 5개 | IDEATION.md:23-29 | 없음 | 사람 | |
 | F16 | 성공 기준: 촬영 가능한 한 편 추천안까지 내려온다 | PLAYBOOK.md:42 | 없음 | 사람 | |
 
 ### G. 코드 규칙
@@ -216,7 +216,7 @@ STATE.md에서 이것들을 빼면 190줄이 남는다.
 
 | 파일 | 상태 |
 |---|---|
-| RUN_CONTRACT.json | 초안. 0화 전용. 공통/편별 분리 필요 (사용자 결정 대기) |
+| RUN_CONTRACT.json | 초안. 1화 전용. 공통/편별 분리 필요 (사용자 결정 대기) |
 | check_draft.py | 초안. 65줄. 시험 통과. 저장소 밖 |
 
 ---

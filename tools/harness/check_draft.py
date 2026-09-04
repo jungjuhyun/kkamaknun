@@ -2,7 +2,7 @@
 
 읽는 파일 (같은 폴더):
     COMMON_RULES.json  모든 편 공통. 필수 문장, 금지 표현.
-    EP0_LOCK.json      이번 편 잠금. A/B 원문.
+    EP1_LOCK.json      이번 편 잠금. A/B 원문.
 
 사용법:
     python check_draft.py 초안.md
@@ -19,7 +19,7 @@ from pathlib import Path
 
 HERE = Path(__file__).parent
 COMMON = HERE / "COMMON_RULES.json"
-LOCK = HERE / "EP0_LOCK.json"
+LOCK = HERE / "EP1_LOCK.json"
 
 # 비교할 때 무시할 기호: 백틱, 따옴표, 공백 차이
 STRIP = re.compile(r"[`'\"“”‘’\s]")

@@ -1,10 +1,10 @@
-# 0화 기획 공정 정의.
-# plans/EP0_PLANNING_RELIABILITY_POC.md 의 실행 체크리스트 12단계를 그대로 옮긴 것이다.
+# 1화 기획 공정 정의.
+# plans/EP1_PLANNING_RELIABILITY_POC.md 의 실행 체크리스트 12단계를 그대로 옮긴 것이다.
 # 진행 상태는 STATE.json 이 owner. 이 파일은 단계·검수 기준·통과 조건·최대 수정 횟수만 정의한다.
 # 미완료 선행 단계를 건너뛰지 않는다. 최대 수정 횟수를 넘기면 다음 단계로 가지 않고 사용자에게 보고하고 멈춘다.
-# 잠금 문장·확보/미확보 자료는 COMMON_RULES.json / EP0_LOCK.json 이 owner.
+# 잠금 문장·확보/미확보 자료는 COMMON_RULES.json / EP1_LOCK.json 이 owner.
 
-공정: ep0_planning_reliability_poc
+공정: ep1_planning_reliability_poc
 기준일: 2026-09-02
 
 단계:
@@ -24,7 +24,7 @@
 
   - 번호: 3
     이름: RUN CONTRACT 복원·잠금
-    하는_일: 새 규칙을 만들지 않고 잠금 파일(COMMON_RULES.json + EP0_LOCK.json)을 그대로 복원한다.
+    하는_일: 새 규칙을 만들지 않고 잠금 파일(COMMON_RULES.json + EP1_LOCK.json)을 그대로 복원한다.
     검수_기준:
       - 잠금 문장 A/B가 원문 그대로다.
       - 확보한 자료 / 확보하지 못한 자료 목록이 잠금 파일과 같다.
@@ -34,7 +34,7 @@
     최대_수정_횟수: 1
 
   - 번호: 4
-    이름: 0화 가상 완성본 1차 작성
+    이름: 1화 가상 완성본 1차 작성
     하는_일: 가상 촬영본이 이미 존재한다고 가정하고 처음부터 끝까지 구체적으로 쓴다.
     검수_기준:
       - 빈칸형 기획("[촬영 후 결정]", "[좋은 장면이 나오면]", "[실제 반응이 있다면]")을 쓰지 않는다.
@@ -68,7 +68,7 @@
       - 채택된 촬영 프로토콜을 새 제안처럼 변경
       - 실제 자료보다 강한 사실 주장
       - current owner와 충돌
-      - 현재 요청과 무관한 1화·장면 수집기 등으로 이탈
+      - 현재 요청과 무관한 2화·장면 수집기 등으로 이탈
     통과_조건: 위 8항목 0건. check_draft.py PASS. 하나라도 있으면 HARD FAIL이며 RED TEAM으로 넘어가지 않는다.
     판정자: check_draft.py + AI
     최대_수정_횟수: 2
