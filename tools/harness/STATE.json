@@ -1,29 +1,16 @@
 {
-  "상태": "CLOSED",
-  "실행": "ep1_2026-09-02",
-  "과거_공정": "tools/harness/PIPELINE.yaml",
-  "현재_실행_공정": null,
-  "완료_단계": [
-    1,
-    2,
-    3,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9,
-    10
-  ],
-  "종료_판정": {
-    "판정자": "사용자",
-    "패키징": "FAIL",
-    "본편_구조": "FAIL",
-    "분류": "기획 품질 실패",
+  "상태": "READY",
+  "현재_실행_공정": "tools/harness/PIPELINE.yaml",
+  "공정": "video_planning",
+  "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
+  "현재_계획_단계": "Step 2 완료",
+  "다음_실행": "Step 3 — validator/router 정리",
+  "현재_1화_경로": "material_first",
+  "과거_POC": {
+    "실행": "ep1_2026-09-02",
+    "상태": "CLOSED",
+    "판정": "planning_quality_failure",
     "근거": "plans/EP1_PLANNING_RELIABILITY_POC.md 10절"
   },
-  "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "Step 1 완료",
-  "다음_실행": "Step 2 — 공통 기획 pipeline 교체",
   "다음_할_일_owner": "STATE.md"
 }
