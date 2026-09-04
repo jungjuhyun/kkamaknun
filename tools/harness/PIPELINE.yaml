@@ -1,10 +1,16 @@
-# 1화 기획 공정 정의.
+# 과거 1화 기획 공정 정의 — 현재 실행에 사용하지 않는다.
 # plans/EP1_PLANNING_RELIABILITY_POC.md 의 실행 체크리스트 12단계를 그대로 옮긴 것이다.
+# 2026-09-02 사용자 품질 판정에서 패키징/본편 구조가 모두 FAIL하여 이 POC는 종료됐다.
+# 2026-09-04 계획서 Step 1에서 lifecycle을 CLOSED로 정리했다. Step 2에서 공통 기획 pipeline으로 교체한다.
 # 진행 상태는 STATE.json 이 owner. 이 파일은 단계·검수 기준·통과 조건·최대 수정 횟수만 정의한다.
 # 미완료 선행 단계를 건너뛰지 않는다. 최대 수정 횟수를 넘기면 다음 단계로 가지 않고 사용자에게 보고하고 멈춘다.
 # 잠금 문장·확보/미확보 자료는 COMMON_RULES.json / EP1_LOCK.json 이 owner.
 
 공정: ep1_planning_reliability_poc
+상태: CLOSED
+현재_실행: false
+종료_판정: planning_quality_fail
+대체_계획: plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md
 기준일: 2026-09-02
 
 단계:
