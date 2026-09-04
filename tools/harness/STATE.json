@@ -6,8 +6,8 @@
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "Step 4-E 재개방 — Cold open 선정 보정",
-  "다음_실행": "패키지별 Cold open 후보 경쟁 → 원본 클립 확인 → deterministic 재검증",
+  "현재_계획_단계": "공통 기획 공정 보정 — 윤성원 PD 방법론 통합",
+  "다음_실행": "보정된 PIPELINE으로 EP1 콘텐츠 각·핵심 장면 후보부터 재실행",
   "Step4_배치": {
     "4-A": "실제 재료 복원 — 완료",
     "4-B": "경쟁 영상 조사·해부 — 완료",
@@ -36,5 +36,11 @@
     "패키지_B": "유지 — 중급권에 대한 제한적 직접 답을 payoff에 포함할 때만 사용",
     "timeline_integrity": "Cold open 제외 본편 1차 시청 chronology 보존. 구간 생략 가능, 남긴 사건 재배열 금지. 2·3차 촬영은 재확인으로 표시.",
     "cold_open_issue": "planning_quality_failure: 결과 공개 자체를 과도하게 제한했고 설명형 증거(지누키)를 hook 강도와 혼동"
+  },
+  "공정_보정": {
+    "원인": "윤성원 PD 전사 기반 방법론이 reference/보조 프레임에 머물러 실제 pipeline 의사결정에서 누락됨",
+    "수정": "기존 video_planning 단계 3/5/6/7/8/9에 방법론 체크포인트 통합",
+    "새_레이어": "추가하지 않음",
+    "EP1_처리": "차 한 대만 수리하지 않고 공정 수정 후 해당 공정으로 EP1 재실행"
   }
 }
