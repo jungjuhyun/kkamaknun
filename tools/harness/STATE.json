@@ -1,13 +1,13 @@
 {
-  "상태": "RUNNING",
+  "상태": "WAITING_USER",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "보정된 공정으로 EP1 단계 3/5/6/7/8/9 재실행 완료",
-  "다음_실행": "deterministic validator 재실행 → 사용자 품질 판정",
+  "현재_계획_단계": "보정된 공정으로 EP1 재실행 + deterministic 재검증 완료",
+  "다음_실행": "사용자 품질 판정",
   "Step4_배치": {
     "4-A": "실제 재료 복원 — 완료",
     "4-B": "경쟁 영상 조사·해부 — 완료",
@@ -30,7 +30,7 @@
   "다음_할_일_owner": "STATE.md",
   "EP1_선택_콘텐츠_각": "한자는 거의 못 읽는데 `漢字読めないの？`라는 일본어 대사는 바로 알아듣고 `나랑 똑같네`라고 반응하는 사람. 레제편의 시간순 시청 경험에서 정확 이해·소리만 포착·유사음 오해·작품 몰입이 함께 존재하는 비대칭 청해를 보여준다.",
   "Step4E_검증": {
-    "check_draft": "RECHECK_REQUIRED_AFTER_PIPELINE_RERUN",
+    "check_draft": "PASS_AFTER_PIPELINE_RERUN",
     "red_team": "완료",
     "패키지_A": "제작 기본안",
     "패키지_B": "유지 — 중급권에 대한 제한적 직접 답을 payoff에 포함할 때만 사용",
