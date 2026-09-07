@@ -296,7 +296,7 @@ GPT / Codex / Claude가 같은 core와 같은 current truth에서 출발하도�
 | STATE.md | 실패한 POC와 현재 실행 상태/lifecycle 정리 |
 | tools/harness/PIPELINE.yaml | 가상완성 POC 대신 실제 기획 실행 공정으로 교체 |
 | tools/harness/STATE.json | 현재 run / lifecycle 정리 |
-| tools/harness/PROJECT_INSTRUCTIONS.md | 기획 요청을 pipeline으로 라우팅 |
+| Work Project instruction | repo 밖에서 current ref·bootstrap·freshness·최소 project 규칙 소유; repo 복제본은 두지 않음 |
 | tools/harness/check_draft.py | 현재 run의 lock 선택 방식 정리 |
 | 관련 테스트 | deterministic 오류만 검증 |
 

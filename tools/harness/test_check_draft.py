@@ -17,7 +17,8 @@ LOCK = json.loads((HERE / "EP1_LOCK.json").read_text(encoding="utf-8"))
 
 A = LOCK["잠금_문장"]["A"]
 B = LOCK["잠금_문장"]["B"]
-CLEAN = f"A: `{A}`\nB: \"{B}\"\n실제 촬영물의 사건과 반응을 바탕으로 기획한다.\n"
+TIMELINE = LOCK["잠금_문장"]["타임라인"]
+CLEAN = f"A: `{A}`\nB: \"{B}\"\n타임라인: `{TIMELINE}`\n실제 촬영물의 사건과 반응을 바탕으로 기획한다.\n"
 
 
 def run(text):
@@ -38,8 +39,8 @@ def test_locked_b_redesign_is_caught():
 
 
 def test_unowned_subtitle_body_claim_is_caught():
-    text = CLEAN + "레제편 일본어 자막 본문을 확보해 대조했다.\n"
-    assert any("자막 본문" in fail for fail in run(text))
+    text = CLEAN + "영화 전체 일본어 자막을 완전히 확보했다.\n"
+    assert any("영화 전체 자막" in fail for fail in run(text))
 
 
 def test_existing_footage_denial_is_caught():
