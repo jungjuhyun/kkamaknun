@@ -4,8 +4,8 @@
 
 ## 1. 범위와 상위 계층
 
-- ChatGPT Work Project instruction은 저장소 식별, PR #2 기준 current ref selector, immutable snapshot bootstrap, same-chat freshness, GitHub 접근 실패 처리와 최소 UI/project-level 규칙을 소유한다.
-- 이 파일은 current ref를 선택하거나 특정 feature branch를 영구적으로 지정하지 않는다. repository 작업은 상위 계층이 확정한 snapshot에서만 시작한다.
+- ChatGPT Work Project instruction은 저장소 식별과 session-level ref/bootstrap/freshness 결정, GitHub 접근 실패 처리, 최소 UI/project-level 규칙을 소유한다.
+- 이 파일은 ref를 선택하거나 bootstrap·freshness 절차를 정의하지 않고, 특정 PR·feature branch·selector 구현을 영구적으로 기록하지 않는다. repository 작업은 상위 계층이 확정한 snapshot에서만 시작한다.
 - Claude는 CLAUDE.md를 통해 이 파일을 adapter로 읽는다. CLAUDE.md의 protected Karpathy block은 변경하지 않는다.
 - 이 저장소의 운영 규칙을 프로젝트 instruction, Claude adapter, hook, 계획서에 복제해 여러 owner를 만들지 않는다.
 
