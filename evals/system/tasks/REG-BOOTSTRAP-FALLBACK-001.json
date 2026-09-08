@@ -58,7 +58,8 @@
       "evidence_source": "bootstrap_receipt",
       "required_for_pass": true,
       "evaluation_method": "bootstrap_receipt",
-      "on_missing_evidence": "UNKNOWN"
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {"contract": "required_on_success"}
     },
     {
       "id": "final_freshness",

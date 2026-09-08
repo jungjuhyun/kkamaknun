@@ -17,7 +17,7 @@ from .schema import (
     TaskSpec,
     WorkUATRecord,
 )
-from .scorers import GRADERS, grade_trial
+from .scorers import GRADERS, grade_trial, validate_grader_parameters
 
 
 SYSTEM_ROOT = Path(__file__).resolve().parent
@@ -41,6 +41,8 @@ def load_tasks() -> dict[str, TaskSpec]:
         )
         if unknown_graders:
             raise SchemaError(f"task {task.id} uses unknown graders: {unknown_graders}")
+        for assertion in task.assertions:
+            validate_grader_parameters(assertion.evaluation_method, assertion.parameters)
         required_sources = {
             assertion.evidence_source for assertion in task.assertions if assertion.required_for_pass
         }

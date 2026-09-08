@@ -11,8 +11,9 @@ This phase does not change the Work Project instruction, video-planning pipeline
 ## Current implementation state
 
 - Phase 0 measurement contract: implemented.
-- Phase 1 seed fixtures and deterministic grader proof: implemented.
-- Direct component target: implemented for controlled evidence.
+- Phase 1 task specifications, seed failure specifications, and deterministic grader/oracle proof: implemented.
+- Direct component grading: implemented for controlled evidence.
+- Minimal executable reference plumbing proof: implemented for one direct-component bootstrap task.
 - Future Inspect/Codex CLI target: schema only; not run.
 - Actual ChatGPT Work target: semi-manual UAT protocol only.
 - Inspect AI and Inspect SWE: `PREFERRED_FOR_PILOT`; not installed or adopted.
@@ -20,7 +21,9 @@ This phase does not change the Work Project instruction, video-planning pipeline
 
 The exact completion claim for this phase is:
 
-> framework-independent measurement contract + seed regression fixture + deterministic grader proof complete
+> measurement contract + task specification + seed failure specification + deterministic grader/oracle proof complete
+
+The production-failure fixtures contain pre-authored oracle evidence. They are not yet end-to-end production regressions because they do not execute an actual Work or Codex target and capture its behavior. The executable reference pair proves only that the local task → controlled behavior → evidence capture → grader plumbing distinguishes known-good from known-bad behavior.
 
 ## Status semantics
 
@@ -32,6 +35,23 @@ The exact completion claim for this phase is:
 - `NOT_RUN`: no trial was executed.
 
 An assertion must set `on_missing_evidence` to `UNKNOWN`. Evidence from another target cannot grade the current target. Correct response wording does not prove an internal process occurred.
+
+Fixture validity is trial-wide. Any assertion with `INVALID_FIXTURE`, including an optional diagnostic assertion, makes the trial `INVALID_FIXTURE`. Optional `FAIL`, `UNKNOWN`, and `INFRA_ERROR` remain diagnostic and do not change a trial whose required assertions all PASS. Required assertion status keeps the product/observation semantics above.
+
+## Deterministic grader parameter contracts
+
+Every registered grader has required keys, allowed keys, and value-shape validation. Task loading rejects missing, empty, unexpected, ambiguous, or ill-typed parameters as a schema error; runtime grading also converts malformed wiring to `INVALID_FIXTURE` rather than PASS or product FAIL.
+
+- token and value graders require non-empty explicit lists;
+- snapshot, branch, and head graders require explicit expected values;
+- freshness requires `expected_sha`;
+- source provenance requires non-empty `required_sources`;
+- validator result requires both expected exit code and result;
+- git diff requires an explicit dirty-state boolean;
+- modified files requires `mode`, `allowed`, and `forbidden`. `allowlist` rejects every path outside `allowed`; `forbid_only` requires `allowed=[]`, a non-empty forbidden list, and permits other paths;
+- bootstrap receipt requires `required_on_success` or `forbidden_on_failure`.
+
+For `required_on_success`, PASS requires `bootstrap_succeeded=true`, a receipt, required owner evidence, and verified final freshness. For `forbidden_on_failure`, PASS requires `bootstrap_succeeded=false` and no receipt. Failure behavior is never inferred from receipt absence; it must select the explicit failure contract.
 
 ## Target boundaries
 
@@ -109,13 +129,21 @@ Isolation status is one of:
 
 `CLEAN_VERIFIED` is invalid without supported reset evidence. A fresh chat alone is not sufficient.
 
-## Seed regression tasks
+## Seed failure specifications
 
 - `REG-BOOTSTRAP-FALLBACK-001`: one failed GitHub path must not become GitHub-wide unavailability.
 - `REG-PROVENANCE-CONTAMINATION-001`: an unrequested historical marker must not contaminate current output.
 - `REG-HISTORICAL-RETRIEVAL-REQUIRED-001`: explicit historical requests must still retrieve and label history while preserving current-truth priority.
 
 Production documents are not copied into the fixtures. The bootstrap fixture uses synthetic owner files and a synthetic immutable SHA. The historical fixture stores only the minimal marker required to reproduce the failure boundary.
+
+These three task/fixture pairs prove deterministic oracles against known evidence. They do not yet prove that an executable Work/Codex target produces the required evidence.
+
+## Executable reference plumbing proof
+
+`reference_target.py` runs known-good and known-bad bootstrap behaviors against the same `REG-BOOTSTRAP-FALLBACK-001` task and controlled environment. The behaviors actually invoke a failing first access path; only the known-good behavior invokes the successful fallback. Both runs capture evidence and are graded through the normal trial path, producing PASS and FAIL respectively.
+
+This is not an agent framework and is not a proxy for ChatGPT Work, Codex CLI, model behavior, connector behavior, or real GitHub reliability. It proves only the framework-independent evaluation plumbing before a Phase 2 runner pilot.
 
 ## Repeatable validation
 
@@ -125,8 +153,8 @@ From the repository root:
 python -m evals.system.check
 ```
 
-The command parses every task and fixture, validates observation and isolation data, validates the Work UAT template, runs deterministic grader proofs, checks PASS/FAIL/UNKNOWN/INFRA_ERROR/INVALID_FIXTURE classification, verifies critical-gate semantics, and performs cross-reference checks.
+The command parses every task and fixture, validates every grader parameter contract, validates observation and isolation data, validates the Work UAT template, runs deterministic grader/oracle proofs and the executable reference pair, checks PASS/FAIL/UNKNOWN/INFRA_ERROR/INVALID_FIXTURE classification, verifies critical-gate semantics, and performs cross-reference checks.
 
 ## Phase 2 boundary
 
-Phase 2 may pilot Inspect AI and Inspect SWE only after this Phase 0-1 validation passes. The pilot must verify actual Codex CLI execution, version control, trace completeness, sandbox state, network boundaries by probe, epoch behavior, error classification, re-scoring, cost, and maintenance burden before dependency adoption.
+Phase 2 may pilot Inspect AI and Inspect SWE only after this Phase 0-1 validation and the framework-independent reference plumbing proof pass. The pilot must verify actual Codex CLI execution, version control, trace completeness, sandbox state, network boundaries by probe, epoch behavior, error classification, re-scoring, cost, and maintenance burden before dependency adoption.

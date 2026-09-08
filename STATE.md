@@ -140,10 +140,11 @@ Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아�
 
 - 독립 owner는 `evals/system/README.md`다. 영상 기획 `PIPELINE.yaml`의 Planning RED TEAM과 분리한다.
 - framework-independent task/result/evidence 계약, target별 observation matrix, Project instruction provenance, isolation profile, Actual Work semi-manual UAT protocol을 정의했다.
-- production failure 기반 regression fixture 2개와 history retrieval paired-positive fixture 1개를 controlled fake state로 구현했다.
-- direct component deterministic grader와 known PASS/FAIL/UNKNOWN/INFRA_ERROR/INVALID_FIXTURE proof, critical 5/5 initial release gate를 stdlib test로 고정했다.
+- production failure 2건과 history retrieval paired-positive 1건을 **task specification + seed failure specification**으로 고정했다. fixture의 사전 작성 evidence는 deterministic oracle을 검증하며 실제 Work/Codex target의 end-to-end regression 실행은 아직 아니다.
+- 모든 direct-component grader의 parameter contract, known PASS/FAIL/UNKNOWN/INFRA_ERROR/INVALID_FIXTURE proof, optional assertion aggregation, critical 5/5 initial release gate를 stdlib test로 고정했다.
+- 동일 bootstrap task에서 known-good/known-bad behavior를 실제 실행해 evidence를 생성하고 PASS/FAIL을 구분하는 최소 reference plumbing proof를 추가했다. 이는 ChatGPT Work나 Codex surrogate가 아니다.
 - Inspect AI/Inspect SWE는 설치하거나 채택하지 않았다. `PREFERRED_FOR_PILOT` 상태이며 Phase 2 feasibility는 별도 작업이다.
-- 이 완료는 System Evaluation 전체 완성이 아니라 **framework-independent measurement contract + seed regression fixture + deterministic grader proof 완료**를 뜻한다.
+- 이 완료는 System Evaluation 전체 완성이 아니라 **measurement contract + task specification + seed failure specification + deterministic grader/oracle proof 완료**를 뜻한다.
 - 영상 기획의 현재 실행 위치와 다음 행동은 위 기획 공정 상태를 그대로 따른다.
 
 ## 운영 원칙
