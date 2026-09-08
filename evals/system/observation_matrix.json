@@ -23,22 +23,25 @@
     },
     {
       "target": "future_inspect_codex",
-      "implementation_status": "SCHEMA_ONLY_PHASE_0",
+      "implementation_status": "PILOT_IMPLEMENTED_PHASE_2",
       "observable_evidence": [
-        "candidate solver output",
-        "candidate eval log",
-        "candidate sandbox filesystem and git outcome"
+        "Codex CLI final response and JSONL event stream",
+        "Inspect eval log and deterministic re-score result",
+        "detached disposable-worktree HEAD, status, diff, modified files, and untracked files",
+        "production checkout and main ref before/after state",
+        "process exit code, timeout, provider error, and runtime"
       ],
       "non_observable_evidence": [
-        "tool arguments, tool results, and source provenance until the Phase 2 log schema is verified"
+        "complete Codex internal message and tool trace beyond emitted JSONL events",
+        "OS process, host filesystem, network, credential, evaluator-process, and model-provider isolation"
       ],
-      "deterministic_grader": "CANDIDATE_ONLY",
-      "state_outcome_grader": "CANDIDATE_ONLY",
-      "trace_dependency": "Tool-path and retrieval assertions require Phase 2 trace proof",
+      "deterministic_grader": "IMPLEMENTED_FOR_PILOT_ENVELOPE",
+      "state_outcome_grader": "IMPLEMENTED_FOR_GIT_AND_FILESYSTEM_OUTCOMES",
+      "trace_dependency": "Only emitted Codex JSONL command events are evidence; unobserved internal paths remain UNKNOWN",
       "missing_evidence": "UNKNOWN",
-      "pass_condition": "Not available in Phase 0-1; the target is not executed",
-      "unknown_condition": "Any unverified trace-dependent assertion",
-      "infra_error_condition": "Reserved for Phase 2 launch, bridge, provider, or sandbox failures"
+      "pass_condition": "All required same-trial response, process, Git, cleanup, and separation evidence passes",
+      "unknown_condition": "Any required evidence not present in the Codex output, JSONL stream, Inspect log, or independently captured state",
+      "infra_error_condition": "Codex launch, authentication/provider, timeout, worktree, cleanup, or Inspect execution prevented observation"
     },
     {
       "target": "actual_work",

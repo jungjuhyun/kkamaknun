@@ -67,6 +67,7 @@ class IsolationProfileName(str, Enum):
     CONTROLLED_MOCK_ACCESS = "controlled_mock_access"
     PROVIDER_REQUIRED = "provider_required"
     LIVE_EXTERNAL = "live_external"
+    DISPOSABLE_WORKTREE = "disposable_worktree"
 
 
 TASK_REQUIRED_FIELDS = {

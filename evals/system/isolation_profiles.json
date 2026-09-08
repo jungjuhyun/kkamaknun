@@ -50,6 +50,16 @@
       "provider_network_expectation": "Recorded as an independent boundary",
       "custom_tool_scorer_boundary": "No network isolation claim without direct evidence",
       "required_probe": ["external dependency identity is recorded", "failure is classified as product or infrastructure evidence"]
+    },
+    {
+      "name": "disposable_worktree",
+      "filesystem_isolation_expectation": "Repository working-tree state and trial artifacts are separated by a fresh detached Git worktree and a distinct external artifact directory; host filesystem isolation is not provided",
+      "process_isolation_expectation": "NOT_PROVIDED; the Codex and evaluator processes run on the host",
+      "network_expectation": "NOT_PROVIDED; a prompt prohibition is not a network control",
+      "evaluator_network_expectation": "NOT_PROVIDED and recorded independently",
+      "provider_network_expectation": "Model-provider connectivity is required and is not isolated by the worktree",
+      "custom_tool_scorer_boundary": "Inspect and the custom Codex subprocess runner execute on the host; only emitted events and independently captured Git/filesystem outcomes are evidence",
+      "required_probe": ["fresh detached worktree starts at the pinned SHA", "per-trial artifacts use a unique directory", "start and end Git state are captured", "production checkout and main remain unchanged", "worktree removal and cross-trial residue are checked"]
     }
   ]
 }

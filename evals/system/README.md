@@ -14,14 +14,21 @@ This phase does not change the Work Project instruction, video-planning pipeline
 - Phase 1 task specifications, seed failure specifications, and deterministic grader/oracle proof: implemented.
 - Direct component grading: implemented for controlled evidence.
 - Minimal executable reference plumbing proof: implemented for one direct-component bootstrap task.
-- Future Inspect/Codex CLI target: schema only; not run.
+- Docker-free Inspect/Codex CLI Phase 2 pilot: implemented and run at `d341896756bd075b8d2f8f7983d951e927407c4d`.
 - Actual ChatGPT Work target: semi-manual UAT protocol only.
-- Inspect AI and Inspect SWE: `PREFERRED_FOR_PILOT`; not installed or adopted.
+- Inspect AI 0.3.263: `ADOPT` as the Phase 3 runner candidate after `PILOT_PASSED`.
+- Inspect SWE 0.2.70: `REJECT` for the current Windows Docker-free runner; its `local` probe failed before target execution.
 - Model graders and planning-quality graders: out of scope.
 
 The exact completion claim for this phase is:
 
 > measurement contract + task specification + seed failure specification + deterministic grader/oracle proof complete
+
+The additional Phase 2 completion claim is limited to:
+
+> Docker-free automated System Evaluation runner feasibility verified
+
+It is not a completed System RED TEAM and does not enter Phase 3.
 
 The production-failure fixtures contain pre-authored oracle evidence. They are not yet end-to-end production regressions because they do not execute an actual Work or Codex target and capture its behavior. The executable reference pair proves only that the local task → controlled behavior → evidence capture → grader plumbing distinguishes known-good from known-bad behavior.
 
@@ -61,9 +68,11 @@ The machine-readable observation matrix is `observation_matrix.json`.
 
 The grader may use controlled fixture inputs, structured process results, filesystem state, and git state. This is the only executable target in Phase 0-1.
 
-### Future Inspect/Codex CLI
+### Inspect/Codex CLI Phase 2 pilot
 
-Only candidate evidence requirements are defined. Tool arguments, retrieval provenance, sandbox isolation, and log completeness remain unknown until the separate Phase 2 feasibility pilot.
+The candidate runner uses Inspect AI for task/dataset/scorer/epochs/logging/re-score and a minimal custom runner for the authenticated local Codex CLI subprocess. Each target call executes from a fresh detached disposable Git worktree at the pinned snapshot. Runtime artifacts and Inspect logs use separate external directories.
+
+Only completed Codex JSONL events and independently observed process, filesystem, and Git state are evidence. The known-good scorer requires observed reads of the task, fallback fixture, and three owner records in addition to the final response. A correct response does not prove an unobserved tool path. Complete internal tool traces, complete model messages, and unobserved retrieval provenance remain `UNKNOWN`.
 
 ### Actual ChatGPT Work
 
@@ -102,7 +111,9 @@ Critical 5/5 is an initial release gate, not proof of 100% reliability.
 
 ## Isolation profiles
 
-`isolation_profiles.json` defines expectations and required probes. No Docker or Inspect execution is implemented in this phase. Docker use alone never establishes network isolation. Container, evaluator, model-provider, and out-of-sandbox custom code are separate boundaries.
+`isolation_profiles.json` defines expectations and required probes. The Phase 2 profile is `disposable_worktree`. It offers repository working-tree state separation and trial artifact separation only. It does not provide OS process, host filesystem, network, credential, evaluator-process, or model-provider isolation.
+
+Inspect's built-in `local` environment is explicitly a local filesystem **with no sandbox**. It is never described as isolation evidence here. Docker is neither used nor required for the Phase 2 pilot. Existing container profiles remain available for other future evaluation designs but are not Phase 2 prerequisites or success criteria.
 
 ## Actual Work semi-manual UAT protocol
 
@@ -155,6 +166,31 @@ python -m evals.system.check
 
 The command parses every task and fixture, validates every grader parameter contract, validates observation and isolation data, validates the Work UAT template, runs deterministic grader/oracle proofs and the executable reference pair, checks PASS/FAIL/UNKNOWN/INFRA_ERROR/INVALID_FIXTURE classification, verifies critical-gate semantics, and performs cross-reference checks.
 
-## Phase 2 boundary
+## Phase 2 Docker-free feasibility result
 
-Phase 2 may pilot Inspect AI and Inspect SWE only after this Phase 0-1 validation and the framework-independent reference plumbing proof pass. The pilot must verify actual Codex CLI execution, version control, trace completeness, sandbox state, network boundaries by probe, epoch behavior, error classification, re-scoring, cost, and maintenance burden before dependency adoption.
+The machine-readable result is `phase2_pilot_result.json`; the repeatable runner is `phase2_pilot.py`; exact pilot-only dependency pins are in `phase2_pilot_requirements.txt`.
+
+The pilot executed three benign task types:
+
+1. `REG-BOOTSTRAP-FALLBACK-001` known-good behavior for five real Codex epochs: 5/5 `PASS`.
+2. The same task's explicit known-bad behavior: actual Codex execution classified `FAIL`.
+3. One controlled untracked-file mutation: the change appeared only in its disposable worktree and was captured before cleanup.
+
+All seven Codex subprocesses exited zero without provider errors or timeouts. Every trial started and ended at the pinned SHA, used a unique artifact directory, left the production checkout and `main` unchanged, showed no cross-trial residue, and removed its worktree without requiring prune. Inspect wrote three eval logs and deterministic re-scoring reproduced the results without re-running the targets.
+
+The installed Inspect SWE Codex integration was probed separately with Inspect `local`, recorded as `NO_SANDBOX`. On Windows it produced a sample-level `SandboxInjectionError` (`WinError 2`) before target execution. Installed source also uses Linux platform detection and `bash`. This rejects Inspect SWE for the current Windows Docker-free runner; it does not reject Inspect AI core or claim Inspect SWE requires Docker in every environment.
+
+The decision is:
+
+- Pilot: `PILOT_PASSED`.
+- Inspect AI: `ADOPT` as the Phase 3 runner candidate.
+- Inspect SWE: `REJECT` for this Windows Docker-free runner.
+- Phase 3: eligible but not started.
+
+The candidate for Phase 3 is Inspect AI plus the minimal custom Codex runner. Strong adversarial work that needs process or network isolation must separately evaluate a non-Docker sandbox, VM, or provider at that time.
+
+Example invocation from the repository root, using an already prepared external virtual environment and a new external output directory:
+
+```text
+<venv-python> -m evals.system.phase2_pilot --repo C:\kkamaknun --snapshot <sha> --output-root <new-external-directory> --codex <codex.exe> --timeout 300
+```

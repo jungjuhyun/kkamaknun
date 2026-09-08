@@ -136,15 +136,18 @@ Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아�
 
 ## System Evaluation 측정 상태
 
-2026-09-08에 승인된 System Evaluation 설계의 **Phase 0~1**을 구현했다.
+2026-09-08에 승인된 System Evaluation 설계의 **Phase 0~1**을 구현했고, 같은 날 **Docker-free Phase 2 feasibility pilot을 통과**했다.
 
 - 독립 owner는 `evals/system/README.md`다. 영상 기획 `PIPELINE.yaml`의 Planning RED TEAM과 분리한다.
 - framework-independent task/result/evidence 계약, target별 observation matrix, Project instruction provenance, isolation profile, Actual Work semi-manual UAT protocol을 정의했다.
-- production failure 2건과 history retrieval paired-positive 1건을 **task specification + seed failure specification**으로 고정했다. fixture의 사전 작성 evidence는 deterministic oracle을 검증하며 실제 Work/Codex target의 end-to-end regression 실행은 아직 아니다.
+- production failure 2건과 history retrieval paired-positive 1건을 **task specification + seed failure specification**으로 고정했다. fixture의 사전 작성 evidence는 deterministic oracle을 검증하며 실제 Work target의 end-to-end regression 실행은 아직 아니다.
 - 모든 direct-component grader의 parameter contract, known PASS/FAIL/UNKNOWN/INFRA_ERROR/INVALID_FIXTURE proof, optional assertion aggregation, critical 5/5 initial release gate를 stdlib test로 고정했다.
 - 동일 bootstrap task에서 known-good/known-bad behavior를 실제 실행해 evidence를 생성하고 PASS/FAIL을 구분하는 최소 reference plumbing proof를 추가했다. 이는 ChatGPT Work나 Codex surrogate가 아니다.
-- Inspect AI/Inspect SWE는 설치하거나 채택하지 않았다. `PREFERRED_FOR_PILOT` 상태이며 Phase 2 feasibility는 별도 작업이다.
-- 이 완료는 System Evaluation 전체 완성이 아니라 **measurement contract + task specification + seed failure specification + deterministic grader/oracle proof 완료**를 뜻한다.
+- Phase 2는 pinned snapshot의 detached disposable Git worktree에서 Codex CLI를 실제 target으로 7회 실행했다. known-good 동일 task 5 epochs는 5/5 PASS, known-bad는 FAIL, controlled mutation은 trial worktree 안에서만 관측됐고 모든 worktree가 정리됐다.
+- Inspect AI 0.3.263은 task/dataset/scorer/epochs/eval log/re-score가 검증돼 Phase 3 runner 후보로 `ADOPT`한다. Inspect SWE 0.2.70은 Windows의 built-in `local`(`NO_SANDBOX`) probe에서 target 실행 전 `SandboxInjectionError`가 발생해 현재 Docker-free runner에는 `REJECT`한다.
+- Docker는 prerequisite나 success criterion이 아니다. disposable worktree는 repository state와 artifact만 분리하며 OS process, host filesystem, network, credential, evaluator process, model provider isolation은 `NOT_PROVIDED`다.
+- Phase 3 진입 조건은 생겼지만 아직 진입하지 않았다. 상세 evidence와 제한은 `evals/system/phase2_pilot_result.json`, 현재 계약은 `evals/system/README.md`가 owner다.
+- 이 완료는 System Evaluation 전체나 System RED TEAM 완성이 아니라 **Docker 없이 자동 System Evaluation runner의 실제 feasibility 검증 완료**를 뜻한다.
 - 영상 기획의 현재 실행 위치와 다음 행동은 위 기획 공정 상태를 그대로 따른다.
 
 ## 운영 원칙
