@@ -2,9 +2,9 @@
   "schema_version": 1,
   "phase": 3,
   "phase_status": "PHASE3_BLOCKED",
-  "authoritative_snapshot": "8d9633004d291c50e71ae89d2b1ee240ca048917",
+  "authoritative_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a",
   "continuation_attempted_at": "2026-09-09",
-  "trial_snapshot": "4cc9942fdaf6c203c8c96378452ce7fb3f5b461e",
+  "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a",
   "total_tasks": 24,
   "category_counts": {
     "A": 3,
@@ -19,12 +19,12 @@
   },
   "critical_tasks": 20,
   "non_critical_tasks": 4,
-  "actual_codex_target_calls": 154,
+  "actual_codex_target_calls": 172,
   "status_counts": {
-    "PASS": 14,
-    "FAIL": 0,
+    "PASS": 31,
+    "FAIL": 1,
     "UNKNOWN": 0,
-    "INFRA_ERROR": 138,
+    "INFRA_ERROR": 139,
     "INVALID_FIXTURE": 0
   },
   "task_summary": [
@@ -33,8 +33,8 @@
       "category": "A",
       "criticality": "critical",
       "trials_requested": 5,
-      "valid_trials": 1,
-      "PASS": 1,
+      "valid_trials": 2,
+      "PASS": 2,
       "FAIL": 0,
       "UNKNOWN": 0,
       "INFRA_ERROR": 6,
@@ -44,23 +44,39 @@
       "historical_pass_trial_ids": [
         "CORE_A_01_baseline_1_b51ef8f1"
       ],
-      "reusable_valid_trials": 0,
-      "reusable_pass_trial_ids": [],
+      "reusable_valid_trials": 1,
+      "reusable_pass_trial_ids": [
+        "CORE_A_01_baseline_1_d62c0aa3"
+      ],
       "non_reusable_pass_trial_ids": [
         "CORE_A_01_baseline_1_b51ef8f1"
       ],
-      "remaining_trials": 5,
-      "reusability": "NON_REUSABLE",
-      "reusability_reason": "Raw envelope, response, and Inspect evidence exist only in a prior machine-local temporary directory; no durable artifact store is configured.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 4,
+      "reusability": "MIXED",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive; historical PASS evidence remains local-only and is not counted.",
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [
+        "CORE_A_01_baseline_1_d62c0aa3"
+      ],
+      "new_status_counts": {
+        "PASS": 1,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 1,
+      "reusable_valid_trial_ids": [
+        "CORE_A_01_baseline_1_d62c0aa3"
+      ]
     },
     {
       "id": "CORE_A_02",
       "category": "A",
       "criticality": "critical",
       "trials_requested": 5,
-      "valid_trials": 1,
-      "PASS": 1,
+      "valid_trials": 2,
+      "PASS": 2,
       "FAIL": 0,
       "UNKNOWN": 0,
       "INFRA_ERROR": 6,
@@ -70,23 +86,39 @@
       "historical_pass_trial_ids": [
         "CORE_A_02_baseline_1_2eaab957"
       ],
-      "reusable_valid_trials": 0,
-      "reusable_pass_trial_ids": [],
+      "reusable_valid_trials": 1,
+      "reusable_pass_trial_ids": [
+        "CORE_A_02_baseline_1_f709b7c5"
+      ],
       "non_reusable_pass_trial_ids": [
         "CORE_A_02_baseline_1_2eaab957"
       ],
-      "remaining_trials": 5,
-      "reusability": "NON_REUSABLE",
-      "reusability_reason": "Raw envelope, response, and Inspect evidence exist only in a prior machine-local temporary directory; no durable artifact store is configured.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 4,
+      "reusability": "MIXED",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive; historical PASS evidence remains local-only and is not counted.",
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [
+        "CORE_A_02_baseline_1_f709b7c5"
+      ],
+      "new_status_counts": {
+        "PASS": 1,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 1,
+      "reusable_valid_trial_ids": [
+        "CORE_A_02_baseline_1_f709b7c5"
+      ]
     },
     {
       "id": "CORE_A_03",
       "category": "A",
       "criticality": "critical",
       "trials_requested": 5,
-      "valid_trials": 0,
-      "PASS": 0,
+      "valid_trials": 1,
+      "PASS": 1,
       "FAIL": 0,
       "UNKNOWN": 0,
       "INFRA_ERROR": 7,
@@ -94,43 +126,73 @@
       "gate_status": "BLOCKED",
       "historical_valid_trials": 0,
       "historical_pass_trial_ids": [],
-      "reusable_valid_trials": 0,
-      "reusable_pass_trial_ids": [],
+      "reusable_valid_trials": 1,
+      "reusable_pass_trial_ids": [
+        "CORE_A_03_baseline_1_799326b6"
+      ],
       "non_reusable_pass_trial_ids": [],
-      "remaining_trials": 5,
-      "reusability": "NONE_AVAILABLE",
-      "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 4,
+      "reusability": "REUSABLE",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive.",
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [
+        "CORE_A_03_baseline_1_799326b6"
+      ],
+      "new_status_counts": {
+        "PASS": 1,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 1,
+      "reusable_valid_trial_ids": [
+        "CORE_A_03_baseline_1_799326b6"
+      ]
     },
     {
       "id": "CORE_B_01",
       "category": "B",
       "criticality": "critical",
       "trials_requested": 5,
-      "valid_trials": 0,
+      "valid_trials": 1,
       "PASS": 0,
-      "FAIL": 0,
+      "FAIL": 1,
       "UNKNOWN": 0,
       "INFRA_ERROR": 7,
       "INVALID_FIXTURE": 0,
       "gate_status": "BLOCKED",
       "historical_valid_trials": 0,
       "historical_pass_trial_ids": [],
-      "reusable_valid_trials": 0,
+      "reusable_valid_trials": 1,
       "reusable_pass_trial_ids": [],
       "non_reusable_pass_trial_ids": [],
-      "remaining_trials": 5,
-      "reusability": "NONE_AVAILABLE",
-      "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 4,
+      "reusability": "REUSABLE",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive.",
+      "resume_gate_status": "FAIL",
+      "new_trial_ids": [
+        "CORE_B_01_baseline_1_7e1a5e35"
+      ],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 1,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": [
+        "CORE_B_01_baseline_1_7e1a5e35"
+      ]
     },
     {
       "id": "CORE_B_02",
       "category": "B",
       "criticality": "critical",
       "trials_requested": 5,
-      "valid_trials": 0,
-      "PASS": 0,
+      "valid_trials": 1,
+      "PASS": 1,
       "FAIL": 0,
       "UNKNOWN": 0,
       "INFRA_ERROR": 7,
@@ -138,21 +200,37 @@
       "gate_status": "BLOCKED",
       "historical_valid_trials": 0,
       "historical_pass_trial_ids": [],
-      "reusable_valid_trials": 0,
-      "reusable_pass_trial_ids": [],
+      "reusable_valid_trials": 1,
+      "reusable_pass_trial_ids": [
+        "CORE_B_02_baseline_1_345ae597"
+      ],
       "non_reusable_pass_trial_ids": [],
-      "remaining_trials": 5,
-      "reusability": "NONE_AVAILABLE",
-      "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 4,
+      "reusability": "REUSABLE",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive.",
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [
+        "CORE_B_02_baseline_1_345ae597"
+      ],
+      "new_status_counts": {
+        "PASS": 1,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 1,
+      "reusable_valid_trial_ids": [
+        "CORE_B_02_baseline_1_345ae597"
+      ]
     },
     {
       "id": "CORE_C_01",
       "category": "C",
       "criticality": "critical",
       "trials_requested": 5,
-      "valid_trials": 0,
-      "PASS": 0,
+      "valid_trials": 1,
+      "PASS": 1,
       "FAIL": 0,
       "UNKNOWN": 0,
       "INFRA_ERROR": 7,
@@ -160,13 +238,29 @@
       "gate_status": "BLOCKED",
       "historical_valid_trials": 0,
       "historical_pass_trial_ids": [],
-      "reusable_valid_trials": 0,
-      "reusable_pass_trial_ids": [],
+      "reusable_valid_trials": 1,
+      "reusable_pass_trial_ids": [
+        "CORE_C_01_baseline_1_86f2da3a"
+      ],
       "non_reusable_pass_trial_ids": [],
-      "remaining_trials": 5,
-      "reusability": "NONE_AVAILABLE",
-      "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 4,
+      "reusability": "REUSABLE",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive.",
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [
+        "CORE_C_01_baseline_1_86f2da3a"
+      ],
+      "new_status_counts": {
+        "PASS": 1,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 1,
+      "reusable_valid_trial_ids": [
+        "CORE_C_01_baseline_1_86f2da3a"
+      ]
     },
     {
       "id": "CORE_C_02",
@@ -177,7 +271,7 @@
       "PASS": 0,
       "FAIL": 0,
       "UNKNOWN": 0,
-      "INFRA_ERROR": 7,
+      "INFRA_ERROR": 8,
       "INVALID_FIXTURE": 0,
       "gate_status": "BLOCKED",
       "historical_valid_trials": 0,
@@ -186,9 +280,21 @@
       "reusable_pass_trial_ids": [],
       "non_reusable_pass_trial_ids": [],
       "remaining_trials": 5,
-      "reusability": "NONE_AVAILABLE",
-      "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "reusability": "REUSABLE",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive.",
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [
+        "CORE_C_02_baseline_1_ec06082b"
+      ],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 1,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_D_01",
@@ -210,15 +316,25 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_D_02",
       "category": "D",
       "criticality": "non_critical",
       "trials_requested": 3,
-      "valid_trials": 3,
-      "PASS": 3,
+      "valid_trials": 6,
+      "PASS": 6,
       "FAIL": 0,
       "UNKNOWN": 0,
       "INFRA_ERROR": 0,
@@ -230,17 +346,39 @@
         "CORE_D_02_baseline_2_c5edf671",
         "CORE_D_02_baseline_3_3540cb58"
       ],
-      "reusable_valid_trials": 0,
-      "reusable_pass_trial_ids": [],
+      "reusable_valid_trials": 3,
+      "reusable_pass_trial_ids": [
+        "CORE_D_02_baseline_1_2fb7eaef",
+        "CORE_D_02_baseline_2_bf3f8157",
+        "CORE_D_02_baseline_3_e1b998e8"
+      ],
       "non_reusable_pass_trial_ids": [
         "CORE_D_02_baseline_1_73a2efb4",
         "CORE_D_02_baseline_2_c5edf671",
         "CORE_D_02_baseline_3_3540cb58"
       ],
-      "remaining_trials": 3,
-      "reusability": "NON_REUSABLE",
-      "reusability_reason": "Raw envelope, response, and Inspect evidence exist only in a prior machine-local temporary directory; no durable artifact store is configured.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 0,
+      "reusability": "MIXED",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive; historical PASS evidence remains local-only and is not counted.",
+      "resume_gate_status": "DISTRIBUTION_RECORDED",
+      "new_trial_ids": [
+        "CORE_D_02_baseline_1_2fb7eaef",
+        "CORE_D_02_baseline_2_bf3f8157",
+        "CORE_D_02_baseline_3_e1b998e8"
+      ],
+      "new_status_counts": {
+        "PASS": 3,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 3,
+      "reusable_valid_trial_ids": [
+        "CORE_D_02_baseline_1_2fb7eaef",
+        "CORE_D_02_baseline_2_bf3f8157",
+        "CORE_D_02_baseline_3_e1b998e8"
+      ]
     },
     {
       "id": "CORE_D_03",
@@ -262,15 +400,25 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_D_04",
       "category": "D",
       "criticality": "non_critical",
       "trials_requested": 3,
-      "valid_trials": 3,
-      "PASS": 3,
+      "valid_trials": 6,
+      "PASS": 6,
       "FAIL": 0,
       "UNKNOWN": 0,
       "INFRA_ERROR": 0,
@@ -282,17 +430,39 @@
         "CORE_D_04_baseline_2_fa7261cf",
         "CORE_D_04_baseline_3_337a6694"
       ],
-      "reusable_valid_trials": 0,
-      "reusable_pass_trial_ids": [],
+      "reusable_valid_trials": 3,
+      "reusable_pass_trial_ids": [
+        "CORE_D_04_baseline_1_bcffa454",
+        "CORE_D_04_baseline_2_6ae89cb9",
+        "CORE_D_04_baseline_3_5bff416e"
+      ],
       "non_reusable_pass_trial_ids": [
         "CORE_D_04_baseline_1_7c160f68",
         "CORE_D_04_baseline_2_fa7261cf",
         "CORE_D_04_baseline_3_337a6694"
       ],
-      "remaining_trials": 3,
-      "reusability": "NON_REUSABLE",
-      "reusability_reason": "Raw envelope, response, and Inspect evidence exist only in a prior machine-local temporary directory; no durable artifact store is configured.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 0,
+      "reusability": "MIXED",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive; historical PASS evidence remains local-only and is not counted.",
+      "resume_gate_status": "DISTRIBUTION_RECORDED",
+      "new_trial_ids": [
+        "CORE_D_04_baseline_1_bcffa454",
+        "CORE_D_04_baseline_2_6ae89cb9",
+        "CORE_D_04_baseline_3_5bff416e"
+      ],
+      "new_status_counts": {
+        "PASS": 3,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 3,
+      "reusable_valid_trial_ids": [
+        "CORE_D_04_baseline_1_bcffa454",
+        "CORE_D_04_baseline_2_6ae89cb9",
+        "CORE_D_04_baseline_3_5bff416e"
+      ]
     },
     {
       "id": "CORE_E_01",
@@ -314,7 +484,17 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_E_02",
@@ -336,15 +516,25 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_E_03",
       "category": "E",
       "criticality": "non_critical",
       "trials_requested": 3,
-      "valid_trials": 3,
-      "PASS": 3,
+      "valid_trials": 6,
+      "PASS": 6,
       "FAIL": 0,
       "UNKNOWN": 0,
       "INFRA_ERROR": 0,
@@ -356,17 +546,39 @@
         "CORE_E_03_baseline_2_bc9e8417",
         "CORE_E_03_baseline_3_bd998f83"
       ],
-      "reusable_valid_trials": 0,
-      "reusable_pass_trial_ids": [],
+      "reusable_valid_trials": 3,
+      "reusable_pass_trial_ids": [
+        "CORE_E_03_baseline_1_37f73175",
+        "CORE_E_03_baseline_2_cf11878f",
+        "CORE_E_03_baseline_3_7704169d"
+      ],
       "non_reusable_pass_trial_ids": [
         "CORE_E_03_baseline_1_53732875",
         "CORE_E_03_baseline_2_bc9e8417",
         "CORE_E_03_baseline_3_bd998f83"
       ],
-      "remaining_trials": 3,
-      "reusability": "NON_REUSABLE",
-      "reusability_reason": "Raw envelope, response, and Inspect evidence exist only in a prior machine-local temporary directory; no durable artifact store is configured.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 0,
+      "reusability": "MIXED",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive; historical PASS evidence remains local-only and is not counted.",
+      "resume_gate_status": "DISTRIBUTION_RECORDED",
+      "new_trial_ids": [
+        "CORE_E_03_baseline_1_37f73175",
+        "CORE_E_03_baseline_2_cf11878f",
+        "CORE_E_03_baseline_3_7704169d"
+      ],
+      "new_status_counts": {
+        "PASS": 3,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 3,
+      "reusable_valid_trial_ids": [
+        "CORE_E_03_baseline_1_37f73175",
+        "CORE_E_03_baseline_2_cf11878f",
+        "CORE_E_03_baseline_3_7704169d"
+      ]
     },
     {
       "id": "CORE_F_01",
@@ -388,7 +600,17 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_F_02",
@@ -410,7 +632,17 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_F_03",
@@ -432,7 +664,17 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_G_01",
@@ -454,7 +696,17 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_G_02",
@@ -476,15 +728,25 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_H_01",
       "category": "H",
       "criticality": "non_critical",
       "trials_requested": 3,
-      "valid_trials": 3,
-      "PASS": 3,
+      "valid_trials": 6,
+      "PASS": 6,
       "FAIL": 0,
       "UNKNOWN": 0,
       "INFRA_ERROR": 0,
@@ -496,17 +758,39 @@
         "CORE_H_01_baseline_2_ca4e3d20",
         "CORE_H_01_baseline_3_b66dc86b"
       ],
-      "reusable_valid_trials": 0,
-      "reusable_pass_trial_ids": [],
+      "reusable_valid_trials": 3,
+      "reusable_pass_trial_ids": [
+        "CORE_H_01_baseline_1_b0c0605c",
+        "CORE_H_01_baseline_2_5dc6c752",
+        "CORE_H_01_baseline_3_7262d67f"
+      ],
       "non_reusable_pass_trial_ids": [
         "CORE_H_01_baseline_1_134cb789",
         "CORE_H_01_baseline_2_ca4e3d20",
         "CORE_H_01_baseline_3_b66dc86b"
       ],
-      "remaining_trials": 3,
-      "reusability": "NON_REUSABLE",
-      "reusability_reason": "Raw envelope, response, and Inspect evidence exist only in a prior machine-local temporary directory; no durable artifact store is configured.",
-      "resume_gate_status": "BLOCKED"
+      "remaining_trials": 0,
+      "reusability": "MIXED",
+      "reusability_reason": "New trial evidence is stored in the portable Phase 3 resume archive; historical PASS evidence remains local-only and is not counted.",
+      "resume_gate_status": "DISTRIBUTION_RECORDED",
+      "new_trial_ids": [
+        "CORE_H_01_baseline_1_b0c0605c",
+        "CORE_H_01_baseline_2_5dc6c752",
+        "CORE_H_01_baseline_3_7262d67f"
+      ],
+      "new_status_counts": {
+        "PASS": 3,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 3,
+      "reusable_valid_trial_ids": [
+        "CORE_H_01_baseline_1_b0c0605c",
+        "CORE_H_01_baseline_2_5dc6c752",
+        "CORE_H_01_baseline_3_7262d67f"
+      ]
     },
     {
       "id": "CORE_H_02",
@@ -528,7 +812,17 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_I_01",
@@ -550,7 +844,17 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_I_02",
@@ -572,7 +876,17 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     },
     {
       "id": "CORE_I_03",
@@ -594,13 +908,23 @@
       "remaining_trials": 5,
       "reusability": "NONE_AVAILABLE",
       "reusability_reason": "No historical PASS trial was observed for this task.",
-      "resume_gate_status": "BLOCKED"
+      "resume_gate_status": "BLOCKED",
+      "new_trial_ids": [],
+      "new_status_counts": {
+        "PASS": 0,
+        "FAIL": 0,
+        "UNKNOWN": 0,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "reusable_valid_pass_trials": 0,
+      "reusable_valid_trial_ids": []
     }
   ],
   "critical_gate": {
     "PASS": 0,
-    "FAIL": 0,
-    "BLOCKED": 20
+    "FAIL": 1,
+    "BLOCKED": 19
   },
   "seed_controls": {
     "requested": 2,
@@ -618,21 +942,15 @@
   "inspect_swe": "NOT_USED",
   "docker": "NOT_USED",
   "inspect_logs": {
-    "count": 44,
-    "eval_success": 44,
-    "rescore_success": 44,
-    "rescore_identical": 44,
+    "count": 46,
+    "eval_success": 45,
+    "rescore_success": 45,
+    "rescore_identical": 46,
     "target_reexecutions_for_rescore": 0,
-    "portable_evidence_available": false,
+    "portable_evidence_available": true,
     "external_artifacts_local_only": true,
-    "reverification": {
-      "checked_at": "2026-09-09T00:23:34+09:00",
-      "log_count": 1,
-      "sample_count": 12,
-      "original_vs_rescore_identical": true,
-      "target_calls": 0,
-      "inspect_ai": "0.3.263"
-    }
+    "new_run_logs": 2,
+    "new_run_completed_before_quota_stop": 1
   },
   "production_checkout_unchanged": true,
   "main_unchanged": true,
@@ -640,42 +958,41 @@
   "worktree_registry_restored": true,
   "findings": [
     {
+      "id": "F_CORE_B_01_FAIL",
+      "task_id": "CORE_B_01",
+      "status": "FAIL",
+      "kind": "surrogate_contract_failure",
+      "bounded_statement": [
+        "response_owner: expected 'STATE.md', got 'FIRST_VIDEO.md'"
+      ],
+      "owner_candidates": [
+        "STATE.md current owner"
+      ],
+      "severity": "high",
+      "reproducibility": {
+        "observed": 1,
+        "attempted": 1
+      },
+      "trial_ids": [
+        "CORE_B_01_baseline_1_7e1a5e35"
+      ],
+      "remediation": "NOT_PERFORMED",
+      "scope": "controlled Codex surrogate only; not a Work product finding"
+    },
+    {
       "id": "F_INFRA_PROVIDER_USAGE_LIMIT",
       "status": "INFRA_ERROR",
       "severity": "infrastructure",
-      "bounded_statement": "Codex provider usage limit prevented completion of the remaining durable valid trials; historical PASS rows are preserved but cannot be reused cross-machine because their raw evidence is local-only. No product FAIL is inferred.",
+      "statement": "Codex provider usage limit stopped the partial continuation after preserving completed results; no additional calls were attempted.",
       "owner_candidates": [
         "external provider/account quota"
       ],
       "reproducibility": {
-        "observed": 138,
-        "attempted": 154,
-        "continuation_attempts": 2
+        "observed": 139,
+        "attempted": 172,
+        "continuation_attempts": 3
       },
-      "evidence": {
-        "usage_limit_primary_used_percent": 100,
-        "credits_balance": "0",
-        "source": "Codex CLI stderr and account usage read",
-        "checked_at": "2026-09-09T00:39:05+09:00",
-        "target_calls_this_session": 0,
-        "historical_pass_trials": 14,
-        "reusable_pass_trials": 0,
-        "non_reusable_pass_trials": 14,
-        "portable_evidence_available": false,
-        "remaining_valid_trials": 112,
-        "remaining_critical_valid_trials": 100,
-        "remaining_non_critical_valid_trials": 12,
-        "inspect_log_reverification": {
-          "log_count": 1,
-          "sample_count": 12,
-          "original_vs_rescore_identical": true,
-          "target_calls": 0,
-          "inspect_ai": "0.3.263"
-        },
-        "reset_consumed": false
-      },
-      "remediation": "NOT_PERFORMED",
-      "next_action": "Recheck provider quota after pulling the branch; when available, run only the durable-state remaining trials at the authoritative snapshot. Stop on the first renewed provider limit."
+      "remediation": "NOT_PERFORMED"
     }
   ],
   "limitations": [
@@ -683,22 +1000,27 @@
     "OS/process/host filesystem/network/credential/evaluator/provider isolation NOT_PROVIDED",
     "Trial receipts were created at prior owner-equivalent snapshot 4cc9942fdaf6c203c8c96378452ce7fb3f5b461e; no current owner blob changed before 2bf55f14da8b9a3c21ce0b811f6fa0ef48167c5a",
     "Primary Codex rate limit is 100% with zero credits; no reset was consumed",
-    "Prior raw envelopes and Inspect logs remain machine-local and are NON_REUSABLE for cross-machine continuation"
+    "Historical 14 PASS receipts remain machine-local and NON_REUSABLE; new partial-run receipts are preserved in the portable Phase 3 resume archive."
   ],
   "phase4_entry_possible": false,
   "continuation": {
-    "missing_valid_trials_executed": 0,
-    "reason": "Provider preflight remained blocked on this continuation: Codex primary rate limit 100% with zero credits; no target call was attempted and no reset was consumed.",
+    "missing_valid_trials_executed": 18,
+    "reason": "Provider usage limit recurred during CORE_C_02; 18 target calls were attempted, results were preserved, and further execution stopped immediately.",
     "existing_valid_pass_preserved": 14,
     "existing_valid_pass_reusable": 0,
     "existing_valid_pass_non_reusable": 14,
-    "remaining_valid_trials": 112,
-    "remaining_critical_valid_trials": 100,
-    "remaining_non_critical_valid_trials": 12,
+    "remaining_valid_trials": 94,
+    "remaining_critical_valid_trials": 94,
+    "remaining_non_critical_valid_trials": 0,
     "provider_preflight_checked": true,
-    "exact_next_action": "After pulling gpt-harness-finish-plan, read this result and recheck provider quota. When calls are available, run the existing evals.system.core_regression runner at snapshot 8d9633004d291c50e71ae89d2b1ee240ca048917 into a new external output directory, executing only the per-task remaining trials. Historical NON_REUSABLE PASS rows must be rerun because their raw evidence is not durable. On the first renewed provider usage limit, stop and record PHASE3_BLOCKED; do not change the suite or harness and do not start Phase 4."
+    "exact_next_action": "Pull the branch and read this state. Preserve the recorded CORE_B_01 FAIL; run only task remaining_trials at snapshot 44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a when quota is available. Do not auto-fix product failures, change the suite, or start Phase 4.",
+    "new_target_calls": 18,
+    "new_valid_trials": 18,
+    "new_valid_pass_trials": 17,
+    "new_valid_fail_trials": 1,
+    "new_infra_errors": 1
   },
-  "claim": "Phase 3 Core Regression remains PHASE3_BLOCKED by provider quota; 14 historical PASS trials are preserved as NON_REUSABLE local evidence and 112 durable resume trials remain.",
+  "claim": "Phase 3 Core Regression remains PHASE3_BLOCKED: 17 new PASS and one valid B01 FAIL were preserved, one quota INFRA_ERROR stopped execution, and 94 valid trial slots remain.",
   "last_run_at": "2026-09-09T00:39:05+09:00",
   "historical_pass_trial_ids": [
     "CORE_A_01_baseline_1_b51ef8f1",
@@ -717,7 +1039,7 @@
     "CORE_H_01_baseline_3_b66dc86b"
   ],
   "historical_valid_pass_trials": 14,
-  "reusable_valid_pass_trials": 0,
+  "reusable_valid_pass_trials": 17,
   "non_reusable_historical_pass_trials": 14,
   "reusable_status_counts": {
     "PASS": 0,
@@ -728,19 +1050,19 @@
   },
   "resume_critical_gate": {
     "PASS": 0,
-    "FAIL": 0,
-    "BLOCKED": 20
+    "FAIL": 1,
+    "BLOCKED": 19
   },
   "last_run": {
-    "mode": "provider_preflight_only",
-    "snapshot": "8d9633004d291c50e71ae89d2b1ee240ca048917",
+    "mode": "core_regression_partial_provider_block",
+    "snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a",
     "runner": "evals/system/core_regression.py",
     "runner_commit": "2bf55f14da8b9a3c21ce0b811f6fa0ef48167c5a",
     "scorer": "evals/system/scorers.py",
     "scorer_commit": "d341896756bd075b8d2f8f7983d951e927407c4d",
     "task_spec_commit": "2bf55f14da8b9a3c21ce0b811f6fa0ef48167c5a",
-    "actual_target_calls": 0,
-    "new_valid_pass_trials": 0,
+    "actual_target_calls": 18,
+    "new_valid_pass_trials": 17,
     "provider_preflight": {
       "checked_at": "2026-09-09T00:39:05+09:00",
       "primary_used_percent": 100,
@@ -752,7 +1074,7 @@
     }
   },
   "resume_state": {
-    "authoritative_snapshot": "8d9633004d291c50e71ae89d2b1ee240ca048917",
+    "authoritative_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a",
     "phase": 3,
     "verdict": "PHASE3_BLOCKED",
     "task_count": 24,
@@ -760,18 +1082,45 @@
     "non_critical_task_count": 4,
     "historical_trial_snapshot": "4cc9942fdaf6c203c8c96378452ce7fb3f5b461e",
     "historical_valid_pass_trials": 14,
-    "reusable_valid_pass_trials": 0,
+    "reusable_valid_pass_trials": 17,
     "non_reusable_historical_pass_trials": 14,
-    "remaining_valid_trials": 112,
+    "remaining_valid_trials": 94,
     "critical_gate": {
       "PASS": 0,
-      "FAIL": 0,
-      "BLOCKED": 20
+      "FAIL": 1,
+      "BLOCKED": 19
     },
     "last_run_at": "2026-09-09T00:39:05+09:00",
     "runner_commit": "2bf55f14da8b9a3c21ce0b811f6fa0ef48167c5a",
     "scorer_commit": "d341896756bd075b8d2f8f7983d951e927407c4d",
     "blocker": "provider_usage_limit",
-    "exact_next_action": "After pulling gpt-harness-finish-plan, read this result and recheck provider quota. When calls are available, run the existing evals.system.core_regression runner at snapshot 8d9633004d291c50e71ae89d2b1ee240ca048917 into a new external output directory, executing only the per-task remaining trials. Historical NON_REUSABLE PASS rows must be rerun because their raw evidence is not durable. On the first renewed provider usage limit, stop and record PHASE3_BLOCKED; do not change the suite or harness and do not start Phase 4."
+    "exact_next_action": "Pull the branch and read this state. Preserve the recorded CORE_B_01 FAIL; run only task remaining_trials at snapshot 44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a when quota is available. Do not auto-fix product failures, change the suite, or start Phase 4.",
+    "reusable_valid_trials": 18
+  },
+  "historical_trial_snapshot": "4cc9942fdaf6c203c8c96378452ce7fb3f5b461e",
+  "historical_trial_snapshots": [
+    "4cc9942fdaf6c203c8c96378452ce7fb3f5b461e",
+    "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
+  ],
+  "new_trial_summary": {
+    "attempted_target_calls": 18,
+    "recorded_trials": 18,
+    "status_counts": {
+      "PASS": 17,
+      "FAIL": 1,
+      "INFRA_ERROR": 1
+    },
+    "portable_archive": "evals/system/evidence/phase3_resume_44aa7ca.zip",
+    "portable_archive_sha256": "e5b35fca34928022a2cf1cb1acc27c159fba4347deb69f4f3f327d8a133ca866",
+    "quota_stopped_trial_id": "CORE_C_02_baseline_1_ec06082b"
+  },
+  "reusable_valid_trials": 18,
+  "remaining_valid_trials": 94,
+  "evidence_archive": {
+    "path": "evals/system/evidence/phase3_resume_44aa7ca.zip",
+    "sha256": "e5b35fca34928022a2cf1cb1acc27c159fba4347deb69f4f3f327d8a133ca866",
+    "format": "zip",
+    "new_trial_attempts": 18,
+    "portable": true
   }
 }
