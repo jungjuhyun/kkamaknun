@@ -650,20 +650,32 @@
       "reproducibility": {
         "observed": 138,
         "attempted": 154,
-        "continuation_attempts": 1
+        "continuation_attempts": 2
       },
       "evidence": {
         "usage_limit_primary_used_percent": 100,
         "credits_balance": "0",
         "source": "Codex CLI stderr and account usage read",
-        "checked_at": "2026-09-09T00:23:34+09:00",
+        "checked_at": "2026-09-09T00:39:05+09:00",
         "target_calls_this_session": 0,
         "historical_pass_trials": 14,
         "reusable_pass_trials": 0,
         "non_reusable_pass_trials": 14,
-        "portable_evidence_available": false
+        "portable_evidence_available": false,
+        "remaining_valid_trials": 112,
+        "remaining_critical_valid_trials": 100,
+        "remaining_non_critical_valid_trials": 12,
+        "inspect_log_reverification": {
+          "log_count": 1,
+          "sample_count": 12,
+          "original_vs_rescore_identical": true,
+          "target_calls": 0,
+          "inspect_ai": "0.3.263"
+        },
+        "reset_consumed": false
       },
-      "remediation": "NOT_PERFORMED"
+      "remediation": "NOT_PERFORMED",
+      "next_action": "Recheck provider quota after pulling the branch; when available, run only the durable-state remaining trials at the authoritative snapshot. Stop on the first renewed provider limit."
     }
   ],
   "limitations": [
@@ -676,7 +688,7 @@
   "phase4_entry_possible": false,
   "continuation": {
     "missing_valid_trials_executed": 0,
-    "reason": "Provider preflight remained blocked: Codex primary rate limit 100% with zero credits; no target call was attempted and no reset was consumed.",
+    "reason": "Provider preflight remained blocked on this continuation: Codex primary rate limit 100% with zero credits; no target call was attempted and no reset was consumed.",
     "existing_valid_pass_preserved": 14,
     "existing_valid_pass_reusable": 0,
     "existing_valid_pass_non_reusable": 14,
@@ -687,7 +699,7 @@
     "exact_next_action": "After pulling gpt-harness-finish-plan, read this result and recheck provider quota. When calls are available, run the existing evals.system.core_regression runner at snapshot 8d9633004d291c50e71ae89d2b1ee240ca048917 into a new external output directory, executing only the per-task remaining trials. Historical NON_REUSABLE PASS rows must be rerun because their raw evidence is not durable. On the first renewed provider usage limit, stop and record PHASE3_BLOCKED; do not change the suite or harness and do not start Phase 4."
   },
   "claim": "Phase 3 Core Regression remains PHASE3_BLOCKED by provider quota; 14 historical PASS trials are preserved as NON_REUSABLE local evidence and 112 durable resume trials remain.",
-  "last_run_at": "2026-09-09T00:23:34+09:00",
+  "last_run_at": "2026-09-09T00:39:05+09:00",
   "historical_pass_trial_ids": [
     "CORE_A_01_baseline_1_b51ef8f1",
     "CORE_A_02_baseline_1_2eaab957",
@@ -730,6 +742,7 @@
     "actual_target_calls": 0,
     "new_valid_pass_trials": 0,
     "provider_preflight": {
+      "checked_at": "2026-09-09T00:39:05+09:00",
       "primary_used_percent": 100,
       "primary_window_minutes": 300,
       "credits_balance": "0",
@@ -755,7 +768,7 @@
       "FAIL": 0,
       "BLOCKED": 20
     },
-    "last_run_at": "2026-09-09T00:23:34+09:00",
+    "last_run_at": "2026-09-09T00:39:05+09:00",
     "runner_commit": "2bf55f14da8b9a3c21ce0b811f6fa0ef48167c5a",
     "scorer_commit": "d341896756bd075b8d2f8f7983d951e927407c4d",
     "blocker": "provider_usage_limit",

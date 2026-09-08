@@ -10,13 +10,13 @@
     "reproducibility": {
       "observed": 138,
       "attempted": 154,
-      "continuation_attempts": 1
+      "continuation_attempts": 2
     },
     "evidence": {
       "usage_limit_primary_used_percent": 100,
       "credits_balance": "0",
       "source": "Codex CLI stderr and account usage read",
-      "checked_at": "2026-09-09T00:23:34+09:00",
+      "checked_at": "2026-09-09T00:39:05+09:00",
       "target_calls_this_session": 0,
       "historical_pass_trials": 14,
       "reusable_pass_trials": 0,
@@ -31,7 +31,8 @@
         "original_vs_rescore_identical": true,
         "target_calls": 0,
         "inspect_ai": "0.3.263"
-      }
+      },
+      "reset_consumed": false
     },
     "remediation": "NOT_PERFORMED",
     "next_action": "Recheck provider quota after pulling the branch; when available, run only the durable-state remaining trials at the authoritative snapshot. Stop on the first renewed provider limit."
