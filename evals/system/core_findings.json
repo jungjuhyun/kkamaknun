@@ -3,10 +3,37 @@
     "id": "F_INFRA_PROVIDER_USAGE_LIMIT",
     "status": "INFRA_ERROR",
     "severity": "infrastructure",
-    "bounded_statement": "Codex provider usage limit prevented completion of valid critical trials; no product FAIL inferred.",
-    "owner_candidates": ["external provider/account quota"],
-    "reproducibility": {"observed": 138, "attempted": 154, "continuation_attempts": 0},
-    "evidence": {"usage_limit_primary_used_percent": 100, "credits_balance": "0", "source": "Codex CLI stderr and account usage read"},
-    "remediation": "NOT_PERFORMED"
+    "bounded_statement": "Codex provider usage limit prevented completion of the remaining durable valid trials; historical PASS rows are preserved but cannot be reused cross-machine because their raw evidence is local-only. No product FAIL is inferred.",
+    "owner_candidates": [
+      "external provider/account quota"
+    ],
+    "reproducibility": {
+      "observed": 138,
+      "attempted": 154,
+      "continuation_attempts": 1
+    },
+    "evidence": {
+      "usage_limit_primary_used_percent": 100,
+      "credits_balance": "0",
+      "source": "Codex CLI stderr and account usage read",
+      "checked_at": "2026-09-09T00:23:34+09:00",
+      "target_calls_this_session": 0,
+      "historical_pass_trials": 14,
+      "reusable_pass_trials": 0,
+      "non_reusable_pass_trials": 14,
+      "portable_evidence_available": false,
+      "remaining_valid_trials": 112,
+      "remaining_critical_valid_trials": 100,
+      "remaining_non_critical_valid_trials": 12,
+      "inspect_log_reverification": {
+        "log_count": 1,
+        "sample_count": 12,
+        "original_vs_rescore_identical": true,
+        "target_calls": 0,
+        "inspect_ai": "0.3.263"
+      }
+    },
+    "remediation": "NOT_PERFORMED",
+    "next_action": "Recheck provider quota after pulling the branch; when available, run only the durable-state remaining trials at the authoritative snapshot. Stop on the first renewed provider limit."
   }
 ]
