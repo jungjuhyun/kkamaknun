@@ -1,4 +1,4 @@
-"""One-shot Phase 0-1 validation command."""
+"""One-shot Phase 0-3 validation command (actual target runs are separate)."""
 
 from __future__ import annotations
 
@@ -185,6 +185,8 @@ def validate_all_data() -> None:
     validate_observation_matrix()
     validate_isolation_profiles()
     validate_uat_template()
+    from .core_regression import load_core_tasks
+    load_core_tasks()
 
 
 def main() -> int:
@@ -197,7 +199,7 @@ def main() -> int:
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not result.wasSuccessful():
         return 1
-    print("Phase 0-1 system evaluation checks: PASS")
+    print("Phase 0-3 system evaluation checks: PASS")
     return 0
 
 

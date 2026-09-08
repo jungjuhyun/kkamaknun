@@ -1,0 +1,11 @@
+[
+  {
+    "id": "F_INFRA_PROVIDER_USAGE_LIMIT",
+    "status": "INFRA_ERROR",
+    "severity": "infrastructure",
+    "bounded_statement": "Codex provider usage limit prevented completion of valid critical trials; no product FAIL inferred.",
+    "owner_candidates": ["external provider/account quota"],
+    "reproducibility": {"observed": 138, "attempted": 154},
+    "remediation": "NOT_PERFORMED"
+  }
+]

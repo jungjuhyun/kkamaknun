@@ -2,7 +2,7 @@
 
 ## Ownership
 
-This directory owns the framework-independent measurement contract, target observation boundaries, seed regression tasks, deterministic graders, and Actual ChatGPT Work UAT evidence protocol for the whole harness.
+This directory owns the framework-independent measurement contract, target observation boundaries, executable Core Regression suite, seed controls, deterministic graders, and Actual ChatGPT Work UAT evidence protocol for the whole harness.
 
 An independent owner is necessary because `tools/harness/PIPELINE.yaml` and `PLAYBOOK.md` own video planning and its Planning RED TEAM. Putting system evaluation there would mix targets, graders, and PASS meanings. Plans remain historical or executable plans rather than current measurement contracts.
 
@@ -16,11 +16,12 @@ This phase does not change the Work Project instruction, video-planning pipeline
 - Minimal executable reference plumbing proof: implemented for one direct-component bootstrap task.
 - Docker-free Inspect/Codex CLI Phase 2 pilot: implemented and run at `d341896756bd075b8d2f8f7983d951e927407c4d`.
 - Actual ChatGPT Work target: semi-manual UAT protocol only.
-- Inspect AI 0.3.263: `ADOPT` as the Phase 3 runner candidate after `PILOT_PASSED`.
+- Phase 3: executable Core Regression MVP in `core_regression.py`; 24 task definitions in `tasks/core/`. The baseline verdict is owned by `core_result.json` when present, with findings in `core_findings.json`.
+- Inspect AI 0.3.263: `ADOPT` for Phase 3 after `PILOT_PASSED`.
 - Inspect SWE 0.2.70: `REJECT` for the current Windows Docker-free runner; its `local` probe failed before target execution.
 - Model graders and planning-quality graders: out of scope.
 
-The exact completion claim for this phase is:
+The Phase 0-1 completion claim is:
 
 > measurement contract + task specification + seed failure specification + deterministic grader/oracle proof complete
 
@@ -28,9 +29,9 @@ The additional Phase 2 completion claim is limited to:
 
 > Docker-free automated System Evaluation runner feasibility verified
 
-It is not a completed System RED TEAM and does not enter Phase 3.
+Phase 3's completion claim is limited to initial executable Core Regression MVP construction and baseline execution. It is not completed System RED TEAM, final harness reliability, or Actual Work acceptance. Phase 4 and Phase 5 are not implemented here.
 
-The production-failure fixtures contain pre-authored oracle evidence. They are not yet end-to-end production regressions because they do not execute an actual Work or Codex target and capture its behavior. The executable reference pair proves only that the local task → controlled behavior → evidence capture → grader plumbing distinguishes known-good from known-bad behavior.
+The original three production-failure fixtures still contain pre-authored oracle evidence. Their Phase 3 counterparts execute Codex against controlled access/history services, capture actual operations, and grade outcomes. They are automated surrogate regressions, not end-to-end Work production regressions. The executable reference pair remains a direct-component plumbing proof.
 
 ## Status semantics
 
@@ -68,9 +69,9 @@ The machine-readable observation matrix is `observation_matrix.json`.
 
 The grader may use controlled fixture inputs, structured process results, filesystem state, and git state. This is the only executable target in Phase 0-1.
 
-### Inspect/Codex CLI Phase 2 pilot
+### Inspect/Codex CLI surrogate
 
-The candidate runner uses Inspect AI for task/dataset/scorer/epochs/logging/re-score and a minimal custom runner for the authenticated local Codex CLI subprocess. Each target call executes from a fresh detached disposable Git worktree at the pinned snapshot. Runtime artifacts and Inspect logs use separate external directories.
+The runner uses Inspect AI for task/dataset/scorer/epochs/logging/re-score and a minimal custom runner for the authenticated local Codex CLI subprocess. Each target call executes from a fresh detached disposable Git worktree at the pinned snapshot. Runtime artifacts and Inspect logs use separate external directories.
 
 Only completed Codex JSONL events and independently observed process, filesystem, and Git state are evidence. The known-good scorer requires observed reads of the task, fallback fixture, and three owner records in addition to the final response. A correct response does not prove an unobserved tool path. Complete internal tool traces, complete model messages, and unobserved retrieval provenance remain `UNKNOWN`.
 
@@ -108,6 +109,8 @@ Critical 5/5 is an initial release gate, not proof of 100% reliability.
 - `INFRA_ERROR`, `INVALID_FIXTURE`, and `NOT_RUN` do not count as valid trials.
 - If five valid trials cannot be obtained, the gate is `BLOCKED`.
 - Extra successes cannot average away a critical FAIL or UNKNOWN in the release run.
+
+Non-critical tasks require three valid trials and report their distribution without an invented release threshold. At most two replacement attempts fill infrastructure shortfalls; valid FAIL/UNKNOWN trials are never discarded or replaced. INVALID_FIXTURE requires task/finding review. Calibration controls are excluded from baseline task gates and are reported separately as observed FAIL, never relabeled product PASS.
 
 ## Isolation profiles
 
@@ -164,7 +167,7 @@ From the repository root:
 python -m evals.system.check
 ```
 
-The command parses every task and fixture, validates every grader parameter contract, validates observation and isolation data, validates the Work UAT template, runs deterministic grader/oracle proofs and the executable reference pair, checks PASS/FAIL/UNKNOWN/INFRA_ERROR/INVALID_FIXTURE classification, verifies critical-gate semantics, and performs cross-reference checks.
+The command parses seed and Core tasks and fixtures, validates grader parameters, basis and pair references, observation/isolation data and the Work UAT template, runs Phase 0-3 unit/oracle proofs and the executable reference pair, and verifies status/gate semantics. Actual Codex execution is an explicit separate command.
 
 ## Phase 2 Docker-free feasibility result
 
@@ -185,7 +188,7 @@ The decision is:
 - Pilot: `PILOT_PASSED`.
 - Inspect AI: `ADOPT` as the Phase 3 runner candidate.
 - Inspect SWE: `REJECT` for this Windows Docker-free runner.
-- Phase 3: eligible but not started.
+- Phase 3 entry eligibility was established by this historical pilot; current Phase 3 state is above.
 
 The candidate for Phase 3 is Inspect AI plus the minimal custom Codex runner. Strong adversarial work that needs process or network isolation must separately evaluate a non-Docker sandbox, VM, or provider at that time.
 
@@ -194,3 +197,47 @@ Example invocation from the repository root, using an already prepared external 
 ```text
 <venv-python> -m evals.system.phase2_pilot --repo C:\kkamaknun --snapshot <sha> --output-root <new-external-directory> --codex <codex.exe> --timeout 300
 ```
+
+The historical Phase 2 command includes its rejected Inspect SWE probe. Do not run it as Phase 3 validation. Its parser/grader regression tests remain in `python -m evals.system.check`.
+
+## Phase 3 Core Regression contract
+
+The existing `TaskSpec`, `EvidenceRecord`, `grade_trial`, and critical gate remain the measurement contract. `core_regression.py` validates extra executable metadata: category, controlled scenario, output field descriptions, owner/evidence basis, and paired task. Serialized target `future_inspect_codex` is retained for compatibility and now identifies the implemented surrogate.
+
+| Category | Tasks | Contract boundary |
+| --- | ---: | --- |
+| A | 3 | Bootstrap/receipt success, bootstrap drift, final freshness drift |
+| B | 2 | Actual current-state owner, rejection of mixed owner SHAs |
+| C | 2 | Current-only retrieval and explicitly requested, labeled history |
+| D | 4 | Material-first, new-episode pre-shoot, supplied fact provenance, evaluation routing |
+| E | 3 | Failed path recovery, unavailable owners/forbidden receipt, absent vs failed tools |
+| F | 3 | Authorized marker mutation, simulated-main refusal, partial mutation and scope |
+| G | 2 | Validator quality boundary and planning-quality failure classification |
+| H | 2 | Residue writer/reader, clean worktrees and cleanup |
+| I | 3 | Wording-only UNKNOWN, infrastructure status, cross-target rejection |
+
+Twenty critical tasks request five trials each; four non-critical tasks request three. All 24 execute actual Codex. Two additional known-bad calibration calls replay the fallback and historical-contamination failures. Their expected FAIL counts remain separate. Every candidate in the Phase 3 request is covered by a task or merged assertion: success/failure receipts in A/E; local absence and fallback in E; current/history priority in B/C; main/scope/partial outcomes in F; missing/UNKNOWN and cross-target evidence in I. No security corpus or external taxonomy is added.
+
+### What is executed and observed
+
+`core_fixture.py` is copied into each fresh worktree as a local tool. It returns actual `git show <pinned-sha>:<owner>` content for owner reads. It supplies labeled synthetic history, controlled remote/branch metadata, path/owner/tool failures, material declarations and bounded file operations. The service emits `CORE_EVENT` JSON and an independent local call journal. The adapter accepts protocol evidence only when the event is present in a completed Codex command and matches the journal. A source mentioned only in the final answer supplies no read evidence. Undeclared internal retrieval remains UNKNOWN. Negative retrieval assertions cover this controlled protocol, not all hidden model activity.
+
+The output field descriptions constrain the answer format without supplying expected decisions. The grader's expected answers are not included in baseline prompts. Bootstrap tasks use the **existing evaluation receipt/freshness contract**; the active Work Project instruction is unavailable and is never recreated or claimed verified. The physical worktree stays detached; main/feature decisions use controlled logical branch metadata, so no trial ever needs to mutate actual main.
+
+The runner independently captures the production checkout's tracked/untracked hashes, index entries and branch refs, trial changes and marker content, process outcome, command events, usage telemetry, unique artifacts, cleanup and worktree registrations. Up to two calls may run concurrently in separate worktrees; all registry entries must be restored at suite end. Non-critical residue writers finish before the critical reader batch. This checks repository/artifact separation; OS/process/network/credential isolation remains NOT_PROVIDED.
+
+### Run, preserve, and re-score
+
+Use an external environment with only `core_requirements.txt` installed. Do not install Inspect SWE, Docker, PyRIT or Promptfoo. Windows may require the bundled Python executable for `--tool-python`, because a user-installed virtualenv launcher can be unavailable inside Codex's command environment. That setup failure is infrastructure, not a product failure.
+
+```text
+<venv-python> -m evals.system.core_regression --repo C:\kkamaknun --snapshot <exact-sha> --output <new-external-directory> --codex <codex.exe> --tool-python <target-accessible-python> --workers 2
+<venv-python> -m evals.system.core_regression export <external-directory> evals/system
+<venv-python> -m evals.system.core_regression rescore <saved-log.eval> <new-rescored-log.eval>
+```
+
+`--only <IDs> --diagnostic-trials 1` is a diagnostic subset and cannot satisfy Phase 3 gates. Full runs save raw envelopes, prompts, JSONL, final responses, Inspect logs, per-task summaries and findings. `export` produces `core_result.json`, `core_findings.json`, and `core_evidence.zip`; log paths are relative to the archive root and hashes identify the exact bytes. Extract the archive outside the repository to re-score. Re-scoring reads logged task specs and observable envelopes, uses no model grader, and launches no target. Local absolute artifact paths in the original command are historical provenance, not required for re-scoring.
+
+`PHASE3_PASSED` requires the implemented full suite, all critical gates, correctly detected controls, repeatable logs/re-score and production/main/isolation invariants. `PHASE3_BLOCKED` records invalid-fixture or valid-trial shortfalls. `PHASE3_FAILED` records failed critical gates or isolation invariants. `PHASE3_PARTIAL` records incomplete diagnostic/calibration/log validation. Non-critical distributions have no additional pass threshold. None of these statuses authorizes remediation: failures only preserve evidence, bounded statement, owner candidates, severity and reproducibility. Harness behavior and Planning owners remain unchanged pending separate review.
+
+Implementation references: [Codex non-interactive JSONL](https://developers.openai.com/codex/noninteractive), [Inspect scoring workflow](https://inspect.aisi.org.uk/scoring-workflow.html). Installed CLI 0.153.4 and Inspect 0.3.263 are the execution evidence; documentation is not a substitute for observed capabilities.

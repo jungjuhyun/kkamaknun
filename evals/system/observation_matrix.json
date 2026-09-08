@@ -23,7 +23,7 @@
     },
     {
       "target": "future_inspect_codex",
-      "implementation_status": "PILOT_IMPLEMENTED_PHASE_2",
+      "implementation_status": "CORE_REGRESSION_IMPLEMENTED_PHASE_3",
       "observable_evidence": [
         "Codex CLI final response and JSONL event stream",
         "Inspect eval log and deterministic re-score result",
@@ -35,7 +35,7 @@
         "complete Codex internal message and tool trace beyond emitted JSONL events",
         "OS process, host filesystem, network, credential, evaluator-process, and model-provider isolation"
       ],
-      "deterministic_grader": "IMPLEMENTED_FOR_PILOT_ENVELOPE",
+      "deterministic_grader": "IMPLEMENTED_FOR_PILOT_AND_CORE_ENVELOPES",
       "state_outcome_grader": "IMPLEMENTED_FOR_GIT_AND_FILESYSTEM_OUTCOMES",
       "trace_dependency": "Only emitted Codex JSONL command events are evidence; unobserved internal paths remain UNKNOWN",
       "missing_evidence": "UNKNOWN",
