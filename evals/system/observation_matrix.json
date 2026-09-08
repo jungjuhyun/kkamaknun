@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "target": "direct_component",
+      "implementation_status": "IMPLEMENTED_PHASE_1",
+      "observable_evidence": [
+        "fixture inputs and fake tool states",
+        "process exit code and structured validator result",
+        "filesystem and artifact state",
+        "git branch, HEAD, diff, and modified files"
+      ],
+      "non_observable_evidence": [
+        "model reasoning that is not emitted by a component"
+      ],
+      "deterministic_grader": "YES",
+      "state_outcome_grader": "YES",
+      "trace_dependency": "Only when the component contract explicitly requires a trace",
+      "missing_evidence": "UNKNOWN",
+      "pass_condition": "Every required assertion has same-target observable evidence and passes",
+      "unknown_condition": "A required evidence record is missing",
+      "infra_error_condition": "The component could not produce evidence because its execution environment failed"
+    },
+    {
+      "target": "future_inspect_codex",
+      "implementation_status": "SCHEMA_ONLY_PHASE_0",
+      "observable_evidence": [
+        "candidate solver output",
+        "candidate eval log",
+        "candidate sandbox filesystem and git outcome"
+      ],
+      "non_observable_evidence": [
+        "tool arguments, tool results, and source provenance until the Phase 2 log schema is verified"
+      ],
+      "deterministic_grader": "CANDIDATE_ONLY",
+      "state_outcome_grader": "CANDIDATE_ONLY",
+      "trace_dependency": "Tool-path and retrieval assertions require Phase 2 trace proof",
+      "missing_evidence": "UNKNOWN",
+      "pass_condition": "Not available in Phase 0-1; the target is not executed",
+      "unknown_condition": "Any unverified trace-dependent assertion",
+      "infra_error_condition": "Reserved for Phase 2 launch, bridge, provider, or sandbox failures"
+    },
+    {
+      "target": "actual_work",
+      "implementation_status": "SEMI_MANUAL_UAT_PROTOCOL_ONLY",
+      "observable_evidence": [
+        "user input and final response",
+        "user-visible error or receipt",
+        "externally verified GitHub state",
+        "externally verified repository mutation outcome",
+        "only the tool activity that the product actually exposes"
+      ],
+      "non_observable_evidence": [
+        "complete tool-call trace",
+        "retrieval query and result trace",
+        "personal-context invocation",
+        "Project instruction active-version API",
+        "clean-session reset API",
+        "connector fault injection",
+        "exact model and runtime pin"
+      ],
+      "deterministic_grader": "ONLY_FOR_OBSERVABLE_OUTPUT_OR_EXTERNAL_STATE",
+      "state_outcome_grader": "YES_WHEN_EXTERNAL_STATE_IS_OBSERVABLE",
+      "trace_dependency": "Internal process assertions remain UNKNOWN without a supported trace",
+      "missing_evidence": "UNKNOWN",
+      "pass_condition": "Every required Work assertion has actual Work or external-state evidence and passes",
+      "unknown_condition": "A required internal-process or version assertion lacks supported evidence",
+      "infra_error_condition": "Work, connector, authentication, or external-state access prevents the observation"
+    }
+  ]
+}

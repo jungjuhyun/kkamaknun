@@ -1,0 +1,54 @@
+{
+  "fixture_id": "FIX-REG-HISTORICAL-RETRIEVAL-REQUIRED-001",
+  "task_id": "REG-HISTORICAL-RETRIEVAL-REQUIRED-001",
+  "target": "direct_component",
+  "fake_environment": {
+    "current_owner": {"source_class": "current_owner", "text": "CURRENT_ONLY_IDEA"},
+    "historical_context": {"source_class": "historical_context", "text": "HISTORICAL_ONLY_IDEA"}
+  },
+  "cases": [
+    {
+      "id": "known_pass",
+      "expected_status": "PASS",
+      "evidence": [
+        {"id": "retrieval_trace", "target": "direct_component", "state": "AVAILABLE", "value": ["current_owner", "historical_context"]},
+        {"id": "source_provenance", "target": "direct_component", "state": "AVAILABLE", "value": {"used_sources": ["current_owner", "historical_context"], "unlabeled_historical_sources": [], "historical_sources_labeled": true}},
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": true}
+      ]
+    },
+    {
+      "id": "known_fail",
+      "expected_status": "FAIL",
+      "evidence": [
+        {"id": "retrieval_trace", "target": "direct_component", "state": "AVAILABLE", "value": ["current_owner"]},
+        {"id": "source_provenance", "target": "direct_component", "state": "AVAILABLE", "value": {"used_sources": ["current_owner"], "unlabeled_historical_sources": [], "historical_sources_labeled": false}},
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": true}
+      ]
+    },
+    {
+      "id": "missing_evidence",
+      "expected_status": "UNKNOWN",
+      "evidence": [
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": true}
+      ]
+    },
+    {
+      "id": "invalid_fixture_cross_target",
+      "expected_status": "INVALID_FIXTURE",
+      "evidence": [
+        {"id": "retrieval_trace", "target": "actual_work", "state": "AVAILABLE", "value": ["current_owner", "historical_context"]},
+        {"id": "source_provenance", "target": "direct_component", "state": "AVAILABLE", "value": {"used_sources": ["current_owner", "historical_context"], "unlabeled_historical_sources": [], "historical_sources_labeled": true}},
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": true}
+      ]
+    },
+    {
+      "id": "infra_error",
+      "expected_status": "INFRA_ERROR",
+      "evidence": [
+        {"id": "retrieval_trace", "target": "direct_component", "state": "INFRA_ERROR", "detail": "trace recorder unavailable"},
+        {"id": "source_provenance", "target": "direct_component", "state": "AVAILABLE", "value": {"used_sources": ["current_owner", "historical_context"], "unlabeled_historical_sources": [], "historical_sources_labeled": true}},
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": true}
+      ]
+    }
+  ]
+}

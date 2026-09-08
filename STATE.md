@@ -1,6 +1,6 @@
 # STATE.md — 현재 상태
 
-기준 시각: 2026-09-07 KST
+기준 시각: 2026-09-08 KST
 
 ## 현재 상태
 
@@ -133,6 +133,18 @@ Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아�
 - 34개 후보는 확정 기획이 아니며 `IDEATION.md`에 작업 중 아이디어 뱅크로 보존했다.
 - 이 작업에서 남은 것은 아이디어 재생성이 아니라 **34개 후보의 1차 선별**이다(보존, 현재 작업 아님). 선별 후 살아남은 후보만 C·예상 댓글·공유 문구 검증으로 넘긴다.
 - `PLAYBOOK.md`는 이번 강의자료 정독만을 근거로 수정하지 않았다.
+
+## System Evaluation 측정 상태
+
+2026-09-08에 승인된 System Evaluation 설계의 **Phase 0~1**을 구현했다.
+
+- 독립 owner는 `evals/system/README.md`다. 영상 기획 `PIPELINE.yaml`의 Planning RED TEAM과 분리한다.
+- framework-independent task/result/evidence 계약, target별 observation matrix, Project instruction provenance, isolation profile, Actual Work semi-manual UAT protocol을 정의했다.
+- production failure 기반 regression fixture 2개와 history retrieval paired-positive fixture 1개를 controlled fake state로 구현했다.
+- direct component deterministic grader와 known PASS/FAIL/UNKNOWN/INFRA_ERROR/INVALID_FIXTURE proof, critical 5/5 initial release gate를 stdlib test로 고정했다.
+- Inspect AI/Inspect SWE는 설치하거나 채택하지 않았다. `PREFERRED_FOR_PILOT` 상태이며 Phase 2 feasibility는 별도 작업이다.
+- 이 완료는 System Evaluation 전체 완성이 아니라 **framework-independent measurement contract + seed regression fixture + deterministic grader proof 완료**를 뜻한다.
+- 영상 기획의 현재 실행 위치와 다음 행동은 위 기획 공정 상태를 그대로 따른다.
 
 ## 운영 원칙
 

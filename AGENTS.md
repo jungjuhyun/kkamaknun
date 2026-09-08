@@ -17,6 +17,7 @@
 | subtree 개발 규칙 | 해당 경로의 scoped AGENTS.md | 그 subtree와 하위 경로 |
 | 사람이 읽는 현재 상태·다음 행동 | STATE.md | 현재 프로젝트 상태 |
 | runtime 현재 실행 상태 | tools/harness/STATE.json | 현재 공정·편·lock·입력 경로 |
+| System Evaluation 측정 계약·target boundary·fixture·grader | evals/system/README.md | Planning RED TEAM과 분리된 harness 평가 |
 | 공통 영상 기획 process | tools/harness/PIPELINE.yaml | 모든 영상 기획 공정 |
 | 공통 deterministic 규칙 | tools/harness/COMMON_RULES.json | 모든 편에 공통인 기계 검사 |
 | 편별 deterministic lock | STATE.json이 가리키는 lock 파일 | 해당 편의 사실·잠금·금지 문구 |
@@ -66,7 +67,7 @@
 5. material_first에서는 실제 footage와 material에서 사건·반응·변화를 먼저 찾고, 촬영 전의 예상이나 가상 원안이 이를 덮어쓰지 않게 한다.
 6. pipeline을 건너뛰고 바로 각·구조·패키징을 작성하지 않는다.
 
-하네스 구현·감사·instruction source 수정 요청은 영상 기획 결과물 요청이 아니므로 video_planning pipeline을 실행하지 않는다. tools/scene_collector 아래 작업은 해당 scoped AGENTS.md를 함께 따른다.
+System Evaluation 구현·감사·실행 요청은 `evals/system/README.md`를 기준으로 하며 영상 기획 결과물 요청이 아니므로 video_planning pipeline을 실행하지 않는다. 하네스 구현·감사·instruction source 수정 요청도 video_planning pipeline을 실행하지 않는다. tools/scene_collector 아래 작업은 해당 scoped AGENTS.md를 함께 따른다.
 
 ## 5. 사실·외부 조사·도구 선택
 

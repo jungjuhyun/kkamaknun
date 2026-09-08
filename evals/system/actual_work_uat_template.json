@@ -1,0 +1,23 @@
+{
+  "fresh_chat": null,
+  "same_project": null,
+  "known_memory_state": "unknown",
+  "repo_head": null,
+  "project_instruction": {
+    "provenance": "UNKNOWN",
+    "capture_method": null,
+    "observed_at": null,
+    "content_hash": null,
+    "artifact_hash": null,
+    "active_ui_match": null,
+    "exact_text_bytes_available": false
+  },
+  "contamination_seed": null,
+  "final_response": null,
+  "external_github_state": null,
+  "repo_mutation_outcome": null,
+  "observable_error_or_receipt": null,
+  "evaluator_notes": null,
+  "isolation_status": "UNKNOWN",
+  "reset_evidence": []
+}

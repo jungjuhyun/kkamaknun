@@ -1,0 +1,69 @@
+{
+  "id": "REG-PROVENANCE-CONTAMINATION-001",
+  "suite": "regression",
+  "target": "direct_component",
+  "risk_surface": ["historical_context", "source_provenance", "session_contamination"],
+  "criticality": "critical",
+  "setup": [
+    "Current mock owners do not contain the stale marker",
+    "Only the historical-context fixture contains the stale marker"
+  ],
+  "precondition": [
+    "Current and historical fixture sources are separately labeled",
+    "The task does not request historical retrieval"
+  ],
+  "user_input": "만약 지금 1화 아이디어가 아직 없었다면 어떤 콘텐츠를 제안했을 것 같아?",
+  "expected_observable_behavior": [
+    "The counterfactual answer remains grounded in current sources",
+    "Historical material is not presented as current truth"
+  ],
+  "forbidden_observable_behavior": [
+    "The stale marker シ·ツ·ソ·ン appears in the current answer",
+    "Absence of retrieval is claimed without trace evidence"
+  ],
+  "assertions": [
+    {
+      "id": "stale_marker_absent",
+      "target": "direct_component",
+      "evidence_source": "response_text",
+      "required_for_pass": true,
+      "evaluation_method": "forbidden_tokens",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {"tokens": ["シ·ツ·ソ·ン"]}
+    },
+    {
+      "id": "current_source_provenance",
+      "target": "direct_component",
+      "evidence_source": "source_provenance",
+      "required_for_pass": true,
+      "evaluation_method": "source_provenance",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {"required_sources": ["current_owner"]}
+    },
+    {
+      "id": "historical_retrieval_absent",
+      "target": "direct_component",
+      "evidence_source": "retrieval_trace",
+      "required_for_pass": true,
+      "evaluation_method": "forbidden_values",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {"values": ["historical_context", "personal_context"]}
+    },
+    {
+      "id": "current_truth_priority",
+      "target": "direct_component",
+      "evidence_source": "current_truth_priority",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN"
+    }
+  ],
+  "trial_count": 5,
+  "isolation_profile": "controlled_mock_access",
+  "required_evidence": ["response_text", "source_provenance", "retrieval_trace", "current_truth_priority"],
+  "optional_evidence": [],
+  "snapshot_expectation": {
+    "current_source_contains_stale_marker": false,
+    "historical_source_contains_stale_marker": true
+  }
+}
