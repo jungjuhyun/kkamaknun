@@ -32,9 +32,10 @@
     "reproducibility": {
       "observed": 139,
       "attempted": 172,
-      "continuation_attempts": 3
+      "continuation_attempts": 4
     },
     "evidence": {
+      "checked_at": "2026-09-09T08:01:06+09:00",
       "primary_used_percent": 100,
       "credits_balance": "0",
       "target_calls_this_session": 18,

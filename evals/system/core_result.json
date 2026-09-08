@@ -990,7 +990,7 @@
       "reproducibility": {
         "observed": 139,
         "attempted": 172,
-        "continuation_attempts": 3
+        "continuation_attempts": 4
       },
       "remediation": "NOT_PERFORMED"
     }
@@ -1021,7 +1021,7 @@
     "new_infra_errors": 1
   },
   "claim": "Phase 3 Core Regression remains PHASE3_BLOCKED: 17 new PASS and one valid B01 FAIL were preserved, one quota INFRA_ERROR stopped execution, and 94 valid trial slots remain.",
-  "last_run_at": "2026-09-09T00:39:05+09:00",
+  "last_run_at": "2026-09-09T08:01:06+09:00",
   "historical_pass_trial_ids": [
     "CORE_A_01_baseline_1_b51ef8f1",
     "CORE_A_02_baseline_1_2eaab957",
@@ -1042,8 +1042,8 @@
   "reusable_valid_pass_trials": 17,
   "non_reusable_historical_pass_trials": 14,
   "reusable_status_counts": {
-    "PASS": 0,
-    "FAIL": 0,
+    "PASS": 17,
+    "FAIL": 1,
     "UNKNOWN": 0,
     "INFRA_ERROR": 0,
     "INVALID_FIXTURE": 0
@@ -1064,7 +1064,7 @@
     "actual_target_calls": 18,
     "new_valid_pass_trials": 17,
     "provider_preflight": {
-      "checked_at": "2026-09-09T00:39:05+09:00",
+      "checked_at": "2026-09-09T08:01:06+09:00",
       "primary_used_percent": 100,
       "primary_window_minutes": 300,
       "credits_balance": "0",
@@ -1090,7 +1090,7 @@
       "FAIL": 1,
       "BLOCKED": 19
     },
-    "last_run_at": "2026-09-09T00:39:05+09:00",
+    "last_run_at": "2026-09-09T08:01:06+09:00",
     "runner_commit": "2bf55f14da8b9a3c21ce0b811f6fa0ef48167c5a",
     "scorer_commit": "d341896756bd075b8d2f8f7983d951e927407c4d",
     "blocker": "provider_usage_limit",
