@@ -43,8 +43,8 @@
 
 모든 문서를 일괄 preload하지 않는다. 현재 요청과 무관한 계획서, history, backup branch, 폐기 문서는 기본 retrieval 대상이 아니다.
 
-- repo에 접근할 수 없으면 current state를 기억이나 이전 채팅으로 복원했다고 말하지 않는다.
-- repo와 memory, 이전 대화, 모델의 추측이 충돌하면 current snapshot의 owner를 따른다.
+- current truth는 상위 환경이 확정한 snapshot에서 실제로 읽은 owner 문서에 한정한다. 읽지 않은 내용이나 owner에 없는 내용을 memory, 이전 대화, 모델의 추측으로 current fact처럼 보충하지 않는다.
+- current snapshot의 owner와 memory, 이전 대화, 모델의 추측이 충돌하면 owner를 따른다.
 - 과거 기록이 필요한 경우에도 먼저 현재 owner를 확인하고, 과거 자료는 역사적 근거로만 표시한다.
 - 현재 사실, 사용자 제공 사실, 외부 조사 결과, 가정·시뮬레이션을 문장과 자료에서 구분한다.
 
