@@ -5,7 +5,7 @@
     "severity": "infrastructure",
     "bounded_statement": "Codex provider usage limit prevented completion of valid critical trials; no product FAIL inferred.",
     "owner_candidates": ["external provider/account quota"],
-    "reproducibility": {"observed": 138, "attempted": 154},
+    "reproducibility": {"observed": 138, "attempted": 154, "continuation_attempts": 0},
     "evidence": {"usage_limit_primary_used_percent": 100, "credits_balance": "0", "source": "Codex CLI stderr and account usage read"},
     "remediation": "NOT_PERFORMED"
   }

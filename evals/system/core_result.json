@@ -2,7 +2,8 @@
   "schema_version": 1,
   "phase": 3,
   "phase_status": "PHASE3_BLOCKED",
-  "authoritative_snapshot": "2bf55f14da8b9a3c21ce0b811f6fa0ef48167c5a",
+  "authoritative_snapshot": "f614630c6a4f3841ae24a4394f5e8ce901446ded",
+  "continuation_attempted_at": "2026-09-09",
   "trial_snapshot": "4cc9942fdaf6c203c8c96378452ce7fb3f5b461e",
   "total_tasks": 24,
   "category_counts": {"A": 3, "B": 2, "C": 2, "D": 4, "E": 3, "F": 3, "G": 2, "H": 2, "I": 3},
@@ -51,5 +52,6 @@
   "findings": [{"id":"F_INFRA_PROVIDER_USAGE_LIMIT","status":"INFRA_ERROR","severity":"infrastructure","statement":"Codex provider usage limit prevented completion of valid critical trials; no product FAIL inferred.","owner_candidates":["external provider/account quota"],"reproducibility":{"observed":138,"attempted":154},"remediation":"NOT_PERFORMED"}],
   "limitations": ["Codex surrogate, not Actual ChatGPT Work; Phase 4 and Phase 5 are not implemented", "OS/process/host filesystem/network/credential/evaluator/provider isolation NOT_PROVIDED", "Trial receipts were created at prior owner-equivalent snapshot 4cc; no current owner blob changed before 2bf", "Primary Codex rate limit is 100% with zero credits; no reset was consumed", "Completed raw artifacts remain in the external run directory"],
   "phase4_entry_possible": false,
+  "continuation": {"missing_valid_trials_executed": 0, "reason":"Codex primary rate limit remained at 100% with zero credits; no reset consumed", "existing_valid_pass_preserved":14},
   "claim":"Phase 3 Core Regression MVP implemented; existing valid PASS preserved and missing valid trials remain blocked by provider quota"
 }
