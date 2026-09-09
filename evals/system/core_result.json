@@ -3,6 +3,48 @@
   "phase": 3,
   "phase_status": "PHASE3_BLOCKED",
   "authoritative_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a",
+  "target_identity_schema": {
+    "version": 1,
+    "requested_fields": ["requested_model", "requested_reasoning_effort"],
+    "effective_fields": ["effective_model", "effective_reasoning_effort"],
+    "common_fields": ["codex_cli_version", "trial_snapshot", "target_lane"],
+    "effective_unknown_policy": "UNKNOWN unless independently observed in Codex JSONL",
+    "lane_gate_policy": "critical 5/5 requires one exact target_lane; mixed lanes are rejected",
+    "legacy_policy": "LEGACY_UNPINNED evidence is preserved but excluded from release gates"
+  },
+  "target_lane_candidates": [
+    {
+      "lane": "model=gpt-6-astra;reasoning_effort=high",
+      "role": "high_capability_high_usage_candidate",
+      "selection_status": "CLI_MODEL_FLAG_SUPPORTED_ACCOUNT_UNVERIFIED"
+    },
+    {
+      "lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+      "role": "balanced_bulk_regression_candidate",
+      "selection_status": "CONFIGURED_DEFAULT_OBSERVED"
+    },
+    {
+      "lane": "model=gpt-5.6-luna;reasoning_effort=low",
+      "role": "reserve_fallback_candidate",
+      "selection_status": "CLI_MODEL_FLAG_SUPPORTED_ACCOUNT_UNVERIFIED"
+    }
+  ],
+  "target_lane_selection": {
+    "primary_lane_finalized": false,
+    "installed_cli_version": "codex-cli 0.153.4",
+    "installed_config_model": "gpt-5.6-sol",
+    "installed_config_reasoning_effort": "medium",
+    "selection_method": "explicit --model plus -c model_reasoning_effort=<effort>",
+    "effective_identity_observation": "UNKNOWN in existing JSONL/envelopes"
+  },
+  "legacy_identity_audit": {
+    "portable_archive_envelopes": 18,
+    "historical_machine_local_pass_receipts": 14,
+    "legacy_unpinned_trial_count": 32,
+    "identity_restorable_exactly": 0,
+    "gate_eligible_legacy_trials": 0,
+    "reason": "Existing envelopes and JSONL contain no independently observable model or reasoning metadata and their commands did not explicitly pin these values."
+  },
   "continuation_attempted_at": "2026-09-09",
   "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a",
   "total_tasks": 24,
@@ -993,6 +1035,25 @@
         "continuation_attempts": 4
       },
       "remediation": "NOT_PERFORMED"
+    },
+    {
+      "id": "F_TARGET_IDENTITY_LEGACY_UNPINNED",
+      "status": "UNKNOWN",
+      "kind": "measurement_integrity_gap",
+      "bounded_statement": [
+        "Existing portable and historical trial evidence does not independently expose exact model and reasoning configuration."
+      ],
+      "owner_candidates": [
+        "evals/system/core_regression.py target identity contract"
+      ],
+      "severity": "medium",
+      "reproducibility": {
+        "observed": 32,
+        "attempted": 32
+      },
+      "trial_ids": [],
+      "remediation": "NOT_PERFORMED",
+      "scope": "measurement integrity only; no product finding"
     }
   ],
   "limitations": [

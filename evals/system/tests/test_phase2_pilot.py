@@ -68,12 +68,14 @@ class Phase2PilotTests(unittest.TestCase):
         raw = "\n".join((
             '{"type":"thread.started","thread_id":"t1"}',
             '{"type":"item.completed","item":{"type":"command_execution","command":"git status","exit_code":0}}',
-            '{"type":"turn.completed","usage":{"input_tokens":10,"output_tokens":2}}',
+            '{"type":"turn.completed","usage":{"input_tokens":10,"output_tokens":2},"model":"gpt-5.6-sol","reasoning":{"effort":"medium"}}',
         ))
         parsed = parse_codex_events(raw)
         self.assertEqual(parsed["thread_ids"], ["t1"])
         self.assertEqual(parsed["tools"][0]["command"], "git status")
         self.assertEqual(parsed["usage"], {"input_tokens": 10, "output_tokens": 2})
+        self.assertEqual(parsed["observed_target_identity"], {
+            "models": ["gpt-5.6-sol"], "reasoning_efforts": ["medium"]})
         self.assertEqual(parsed["complete_internal_trace"], "UNKNOWN")
 
     def test_committed_pilot_result_preserves_phase1_status_semantics(self):

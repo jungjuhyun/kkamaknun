@@ -21,12 +21,21 @@ import uuid
 import zipfile
 
 from .phase2_pilot import _git, _git_text, _status, _ensure_child, parse_codex_events
-from .schema import EvidenceRecord, EvidenceState, ResultStatus, SchemaError, TaskSpec
+from .schema import (
+    EvidenceRecord,
+    EvidenceState,
+    ResultStatus,
+    SchemaError,
+    TargetIdentity,
+    TargetIdentityStatus,
+    TaskSpec,
+)
 from .scorers import evaluate_critical_gate, grade_trial, validate_grader_parameters
 
 ROOT = Path(__file__).resolve().parent
 TARGET = "future_inspect_codex"  # Retained serialized Phase 0-2 target identity.
 STATUSES = [s.value for s in ResultStatus if s != ResultStatus.NOT_RUN]
+UNKNOWN_IDENTITY = "UNKNOWN"
 PROTECTED = ["AGENTS.md", "CLAUDE.md", "PLAYBOOK.md", "FIRST_VIDEO.md",
              "tools/harness/PIPELINE.yaml", "tools/harness/COMMON_RULES.json",
              "tools/harness/STATE.json", "tools/harness/EP1_LOCK.json"]
@@ -38,6 +47,69 @@ def digest(path: Path) -> str:
 
 def write_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def target_lane_id(model: str, reasoning_effort: str) -> str:
+    """Return the stable lane key used for critical aggregation."""
+    if not model or not reasoning_effort:
+        raise SchemaError("target model and reasoning effort are required")
+    return f"model={model};reasoning_effort={reasoning_effort}"
+
+
+def target_identity(*, model: str, reasoning_effort: str, codex_version: str,
+                    snapshot: str, trace: dict) -> dict:
+    """Build a trial identity without inferring effective values from requests."""
+    observed = trace.get("observed_target_identity", {})
+    models = observed.get("models", []) if isinstance(observed, dict) else []
+    efforts = observed.get("reasoning_efforts", []) if isinstance(observed, dict) else []
+    effective_model = models[0] if len(models) == 1 else UNKNOWN_IDENTITY
+    effective_effort = efforts[0] if len(efforts) == 1 else UNKNOWN_IDENTITY
+    status = (TargetIdentityStatus.PINNED.value
+              if effective_model != UNKNOWN_IDENTITY and effective_effort != UNKNOWN_IDENTITY
+              else TargetIdentityStatus.REQUESTED_ONLY.value)
+    identity = {
+        "requested_model": model,
+        "requested_reasoning_effort": reasoning_effort,
+        "effective_model": effective_model,
+        "effective_reasoning_effort": effective_effort,
+        "codex_cli_version": codex_version,
+        "trial_snapshot": snapshot,
+        "target_lane": target_lane_id(model, reasoning_effort),
+        "identity_status": status,
+    }
+    TargetIdentity.from_dict(identity)
+    return identity
+
+
+def trial_lane(trial: dict) -> str:
+    """Return a lane or explicit legacy marker; never infer a legacy lane."""
+    identity = trial.get("target_identity")
+    if not isinstance(identity, dict):
+        return TargetIdentityStatus.LEGACY_UNPINNED.value
+    TargetIdentity.from_dict(identity)
+    return identity["target_lane"]
+
+
+def aggregate_lane(trials: list[dict], lane: str) -> tuple[list[dict], str]:
+    """Select one lane and reject mixed/legacy evidence for release aggregation."""
+    lanes = {trial_lane(trial) for trial in trials}
+    if not lanes:
+        return [], "EMPTY"
+    if TargetIdentityStatus.LEGACY_UNPINNED.value in lanes:
+        return [], "LEGACY_UNPINNED_REJECTED"
+    if lanes != {lane}:
+        return [], "MIXED_LANES_REJECTED"
+    return list(trials), "SAME_LANE"
+
+
+def codex_command(*, codex: Path, final: Path, target_model: str,
+                  target_reasoning_effort: str) -> list[str]:
+    """Construct the explicit target invocation used by every actual trial."""
+    return [str(codex), "exec", "--json", "--ephemeral", "--skip-git-repo-check",
+            "--model", target_model,
+            "-c", f'model_reasoning_effort="{target_reasoning_effort}"',
+            "-o", str(final), "-c", 'approval_policy="never"',
+            "-c", 'sandbox_mode="workspace-write"', "-"]
 
 
 def load_core_tasks() -> list[dict]:
@@ -202,8 +274,9 @@ def grade_envelope(task: dict, envelope: dict) -> dict:
 
 
 def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dict,
-              epoch: int, timeout: int, control: str | None = None,
-              tool_python: str | None = None) -> dict:
+              epoch: int, timeout: int, target_model: str,
+              target_reasoning_effort: str, codex_version: str,
+              control: str | None = None, tool_python: str | None = None) -> dict:
     trial_id = f"{task['id']}_{control or 'baseline'}_{epoch}_{uuid.uuid4().hex[:8]}"
     artifact = output / "artifacts" / trial_id
     worktree = output / "worktrees" / trial_id
@@ -215,6 +288,9 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
     envelope = {"task_id": task["id"], "target": TARGET, "trial_id": trial_id, "epoch": epoch,
                 "control": control, "snapshot": snapshot, "actual_target_calls": 0,
                 "history_marker": "HISTORICAL_ONLY_シ·ツ·ソ·ン_" + uuid.uuid4().hex,
+                "target_identity": target_identity(
+                    model=target_model, reasoning_effort=target_reasoning_effort,
+                    codex_version=codex_version, snapshot=snapshot, trace={}),
                 "events": [], "trace_complete": False, "state_evidence": {},
                 "infrastructure_error": None, "usage": {}, "response": None}
     clean_start = False
@@ -236,9 +312,8 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
         prompt = prompt_for(task, snapshot, tool_python or sys.executable, control)
         (artifact / "prompt.txt").write_text(prompt, encoding="utf-8")
         final = artifact / "final_response.txt"
-        command = [str(codex), "exec", "--json", "--ephemeral", "--skip-git-repo-check",
-                   "-o", str(final), "-c", 'approval_policy="never"',
-                   "-c", 'sandbox_mode="workspace-write"', "-"]
+        command = codex_command(codex=codex, final=final, target_model=target_model,
+                                target_reasoning_effort=target_reasoning_effort)
         envelope["command"] = command
         with (artifact / "stdout.jsonl").open("w", encoding="utf-8") as stdout, (
                 artifact / "stderr.txt").open("w", encoding="utf-8") as stderr:
@@ -264,6 +339,10 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
         envelope["usage"] = trace["usage"]
         envelope["command_events"] = trace["tools"]
         envelope["thread_ids"] = trace["thread_ids"]
+        envelope["trace_identity_observation"] = trace.get("observed_target_identity", {})
+        envelope["target_identity"] = target_identity(
+            model=target_model, reasoning_effort=target_reasoning_effort,
+            codex_version=codex_version, snapshot=snapshot, trace=trace)
         calls_path = fixture / "calls.json"
         calls = json.loads(calls_path.read_text()) if calls_path.exists() else []
         envelope["events"] = capture_events(trace, calls)
@@ -335,7 +414,9 @@ def inspect_components():
     from inspect_ai.solver import solver
 
     @solver(name="core_codex_solver")
-    def codex_solver(repo: str, snapshot: str, output: str, codex: str, timeout: int, tool_python: str):
+    def codex_solver(repo: str, snapshot: str, output: str, codex: str, timeout: int,
+                     tool_python: str, target_model: str, target_reasoning_effort: str,
+                     codex_version: str):
         invalid_tasks = set()
         async def solve(state, generate):
             del generate
@@ -351,7 +432,9 @@ def inspect_components():
                 envelope = await asyncio.to_thread(run_trial, repo=Path(repo), snapshot=snapshot,
                     output=Path(output), codex=Path(codex), timeout=timeout,
                     task=state.metadata["core_task"], epoch=state.epoch,
-                    control=state.metadata.get("control"), tool_python=tool_python)
+                    target_model=target_model, target_reasoning_effort=target_reasoning_effort,
+                    codex_version=codex_version, control=state.metadata.get("control"),
+                    tool_python=tool_python)
                 if envelope["grader"]["status"] == "INVALID_FIXTURE":
                     invalid_tasks.add(task_id)
             state.output = ModelOutput.from_content(model="codex-cli/subprocess", content=json.dumps(envelope))
@@ -370,21 +453,38 @@ def inspect_components():
     return Task, Sample, inspect_eval, inspect_score, codex_solver, contract_scorer
 
 
-def summarize(tasks: list[dict], trials: list[dict]) -> dict:
+def summarize(tasks: list[dict], trials: list[dict], release_lane: str | None = None) -> dict:
     summaries = []
+    all_lanes = {trial_lane(trial) for trial in trials}
+    identity_present = bool(trials)
+    if release_lane is None and identity_present:
+        nonlegacy = all_lanes - {TargetIdentityStatus.LEGACY_UNPINNED.value}
+        release_lane = next(iter(nonlegacy)) if len(nonlegacy) == 1 and not (
+            TargetIdentityStatus.LEGACY_UNPINNED.value in all_lanes) else None
+    suite_lane_status = "EMPTY" if not identity_present else (
+        "SAME_LANE" if release_lane and all_lanes == {release_lane} else
+        "LEGACY_UNPINNED_REJECTED" if TargetIdentityStatus.LEGACY_UNPINNED.value in all_lanes else
+        "MIXED_LANES_REJECTED" if len(all_lanes) > 1 else "NO_PINNED_LANE")
     for task in tasks:
         selected = [t for t in trials if t["task_id"] == task["id"] and not t.get("control")]
-        counts = Counter(str(t["grader"]["status"]) for t in selected)
+        if identity_present:
+            selected_for_gate, task_lane_status = aggregate_lane(selected, release_lane or "")
+        else:
+            selected_for_gate, task_lane_status = selected, "LEGACY_COMPATIBILITY"
+        counts = Counter(str(t["grader"]["status"]) for t in selected_for_gate)
         valid = sum(counts[s] for s in ["PASS", "FAIL", "UNKNOWN"])
         if task["criticality"] == "critical":
-            gate = evaluate_critical_gate([ResultStatus(t["grader"]["status"]) for t in selected]).status.value
+            gate = evaluate_critical_gate([ResultStatus(t["grader"]["status"]) for t in selected_for_gate]).status.value
         else:
             gate = "DISTRIBUTION_RECORDED" if valid >= 3 else "BLOCKED"
-        if counts["INVALID_FIXTURE"]:
+        if counts["INVALID_FIXTURE"] or task_lane_status != "SAME_LANE" and identity_present:
             gate = "BLOCKED"
         summaries.append({"id": task["id"], "category": task["category"], "criticality": task["criticality"],
             "trials_requested": task["trial_count"], "valid_trials": valid,
             **{s: counts[s] for s in STATUSES}, "gate_status": gate,
+            "target_lane": release_lane or TargetIdentityStatus.LEGACY_UNPINNED.value,
+            "lane_aggregation": task_lane_status,
+            "observed_target_lanes": sorted({trial_lane(t) for t in selected}),
             "observed_evidence_summary": {"operations": dict(Counter(e["op"] for t in selected for e in t["events"])),
                 "assertion_nonpasses": dict(Counter(a["assertion_id"] + ":" + a["status"] for t in selected
                       for a in t["grader"].get("assertions", []) if a["status"] != "PASS"))},
@@ -395,6 +495,9 @@ def summarize(tasks: list[dict], trials: list[dict]) -> dict:
             "critical_tasks": len(critical), "non_critical_tasks": len(tasks) - len(critical),
             "critical_gate": dict(Counter(s["gate_status"] for s in critical)),
             "status_counts": {s: sum(t[s] for t in summaries) for s in STATUSES},
+            "target_lanes_observed": sorted(all_lanes),
+            "release_lane": release_lane,
+            "lane_aggregation": suite_lane_status,
             "actual_codex_target_calls": sum(t["actual_target_calls"] for t in trials),
             "aggregate_target_runtime_seconds": round(sum(t["runtime_seconds"] for t in trials), 3),
             "token_telemetry": dict(sum((Counter(t["usage"]) for t in trials), Counter()))}
@@ -431,6 +534,9 @@ def run_suite(args) -> dict:
         raise RuntimeError("output must be a separate external directory")
     if _git_text(repo, "rev-parse", "HEAD") != args.snapshot:
         raise RuntimeError("production HEAD differs from pinned snapshot")
+    codex_version = subprocess.run([str(args.codex), "--version"], capture_output=True,
+                                   text=True, check=False).stdout.strip()
+    release_lane = target_lane_id(args.target_model, args.target_reasoning_effort)
     output.mkdir(parents=True, exist_ok=False)
     before = fingerprint(repo)
     worktrees_before = _git_text(repo, "worktree", "list", "--porcelain")
@@ -443,9 +549,14 @@ def run_suite(args) -> dict:
         task = Task(name="core_" + (control or selected[0]["criticality"]),
             dataset=[Sample(id=t["id"], input=t["user_input"],
                             metadata={"core_task": t, "control": control}) for t in selected],
-            solver=solver(str(repo), args.snapshot, str(output), str(args.codex), args.timeout, str(args.tool_python)),
+            solver=solver(str(repo), args.snapshot, str(output), str(args.codex), args.timeout,
+                          str(args.tool_python), args.target_model, args.target_reasoning_effort,
+                          codex_version),
             scorer=scorer(), epochs=epochs,
-            metadata={"phase": 3, "target": TARGET, "isolation": "disposable_worktree", "docker": False})
+            metadata={"phase": 3, "target": TARGET, "isolation": "disposable_worktree", "docker": False,
+                      "target_model": args.target_model,
+                      "target_reasoning_effort": args.target_reasoning_effort,
+                      "target_lane": release_lane})
         logs = evaluate(task, model="mockllm/model", log_dir=str(output / "inspect_logs"),
                         display="none", max_samples=args.workers, max_tasks=1, fail_on_error=False)
         for log in logs:
@@ -463,7 +574,7 @@ def run_suite(args) -> dict:
                                      and original_status == rescored_status,
                 "target_reexecutions_for_rescore": 0,
                 "task_ids": [t["id"] for t in selected], "control": control})
-            write_json(output / "progress.json", summarize(tasks, trials))
+            write_json(output / "progress.json", summarize(tasks, trials, release_lane=release_lane))
 
     # Writer runs in the non-critical batch before the critical residue-reader.
     for criticality, epochs in [("non_critical", 3), ("critical", 5)]:
@@ -473,7 +584,8 @@ def run_suite(args) -> dict:
         # Two bounded infra replacements maximum; never replace a valid non-PASS.
         for task in ([] if args.diagnostic_trials else selected):
             for _ in range(2):
-                row = next(t for t in summarize(tasks, trials)["tasks"] if t["id"] == task["id"])
+                row = next(t for t in summarize(tasks, trials, release_lane=release_lane)["tasks"]
+                           if t["id"] == task["id"])
                 if row["valid_trials"] >= epochs or row["INVALID_FIXTURE"]:
                     break
                 evaluate_batch([task], 1)
@@ -482,7 +594,7 @@ def run_suite(args) -> dict:
             evaluate_batch([next(t for t in tasks if t["scenario"] == scenario)], 1, control)
     after = fingerprint(repo)
     write_json(output / "production_after.json", after)
-    summary = summarize(tasks, trials)
+    summary = summarize(tasks, trials, release_lane=release_lane)
     findings = findings_for(tasks, trials)
     controls = [{"trial_id": t["trial_id"], "expected": "FAIL", "observed": t["grader"]["status"]}
                 for t in trials if t.get("control")]
@@ -503,7 +615,22 @@ def run_suite(args) -> dict:
             [ROOT / "core_regression.py", ROOT / "core_fixture.py", ROOT / "schema.py", ROOT / "scorers.py",
              ROOT / "core_requirements.txt", *sorted((ROOT / "tasks/core").glob("*.json"))]},
         protected_owner_blobs={p: _git_text(repo, "rev-parse", f"{args.snapshot}:{p}") for p in PROTECTED},
-        codex_version=subprocess.run([str(args.codex), "--version"], capture_output=True, text=True).stdout.strip(),
+        codex_version=codex_version,
+        target_identity_schema={
+            "requested_fields": ["requested_model", "requested_reasoning_effort"],
+            "effective_fields": ["effective_model", "effective_reasoning_effort"],
+            "common_fields": ["codex_cli_version", "trial_snapshot", "target_lane"],
+            "effective_unknown_policy": "UNKNOWN unless independently observed in Codex JSONL",
+            "legacy_policy": "LEGACY_UNPINNED evidence is preserved but excluded from release gates",
+        },
+        target_configuration={
+            "requested_model": args.target_model,
+            "requested_reasoning_effort": args.target_reasoning_effort,
+            "target_lane": release_lane,
+            "effective_model": UNKNOWN_IDENTITY,
+            "effective_reasoning_effort": UNKNOWN_IDENTITY,
+            "selection_source": "explicit runner arguments",
+        },
         inspect_logs=log_records, seed_controls=controls, trials=trials,
         production_checkout_unchanged=before == after, main_unchanged=before["refs"] == after["refs"],
         cross_trial_isolation=integrity, worktree_registry_restored=registry_restored,
@@ -538,7 +665,8 @@ def export_result(output: Path, destination: Path) -> None:
     trials = summary.pop("trials")
     summary["trial_receipts"] = [{k: t[k] for k in ["trial_id", "task_id", "control", "epoch",
         "actual_target_calls", "runtime_seconds", "usage", "state_evidence", "artifacts",
-        "infrastructure_error", "grader"]} for t in trials]
+        "infrastructure_error", "grader", "target_identity", "trace_identity_observation"]}
+        for t in trials]
     summary["evidence_bundle"] = {"path": archive.name, "sha256": digest(archive),
                                   "format": "zip", "raw_source_directory": str(output)}
     write_json(destination / "core_result.json", summary)
@@ -576,6 +704,10 @@ def main():
     parser.add_argument("--snapshot", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--codex", type=Path, required=True)
+    parser.add_argument("--target-model", required=True,
+                        help="explicit Codex model passed to `codex exec --model`")
+    parser.add_argument("--target-reasoning-effort", required=True,
+                        help="explicit Codex config value passed as model_reasoning_effort")
     parser.add_argument("--timeout", type=int, default=240)
     parser.add_argument("--workers", type=int, choices=[1, 2], default=2,
                         help="bounded concurrent Codex calls in distinct worktrees")

@@ -4,6 +4,7 @@ from evals.system.schema import (
     ProjectInstructionEvidence,
     SchemaError,
     TaskSpec,
+    TargetIdentity,
     WorkUATRecord,
 )
 
@@ -44,6 +45,30 @@ class TaskSchemaTests(unittest.TestCase):
         }
         with self.assertRaises(SchemaError):
             TaskSpec.from_dict(task)
+
+    def test_target_identity_requires_explicit_lane_and_unknown_effective_values(self):
+        identity = TargetIdentity.from_dict({
+            "requested_model": "gpt-5.6-sol",
+            "requested_reasoning_effort": "medium",
+            "effective_model": "UNKNOWN",
+            "effective_reasoning_effort": "UNKNOWN",
+            "codex_cli_version": "codex-cli 0.153.4",
+            "trial_snapshot": "a" * 40,
+            "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+            "identity_status": "REQUESTED_ONLY",
+        })
+        self.assertEqual(identity.target_lane, "model=gpt-5.6-sol;reasoning_effort=medium")
+        with self.assertRaises(SchemaError):
+            TargetIdentity.from_dict({
+                "requested_model": "gpt-5.6-sol",
+                "requested_reasoning_effort": "medium",
+                "effective_model": "gpt-6-astra",
+                "effective_reasoning_effort": "UNKNOWN",
+                "codex_cli_version": "codex-cli 0.153.4",
+                "trial_snapshot": "a" * 40,
+                "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+                "identity_status": "REQUESTED_ONLY",
+            })
 
 
 class ProjectInstructionProvenanceTests(unittest.TestCase):

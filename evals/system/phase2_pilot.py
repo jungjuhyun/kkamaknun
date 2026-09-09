@@ -193,7 +193,30 @@ def parse_codex_events(stdout: str) -> dict[str, Any]:
     file_changes: list[dict[str, Any]] = []
     usage: dict[str, int] = {}
     thread_ids: list[str] = []
+    observed_models: set[str] = set()
+    observed_reasoning_efforts: set[str] = set()
+
+    def collect_identity(value: Any) -> None:
+        if isinstance(value, dict):
+            for key, item in value.items():
+                normalized = str(key).lower().replace("-", "_")
+                if normalized in {"model", "model_name", "model_id", "effective_model"}:
+                    if isinstance(item, str) and item.strip():
+                        observed_models.add(item.strip())
+                elif normalized in {"reasoning_effort", "effective_reasoning_effort"}:
+                    if isinstance(item, str) and item.strip():
+                        observed_reasoning_efforts.add(item.strip())
+                elif normalized == "reasoning" and isinstance(item, dict):
+                    effort = item.get("effort")
+                    if isinstance(effort, str) and effort.strip():
+                        observed_reasoning_efforts.add(effort.strip())
+                collect_identity(item)
+        elif isinstance(value, list):
+            for item in value:
+                collect_identity(item)
+
     for event in events:
+        collect_identity(event)
         if event.get("type") == "thread.started" and event.get("thread_id"):
             thread_ids.append(str(event["thread_id"]))
         item = event.get("item")
@@ -218,6 +241,10 @@ def parse_codex_events(stdout: str) -> dict[str, Any]:
         "file_changes": file_changes,
         "usage": usage,
         "malformed_lines": malformed_lines,
+        "observed_target_identity": {
+            "models": sorted(observed_models),
+            "reasoning_efforts": sorted(observed_reasoning_efforts),
+        },
         "complete_internal_trace": "UNKNOWN",
     }
 

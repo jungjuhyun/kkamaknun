@@ -40,11 +40,83 @@ class ResultStatus(str, Enum):
     NOT_RUN = "NOT_RUN"
 
 
+class TargetIdentityStatus(str, Enum):
+    """Whether a trial's target identity is independently pinned."""
+
+    PINNED = "PINNED"
+    REQUESTED_ONLY = "REQUESTED_ONLY"
+    LEGACY_UNPINNED = "LEGACY_UNPINNED"
+
+
 class EvidenceState(str, Enum):
     AVAILABLE = "AVAILABLE"
     MISSING = "MISSING"
     INFRA_ERROR = "INFRA_ERROR"
     INVALID = "INVALID"
+
+
+@dataclass(frozen=True)
+class TargetIdentity:
+    """Machine-readable target configuration attached to every new Codex trial.
+
+    Requested values come from the runner invocation. Effective values are only
+    populated when an independent Codex event exposes them; otherwise they are
+    the literal ``UNKNOWN`` and never inferred from the request.
+    """
+
+    requested_model: str
+    requested_reasoning_effort: str
+    effective_model: str
+    effective_reasoning_effort: str
+    codex_cli_version: str
+    trial_snapshot: str
+    target_lane: str
+    identity_status: TargetIdentityStatus
+
+    @classmethod
+    def from_dict(cls, data: Mapping[str, Any]) -> "TargetIdentity":
+        required = {
+            "requested_model",
+            "requested_reasoning_effort",
+            "effective_model",
+            "effective_reasoning_effort",
+            "codex_cli_version",
+            "trial_snapshot",
+            "target_lane",
+            "identity_status",
+        }
+        _require_fields(data, required, "target identity")
+        values = {name: data[name] for name in required}
+        for name in required - {"identity_status"}:
+            if not isinstance(values[name], str) or not values[name].strip():
+                raise SchemaError(f"target identity {name} must be a non-empty string")
+        if values["effective_model"] != "UNKNOWN" and values["effective_reasoning_effort"] == "UNKNOWN":
+            raise SchemaError("effective model and reasoning effort must be observed together")
+        if values["effective_model"] == "UNKNOWN" and values["effective_reasoning_effort"] != "UNKNOWN":
+            raise SchemaError("effective model and reasoning effort must be observed together")
+        if not re.fullmatch(r"[0-9a-f]{40}", values["trial_snapshot"]):
+            raise SchemaError("target identity trial_snapshot must be a 40-character SHA")
+        expected_lane = f"model={values['requested_model']};reasoning_effort={values['requested_reasoning_effort']}"
+        if values["target_lane"] != expected_lane:
+            raise SchemaError("target_lane must be derived from requested model and reasoning effort")
+        status = TargetIdentityStatus(values["identity_status"])
+        effective_known = values["effective_model"] != "UNKNOWN"
+        if status is TargetIdentityStatus.PINNED and not effective_known:
+            raise SchemaError("PINNED target identity requires independently observed effective values")
+        if status is TargetIdentityStatus.REQUESTED_ONLY and effective_known:
+            raise SchemaError("REQUESTED_ONLY target identity cannot carry effective values")
+        if status is TargetIdentityStatus.LEGACY_UNPINNED:
+            raise SchemaError("legacy target identity must be represented by a missing identity, not a trial record")
+        return cls(
+            requested_model=values["requested_model"],
+            requested_reasoning_effort=values["requested_reasoning_effort"],
+            effective_model=values["effective_model"],
+            effective_reasoning_effort=values["effective_reasoning_effort"],
+            codex_cli_version=values["codex_cli_version"],
+            trial_snapshot=values["trial_snapshot"],
+            target_lane=values["target_lane"],
+            identity_status=status,
+        )
 
 
 class InstructionProvenance(str, Enum):

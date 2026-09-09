@@ -226,12 +226,30 @@ The output field descriptions constrain the answer format without supplying expe
 
 The runner independently captures the production checkout's tracked/untracked hashes, index entries and branch refs, trial changes and marker content, process outcome, command events, usage telemetry, unique artifacts, cleanup and worktree registrations. Up to two calls may run concurrently in separate worktrees; all registry entries must be restored at suite end. Non-critical residue writers finish before the critical reader batch. This checks repository/artifact separation; OS/process/network/credential isolation remains NOT_PROVIDED.
 
+### Target-model identity and lane gates
+
+Every new actual Codex trial must receive a `target_identity` receipt containing:
+`requested_model`, `requested_reasoning_effort`, `effective_model`,
+`effective_reasoning_effort`, `codex_cli_version`, `trial_snapshot`, and a derived
+`target_lane`. The runner passes model selection with Codex's supported `--model`
+option and passes reasoning selection through the installed CLI config key
+`model_reasoning_effort`. Effective values are independent observations only; when
+Codex JSONL does not expose them they are recorded as the literal `UNKNOWN`, never
+copied from requested values.
+
+Critical 5/5 gates aggregate only trials with one exact `target_lane`. Mixed model or
+reasoning lanes are `MIXED_LANES_REJECTED`; missing identity is
+`LEGACY_UNPINNED` and is preserved for historical/debug use but cannot fill a release
+gate. The current portable archive predates this receipt contract, so its 18 trial
+envelopes and 14 historical machine-local PASS receipts remain legacy/unpinned.
+The existing `CORE_B_01` FAIL remains unchanged.
+
 ### Run, preserve, and re-score
 
 Use an external environment with only `core_requirements.txt` installed. Do not install Inspect SWE, Docker, PyRIT or Promptfoo. Windows may require the bundled Python executable for `--tool-python`, because a user-installed virtualenv launcher can be unavailable inside Codex's command environment. That setup failure is infrastructure, not a product failure.
 
 ```text
-<venv-python> -m evals.system.core_regression --repo C:\kkamaknun --snapshot <exact-sha> --output <new-external-directory> --codex <codex.exe> --tool-python <target-accessible-python> --workers 2
+<venv-python> -m evals.system.core_regression --repo C:\kkamaknun --snapshot <exact-sha> --output <new-external-directory> --codex <codex.exe> --target-model <model> --target-reasoning-effort <effort> --tool-python <target-accessible-python> --workers 2
 <venv-python> -m evals.system.core_regression export <external-directory> evals/system
 <venv-python> -m evals.system.core_regression rescore <saved-log.eval> <new-rescored-log.eval>
 ```

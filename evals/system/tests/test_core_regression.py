@@ -10,8 +10,9 @@ import unittest
 
 from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
-    TARGET, capture_events, evidence_for, grade_envelope, load_core_tasks,
-    findings_for, prompt_for, summarize,
+    TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
+    grade_envelope, load_core_tasks, findings_for, prompt_for, summarize,
+    target_identity, target_lane_id,
 )
 
 
@@ -21,6 +22,9 @@ def envelope(task):
             "epoch": 1, "runtime_seconds": 1, "history_marker": "HISTORY_UNIQUE",
             "usage": {}, "events": [], "trace_complete": True,
             "state_evidence": {}, "response": {}, "infrastructure_error": None}
+    data["target_identity"] = target_identity(
+        model="gpt-5.6-sol", reasoning_effort="medium", codex_version="codex-cli 0.153.4",
+        snapshot="a" * 40, trace={})
     for assertion in task["assertions"]:
         source = assertion["evidence_source"]
         method = assertion["evaluation_method"]
@@ -51,6 +55,19 @@ class CoreSchemaTests(unittest.TestCase):
             prompt = prompt_for(task, "a" * 40, "python")
             self.assertNotIn('"expected":', prompt)
             self.assertNotIn("known_pass", prompt)
+
+    def test_current_result_records_target_identity_audit_without_rewriting_baseline(self):
+        result_path = Path(__file__).resolve().parents[1] / "core_result.json"
+        findings_path = Path(__file__).resolve().parents[1] / "core_findings.json"
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        findings = json.loads(findings_path.read_text(encoding="utf-8"))
+        self.assertEqual(result["phase_status"], "PHASE3_BLOCKED")
+        self.assertEqual(result["legacy_identity_audit"]["legacy_unpinned_trial_count"], 32)
+        self.assertEqual(result["legacy_identity_audit"]["identity_restorable_exactly"], 0)
+        self.assertEqual(result["task_summary"][3]["id"], "CORE_B_01")
+        self.assertEqual(result["task_summary"][3]["resume_gate_status"], "FAIL")
+        self.assertEqual({item["id"] for item in findings}, {
+            "F_CORE_B_01_FAIL", "F_INFRA_PROVIDER_USAGE_LIMIT", "F_TARGET_IDENTITY_LEGACY_UNPINNED"})
 
 
 class CoreEvidenceTests(unittest.TestCase):
@@ -142,6 +159,57 @@ class CoreEvidenceTests(unittest.TestCase):
         data = envelope(task)
         data["grader"] = {"status": "FAIL", "assertions": []}
         self.assertEqual(summarize([task], [data] * 3)["tasks"][0]["gate_status"], "DISTRIBUTION_RECORDED")
+
+    def test_same_lane_aggregation_can_reach_critical_gate(self):
+        task = self.tasks["current_owner"]
+        trials = []
+        for _ in range(5):
+            data = envelope(task)
+            data["grader"] = {"status": "PASS", "assertions": []}
+            trials.append(data)
+        summary = summarize([task], trials, release_lane=target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(summary["tasks"][0]["gate_status"], "PASS")
+        self.assertEqual(summary["lane_aggregation"], "SAME_LANE")
+
+    def test_different_lane_aggregation_is_rejected(self):
+        task = self.tasks["current_owner"]
+        first = envelope(task)
+        first["grader"] = {"status": "PASS", "assertions": []}
+        second = envelope(task)
+        second["target_identity"] = target_identity(
+            model="gpt-6-astra", reasoning_effort="high", codex_version="codex-cli 0.153.4",
+            snapshot="a" * 40, trace={})
+        second["grader"] = {"status": "PASS", "assertions": []}
+        selected, status = aggregate_lane([first, second], target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(selected, [])
+        self.assertEqual(status, "MIXED_LANES_REJECTED")
+        summary = summarize([task], [first, second], release_lane=target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(summary["tasks"][0]["gate_status"], "BLOCKED")
+
+    def test_legacy_unpinned_is_rejected_from_release_lane(self):
+        task = self.tasks["current_owner"]
+        legacy = envelope(task)
+        del legacy["target_identity"]
+        legacy["grader"] = {"status": "PASS", "assertions": []}
+        selected, status = aggregate_lane([legacy], target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(selected, [])
+        self.assertEqual(status, "LEGACY_UNPINNED_REJECTED")
+
+    def test_explicit_invocation_contains_model_and_reasoning_config(self):
+        command = codex_command(
+            codex=Path("codex.exe"), final=Path("final.json"),
+            target_model="gpt-5.6-sol", target_reasoning_effort="medium")
+        self.assertIn("--model", command)
+        self.assertIn("gpt-5.6-sol", command)
+        self.assertIn('model_reasoning_effort="medium"', command)
+
+    def test_effective_identity_stays_unknown_without_independent_observation(self):
+        identity = target_identity(
+            model="gpt-5.6-sol", reasoning_effort="medium", codex_version="codex-cli 0.153.4",
+            snapshot="a" * 40, trace={})
+        self.assertEqual(identity["effective_model"], "UNKNOWN")
+        self.assertEqual(identity["effective_reasoning_effort"], "UNKNOWN")
+        self.assertEqual(identity["identity_status"], "REQUESTED_ONLY")
 
 
 class ControlledFixtureTests(unittest.TestCase):
