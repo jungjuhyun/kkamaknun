@@ -56,6 +56,16 @@ class CoreSchemaTests(unittest.TestCase):
             self.assertNotIn('"expected":', prompt)
             self.assertNotIn("known_pass", prompt)
 
+    def test_prompt_preserves_routing_owner_and_evidence_boundaries(self):
+        task = next(t for t in load_core_tasks() if t["id"] == "CORE_B_01")
+        prompt = prompt_for(task, "a" * 40, "python")
+        self.assertIn("current status/current-owner", prompt)
+        self.assertIn("delegated detail document", prompt)
+        self.assertIn("incomplete journal/event alignment", prompt)
+        self.assertIn("is UNKNOWN", prompt)
+        self.assertIn("target differs from the requested target", prompt)
+        self.assertIn("INVALID_FIXTURE", prompt)
+
     def test_current_result_records_completed_primary_baseline_and_preserves_legacy_audit(self):
         result_path = Path(__file__).resolve().parents[1] / "core_result.json"
         findings_path = Path(__file__).resolve().parents[1] / "core_findings.json"

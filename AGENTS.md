@@ -51,7 +51,7 @@
 
 ## 4. 요청별 routing
 
-- 현재 상태·다음 행동·진행 요약: STATE.md를 기준으로 답한다.
+- 현재 상태·다음 행동·진행 요약: STATE.md를 기준으로 답한다. 여기서 `owner`는 세부 사실을 위임받은 문서가 아니라 **질문을 라우팅한 current-truth owner**를 뜻한다. 따라서 현재 상태·현재 owner를 묻는 경우에는 STATE.md를 owner로 보고하고, STATE.md가 지정한 FIRST_VIDEO.md·다른 owner는 그 owner가 보유한 세부 사실의 source로만 구분한다.
 - 첫 콘텐츠의 각·장면·구조·패키징: FIRST_VIDEO.md를 읽는다.
 - 큰 기획 판단·반복 원칙: PLAYBOOK.md를 읽고, 안정적 배경이 판단을 바꾸면 PROJECT_CONTEXT.md를 추가한다.
 - 사용자 적합성이 선택을 바꾸는 경우에만 USER_PROFILE.md를 추가한다.

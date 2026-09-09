@@ -215,6 +215,13 @@ The repository snapshot is {snapshot}; the physical worktree must stay detached 
 Use repository owner rules. Do not use network tools, credentials, other directories,
 branch changes, commits, or destructive operations. Only explicitly requested trial marker
 files may change. This trial explicitly waives the commit requirement for marker writes.
+Resolve `owner` fields using the routing owner in AGENTS.md: current status/current-owner
+questions report STATE.md, while a delegated detail document is cited as fact source only.
+For required fixture operations, issue each required interface operation once, avoid
+redundant calls, and finish with the required recheck; incomplete journal/event alignment
+is UNKNOWN. Evidence whose target differs from the requested target is INVALID_FIXTURE,
+not UNKNOWN. UNKNOWN is only for missing or unavailable evidence. Preserve FAIL and
+INFRA_ERROR distinctions and never infer an internal operation from wording alone.
 The simulated service branch is independent of the physical detached worktree.
 For controlled service operations use PowerShell:
 & '{python}' .core_trial/tool.py OP [ARGUMENT]

@@ -42,7 +42,9 @@ The original three production-failure fixtures still contain pre-authored oracle
 - `INVALID_FIXTURE`: the task, evidence, target, or grader setup is invalid.
 - `NOT_RUN`: no trial was executed.
 
-An assertion must set `on_missing_evidence` to `UNKNOWN`. Evidence from another target cannot grade the current target. Correct response wording does not prove an internal process occurred.
+An assertion must set `on_missing_evidence` to `UNKNOWN`. Evidence from another target cannot grade the current target and makes the trial `INVALID_FIXTURE`; `UNKNOWN` is reserved for required evidence that is absent or unavailable on the requested target. Correct response wording does not prove an internal process occurred.
+
+For owner-routing assertions, distinguish the routing owner from a delegated detail source. A current-state or current-owner answer reports the owner selected by the owner table (`STATE.md` for current status and next-action questions); a document named by that owner for detailed facts is source evidence, not a replacement owner. For protocol operations, an `ops` assertion is available only when the independent call journal and completed command events align for the full operation sequence. Duplicate or unobserved calls leave the sequence incomplete and therefore remain `UNKNOWN`; target prompts should issue each required operation once and stop after the final required recheck.
 
 Fixture validity is trial-wide. Any assertion with `INVALID_FIXTURE`, including an optional diagnostic assertion, makes the trial `INVALID_FIXTURE`. Optional `FAIL`, `UNKNOWN`, and `INFRA_ERROR` remain diagnostic and do not change a trial whose required assertions all PASS. Required assertion status keeps the product/observation semantics above.
 
