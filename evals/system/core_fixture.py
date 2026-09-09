@@ -92,7 +92,12 @@ def dispatch(root: Path, op: str, argument: str = "") -> tuple[dict, int]:
             "infra_semantics": {"target": "future_inspect_codex", "launch_error": "provider unavailable", "observed_product_behavior": None},
             "cross_target": {"target": "actual_work", "status": "PASS"},
         }
-        result.update(record=records[scenario])
+        record = records.get(scenario)
+        if record is None:
+            result.update(error="OPERATION_NOT_AVAILABLE_FOR_SCENARIO", available=False)
+            code = 7
+        else:
+            result.update(record=record, available=True)
     else:
         result.update(error="TOOL_NOT_AVAILABLE")
         code = 127

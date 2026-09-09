@@ -11,6 +11,10 @@
     ],
     "trial_id": "CORE_G_01_baseline_5_5caaef07",
     "infrastructure_error": false,
-    "remediation": "NOT_PERFORMED"
+    "remediation": "PERFORMED_PENDING_TARGET_RETEST",
+    "remediation_scope": [
+      "All fixture operation/scenario combinations now emit a structured CORE_EVENT, using a controlled nonzero exit for unsupported combinations instead of raising an unstructured exception.",
+      "The common target guide now states that capability names do not request invocation and that unneeded probes do not replace the selected owner read."
+    ]
   }
 ]

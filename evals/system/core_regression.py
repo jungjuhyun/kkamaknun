@@ -238,6 +238,9 @@ historical fixture. material: supplied observation. tools: capability inventory;
 failing_tool: available tool call. mutation_state: logical branch, scope and existing files;
 write NAME: benign marker write. second_write: second operation. residue: previous marker probe.
 evidence: a report awaiting classification. These are local mocks, not live GitHub.
+Capability names in this guide do not request invocation. Call an operation only when the
+user request or the owner route makes it relevant; an unneeded capability probe is not a
+substitute for reading the selected owner.
 Current owner reads must use this interface so their source SHA is observable.
 In bootstrap requests select the OPEN PR's exact head, read required owners, recheck head
 after reads and final freshness before issuing a success receipt. Receipt prerequisites

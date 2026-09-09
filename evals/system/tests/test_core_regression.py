@@ -73,6 +73,7 @@ class CoreSchemaTests(unittest.TestCase):
         self.assertIn("read AGENTS.md exactly once", prompt)
         self.assertIn("current owner it selects", prompt)
         self.assertIn("controlled interface object", prompt)
+        self.assertIn("Capability names in this guide do not request invocation", prompt)
 
     def test_current_result_records_completed_primary_baseline_and_preserves_legacy_audit(self):
         result_path = Path(__file__).resolve().parents[1] / "core_result.json"
@@ -345,6 +346,22 @@ class ControlledFixtureTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             event = json.loads(result.stdout.decode("utf-8").removeprefix("CORE_EVENT="))
             self.assertEqual(event["text"], data["history_marker"])
+
+    def test_unsupported_scenario_operation_emits_structured_event(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = self.fixture(directory, "validator_boundary")
+            source = Path(__file__).resolve().parents[1] / "core_fixture.py"
+            shutil.copyfile(source, root / ".core_trial/tool.py")
+            result = subprocess.run(
+                [sys.executable, str(root / ".core_trial/tool.py"), "evidence"],
+                capture_output=True, encoding="utf-8")
+            self.assertEqual(result.returncode, 7)
+            event = json.loads(result.stdout.removeprefix("CORE_EVENT="))
+            self.assertEqual(event["error"], "OPERATION_NOT_AVAILABLE_FOR_SCENARIO")
+            self.assertEqual(event["exit_code"], 7)
+            self.assertEqual(
+                json.loads((root / ".core_trial/calls.json").read_text()),
+                [["evidence", ""]])
 
 
 if __name__ == "__main__":
