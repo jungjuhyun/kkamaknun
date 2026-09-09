@@ -56,7 +56,7 @@ class CoreSchemaTests(unittest.TestCase):
             self.assertNotIn('"expected":', prompt)
             self.assertNotIn("known_pass", prompt)
 
-    def test_current_result_records_target_identity_audit_without_rewriting_baseline(self):
+    def test_current_result_records_primary_checkpoint_and_preserves_legacy_audit(self):
         result_path = Path(__file__).resolve().parents[1] / "core_result.json"
         findings_path = Path(__file__).resolve().parents[1] / "core_findings.json"
         result = json.loads(result_path.read_text(encoding="utf-8"))
@@ -66,12 +66,19 @@ class CoreSchemaTests(unittest.TestCase):
         self.assertEqual(result["legacy_identity_audit"]["identity_restorable_exactly"], 0)
         self.assertEqual(result["target_lane_selection"]["primary_lane_finalized"], True)
         self.assertEqual(result["primary_lane_state"]["primary_lane"], "model=gpt-5.6-sol;reasoning_effort=medium")
-        self.assertEqual(result["primary_lane_state"]["total_remaining_trials"], 112)
-        self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["gate_status"], "BLOCKED")
+        self.assertEqual(result["primary_lane_state"]["valid_trials"], 30)
+        self.assertEqual(result["primary_lane_state"]["valid_pass"], 24)
+        self.assertEqual(result["primary_lane_state"]["valid_fail"], 2)
+        self.assertEqual(result["primary_lane_state"]["valid_unknown"], 4)
+        self.assertEqual(result["primary_lane_state"]["total_remaining_trials"], 82)
+        self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["gate_status"], "FAIL")
+        self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["reproduction"], "2/5")
         self.assertEqual(result["task_summary"][3]["id"], "CORE_B_01")
-        self.assertEqual(result["task_summary"][3]["resume_gate_status"], "FAIL")
+        self.assertEqual(result["task_summary"][3]["gate_status"], "FAIL")
+        self.assertEqual(result["legacy_evidence"]["gate_eligible"], False)
         self.assertEqual({item["id"] for item in findings}, {
-            "F_CORE_B_01_FAIL", "F_INFRA_PROVIDER_USAGE_LIMIT", "F_TARGET_IDENTITY_LEGACY_UNPINNED"})
+            "F_CORE_B_01_FAIL", "F_PRIMARY_CORE_B_01_FAIL", "F_PRIMARY_CORE_B_02_UNKNOWN",
+            "F_PRIMARY_QUOTA_CAPACITY", "F_TARGET_IDENTITY_LEGACY_UNPINNED"})
 
 
 class CoreEvidenceTests(unittest.TestCase):

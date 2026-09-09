@@ -19,34 +19,79 @@
       "CORE_B_01_baseline_1_7e1a5e35"
     ],
     "remediation": "NOT_PERFORMED",
-    "scope": "controlled Codex surrogate only; not a Work product finding"
+    "scope": "LEGACY_UNPINNED controlled Codex surrogate only; excluded from primary gate"
   },
   {
-    "id": "F_INFRA_PROVIDER_USAGE_LIMIT",
+    "id": "F_PRIMARY_CORE_B_01_FAIL",
+    "task_id": "CORE_B_01",
+    "status": "FAIL",
+    "kind": "surrogate_contract_failure",
+    "bounded_statement": [
+      "response_owner: expected 'STATE.md', got 'FIRST_VIDEO.md'"
+    ],
+    "owner_candidates": [
+      "STATE.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 2,
+      "attempted": 5
+    },
+    "trial_ids": [
+      "CORE_B_01_baseline_1_f93a9202",
+      "CORE_B_01_baseline_3_99f5ca5f"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
+  },
+  {
+    "id": "F_PRIMARY_CORE_B_02_UNKNOWN",
+    "task_id": "CORE_B_02",
+    "status": "UNKNOWN",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "ops: required observable evidence is missing"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 4,
+      "attempted": 5
+    },
+    "trial_ids": [
+      "CORE_B_02_baseline_1_51541a06",
+      "CORE_B_02_baseline_2_f5b5fb44",
+      "CORE_B_02_baseline_3_c6679cd3",
+      "CORE_B_02_baseline_4_5fb317f4"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
+  },
+  {
+    "id": "F_PRIMARY_QUOTA_CAPACITY",
     "status": "INFRA_ERROR",
     "severity": "infrastructure",
-    "bounded_statement": "Provider usage limit stopped execution after partial continuation; no further calls were attempted.",
+    "bounded_statement": "Regular Codex five-hour quota reached 97% after 30 completed calls; no further primary batch was started.",
     "owner_candidates": [
       "external provider/account quota"
     ],
     "reproducibility": {
-      "observed": 139,
-      "attempted": 172,
-      "continuation_attempts": 4
+      "observed": 1,
+      "attempted_target_calls": 30
     },
     "evidence": {
-      "checked_at": "2026-09-09T08:01:06+09:00",
-      "primary_used_percent": 100,
+      "primary_used_percent": 97,
+      "secondary_used_percent": 73,
       "credits_balance": "0",
-      "target_calls_this_session": 18,
-      "new_valid_pass_trials": 17,
-      "new_valid_fail_trials": 1,
-      "new_infra_errors": 1,
-      "portable_archive": "evals/system/evidence/phase3_resume_44aa7ca.zip",
-      "portable_archive_sha256": "e5b35fca34928022a2cf1cb1acc27c159fba4347deb69f4f3f327d8a133ca866"
+      "reserve_used": false
     },
-    "remediation": "NOT_PERFORMED",
-    "next_action": "Pull the branch and read this state. Preserve the recorded CORE_B_01 FAIL; run only task remaining_trials at snapshot 44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a when quota is available. Do not auto-fix product failures, change the suite, or start Phase 4."
+    "remediation": "NOT_PERFORMED"
   },
   {
     "id": "F_TARGET_IDENTITY_LEGACY_UNPINNED",
