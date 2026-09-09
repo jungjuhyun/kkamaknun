@@ -11,7 +11,7 @@ import unittest
 from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
-    grade_envelope, load_core_tasks, findings_for, prompt_for, summarize,
+    grade_envelope, lane_state, load_core_tasks, findings_for, prompt_for, summarize,
     target_identity, target_lane_id,
 )
 
@@ -64,6 +64,10 @@ class CoreSchemaTests(unittest.TestCase):
         self.assertEqual(result["phase_status"], "PHASE3_BLOCKED")
         self.assertEqual(result["legacy_identity_audit"]["legacy_unpinned_trial_count"], 32)
         self.assertEqual(result["legacy_identity_audit"]["identity_restorable_exactly"], 0)
+        self.assertEqual(result["target_lane_selection"]["primary_lane_finalized"], True)
+        self.assertEqual(result["primary_lane_state"]["primary_lane"], "model=gpt-5.6-sol;reasoning_effort=medium")
+        self.assertEqual(result["primary_lane_state"]["total_remaining_trials"], 112)
+        self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["gate_status"], "BLOCKED")
         self.assertEqual(result["task_summary"][3]["id"], "CORE_B_01")
         self.assertEqual(result["task_summary"][3]["resume_gate_status"], "FAIL")
         self.assertEqual({item["id"] for item in findings}, {
@@ -185,6 +189,50 @@ class CoreEvidenceTests(unittest.TestCase):
         self.assertEqual(status, "MIXED_LANES_REJECTED")
         summary = summarize([task], [first, second], release_lane=target_lane_id("gpt-5.6-sol", "medium"))
         self.assertEqual(summary["tasks"][0]["gate_status"], "BLOCKED")
+
+    def test_legacy_pass_does_not_reduce_primary_remaining(self):
+        task = self.tasks["current_owner"]
+        legacy = envelope(task)
+        del legacy["target_identity"]
+        legacy["grader"] = {"status": "PASS", "assertions": []}
+        state = lane_state([task], [legacy], target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(state["valid_trials"], 0)
+        self.assertEqual(state["total_remaining_trials"], 5)
+        self.assertEqual(state["status"], "BLOCKED")
+
+    def test_legacy_fail_is_preserved_but_not_primary_gate_failure(self):
+        task = self.tasks["current_owner"]
+        legacy = envelope(task)
+        del legacy["target_identity"]
+        legacy["grader"] = {"status": "FAIL", "assertions": []}
+        state = lane_state([task], [legacy], target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(state["valid_fail"], 0)
+        self.assertEqual(state["critical_gate"]["FAIL"], 0)
+        self.assertEqual(findings_for([task], [legacy])[0]["status"], "FAIL")
+
+    def test_mixed_reasoning_lane_is_rejected(self):
+        task = self.tasks["current_owner"]
+        first = envelope(task)
+        second = envelope(task)
+        second["target_identity"] = target_identity(
+            model="gpt-5.6-sol", reasoning_effort="high", codex_version="codex-cli 0.153.4",
+            snapshot="a" * 40, trace={})
+        selected, status = aggregate_lane(
+            [first, second], target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(selected, [])
+        self.assertEqual(status, "MIXED_LANES_REJECTED")
+
+    def test_zero_pinned_evidence_computes_full_required_workload(self):
+        tasks = load_core_tasks()
+        state = lane_state(tasks, [], target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(state["critical_remaining_trials"], 100)
+        self.assertEqual(state["non_critical_remaining_trials"], 12)
+        self.assertEqual(state["total_remaining_trials"], 112)
+
+    def test_lane_state_serialization_round_trip(self):
+        task = self.tasks["current_owner"]
+        state = lane_state([task], [], target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(json.loads(json.dumps(state)), state)
 
     def test_legacy_unpinned_is_rejected_from_release_lane(self):
         task = self.tasks["current_owner"]

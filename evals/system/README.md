@@ -242,7 +242,12 @@ reasoning lanes are `MIXED_LANES_REJECTED`; missing identity is
 `LEGACY_UNPINNED` and is preserved for historical/debug use but cannot fill a release
 gate. The current portable archive predates this receipt contract, so its 18 trial
 envelopes and 14 historical machine-local PASS receipts remain legacy/unpinned.
-The existing `CORE_B_01` FAIL remains unchanged.
+The primary Phase 3 bulk lane is explicitly fixed for continuation as
+`model=gpt-5.6-sol;reasoning_effort=medium`. The existing `CORE_B_01` FAIL remains
+unchanged as a legacy finding; it is not a primary-lane FAIL until a valid Sol/medium
+trial observes the same contract failure. With zero eligible primary-lane receipts,
+task specs calculate 100 critical + 12 non-critical = 112 primary-lane remaining
+valid trials. Legacy observations do not reduce that count.
 
 ### Run, preserve, and re-score
 

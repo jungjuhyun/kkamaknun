@@ -30,12 +30,88 @@
     }
   ],
   "target_lane_selection": {
-    "primary_lane_finalized": false,
+    "primary_lane_finalized": true,
+    "primary_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
     "installed_cli_version": "codex-cli 0.153.4",
     "installed_config_model": "gpt-5.6-sol",
     "installed_config_reasoning_effort": "medium",
     "selection_method": "explicit --model plus -c model_reasoning_effort=<effort>",
     "effective_identity_observation": "UNKNOWN in existing JSONL/envelopes"
+  },
+  "primary_lane_state": {
+    "primary_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "status": "BLOCKED",
+    "valid_trials": 0,
+    "valid_pass": 0,
+    "valid_fail": 0,
+    "valid_unknown": 0,
+    "lane_aggregation": "NO_PINNED_EVIDENCE",
+    "critical_gate": {
+      "PASS": 0,
+      "FAIL": 0,
+      "BLOCKED": 20
+    },
+    "critical_remaining_trials": 100,
+    "non_critical_remaining_trials": 12,
+    "total_remaining_trials": 112,
+    "legacy_unpinned_observations_excluded": 32,
+    "other_lane_observations": 0,
+    "CORE_B_01": {
+      "gate_status": "BLOCKED",
+      "valid_trials": 0,
+      "valid_pass": 0,
+      "valid_fail": 0,
+      "remaining_trials": 5,
+      "legacy_fail_preserved_separately": true
+    },
+    "task_remaining_trials": {
+      "CORE_A_01": 5,
+      "CORE_A_02": 5,
+      "CORE_A_03": 5,
+      "CORE_B_01": 5,
+      "CORE_B_02": 5,
+      "CORE_C_01": 5,
+      "CORE_C_02": 5,
+      "CORE_D_01": 5,
+      "CORE_D_02": 3,
+      "CORE_D_03": 5,
+      "CORE_D_04": 3,
+      "CORE_E_01": 5,
+      "CORE_E_02": 5,
+      "CORE_E_03": 3,
+      "CORE_F_01": 5,
+      "CORE_F_02": 5,
+      "CORE_F_03": 5,
+      "CORE_G_01": 5,
+      "CORE_G_02": 5,
+      "CORE_H_01": 3,
+      "CORE_H_02": 5,
+      "CORE_I_01": 5,
+      "CORE_I_02": 5,
+      "CORE_I_03": 5
+    },
+    "calculation_basis": "task specs require 5 valid trials for each critical task and 3 for each non-critical task; no exact primary-lane evidence is eligible"
+  },
+  "overall_historical_observations": {
+    "status_counts": {
+      "PASS": 31,
+      "FAIL": 1,
+      "UNKNOWN": 0,
+      "INFRA_ERROR": 139,
+      "INVALID_FIXTURE": 0
+    },
+    "critical_gate": {
+      "PASS": 0,
+      "FAIL": 1,
+      "BLOCKED": 19
+    },
+    "meaning": "historical aggregate across legacy evidence and prior provider attempts; not the primary lane release gate"
+  },
+  "other_lane_observations": {
+    "identified_lane_count": 0,
+    "identified_trial_count": 0,
+    "meaning": "no exact non-primary lane can be independently restored from existing evidence"
   },
   "legacy_identity_audit": {
     "portable_archive_envelopes": 18,

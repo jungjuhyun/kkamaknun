@@ -102,6 +102,59 @@ def aggregate_lane(trials: list[dict], lane: str) -> tuple[list[dict], str]:
     return list(trials), "SAME_LANE"
 
 
+def lane_state(tasks: list[dict], trials: list[dict], primary_lane: str) -> dict:
+    """Calculate continuation and gate state for exactly one pinned lane."""
+    summary = summarize(tasks, trials, release_lane=primary_lane)
+    task_state = {}
+    for row in summary["tasks"]:
+        required = row["trials_requested"]
+        valid = row["valid_trials"]
+        task_state[row["id"]] = {
+            "required_valid_trials": required,
+            "valid_trials": valid,
+            "PASS": row["PASS"],
+            "FAIL": row["FAIL"],
+            "UNKNOWN": row["UNKNOWN"],
+            "remaining_trials": max(required - valid, 0),
+            "gate_status": row["gate_status"],
+            "lane_aggregation": row["lane_aggregation"],
+        }
+    critical = [v for task, v in zip(tasks, task_state.values())
+                if task["criticality"] == "critical"]
+    non_critical = [v for task, v in zip(tasks, task_state.values())
+                    if task["criticality"] != "critical"]
+    critical_remaining = sum(v["remaining_trials"] for v in critical)
+    non_critical_remaining = sum(v["remaining_trials"] for v in non_critical)
+    critical_gate = {
+        "PASS": sum(v["gate_status"] == "PASS" for v in critical),
+        "FAIL": sum(v["gate_status"] == "FAIL" for v in critical),
+        "BLOCKED": sum(v["gate_status"] == "BLOCKED" for v in critical),
+    }
+    status = ("FAIL" if critical_gate["FAIL"] and not critical_remaining else
+              "BLOCKED" if critical_remaining or critical_gate["BLOCKED"] else "PASS")
+    observed_lanes = {trial_lane(trial) for trial in trials}
+    legacy_count = sum(trial_lane(trial) == TargetIdentityStatus.LEGACY_UNPINNED.value
+                       for trial in trials)
+    other_lanes = sorted(observed_lanes - {
+        primary_lane, TargetIdentityStatus.LEGACY_UNPINNED.value})
+    return {
+        "primary_lane": primary_lane,
+        "status": status,
+        "task_state": task_state,
+        "critical_gate": critical_gate,
+        "critical_remaining_trials": critical_remaining,
+        "non_critical_remaining_trials": non_critical_remaining,
+        "total_remaining_trials": critical_remaining + non_critical_remaining,
+        "valid_trials": sum(v["valid_trials"] for v in task_state.values()),
+        "valid_pass": sum(v["PASS"] for v in task_state.values()),
+        "valid_fail": sum(v["FAIL"] for v in task_state.values()),
+        "valid_unknown": sum(v["UNKNOWN"] for v in task_state.values()),
+        "legacy_unpinned_observations": legacy_count,
+        "other_lane_observations": other_lanes,
+        "lane_aggregation": summary["lane_aggregation"] if trials else "NO_PINNED_EVIDENCE",
+    }
+
+
 def codex_command(*, codex: Path, final: Path, target_model: str,
                   target_reasoning_effort: str) -> list[str]:
     """Construct the explicit target invocation used by every actual trial."""
@@ -470,7 +523,7 @@ def summarize(tasks: list[dict], trials: list[dict], release_lane: str | None = 
         if identity_present:
             selected_for_gate, task_lane_status = aggregate_lane(selected, release_lane or "")
         else:
-            selected_for_gate, task_lane_status = selected, "LEGACY_COMPATIBILITY"
+            selected_for_gate, task_lane_status = selected, "NO_PINNED_EVIDENCE"
         counts = Counter(str(t["grader"]["status"]) for t in selected_for_gate)
         valid = sum(counts[s] for s in ["PASS", "FAIL", "UNKNOWN"])
         if task["criticality"] == "critical":
