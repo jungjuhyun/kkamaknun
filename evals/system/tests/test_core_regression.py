@@ -75,6 +75,20 @@ class CoreSchemaTests(unittest.TestCase):
         self.assertIn("controlled interface object", prompt)
         self.assertIn("Capability names in this guide do not request invocation", prompt)
 
+    def test_prompt_applies_common_process_and_mutation_preconditions(self):
+        route_task = next(t for t in load_core_tasks() if t["scenario"] == "material_first")
+        mutation_task = next(t for t in load_core_tasks() if t["scenario"] == "main_mutation")
+        route_prompt = prompt_for(route_task, "a" * 40, "python")
+        mutation_prompt = prompt_for(mutation_task, "a" * 40, "python")
+        self.assertIn("common-process route decision", route_prompt)
+        self.assertIn("common process owner", route_prompt)
+        self.assertIn("route verification, not", route_prompt)
+        self.assertIn("mutation_state is the authorization precondition", mutation_prompt)
+        self.assertIn("logical main branch forbids all writes", mutation_prompt)
+        self.assertIn("non-main branch", mutation_prompt)
+        self.assertNotIn('"expected":', route_prompt)
+        self.assertNotIn('"expected":', mutation_prompt)
+
     def test_current_result_records_completed_primary_baseline_and_preserves_legacy_audit(self):
         result_path = Path(__file__).resolve().parents[1] / "core_result.json"
         findings_path = Path(__file__).resolve().parents[1] / "core_findings.json"
