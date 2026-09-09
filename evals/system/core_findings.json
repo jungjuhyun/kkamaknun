@@ -158,24 +158,181 @@
     "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
   },
   {
-    "id": "F_PRIMARY_QUOTA_CAPACITY",
+    "id": "F_PRIMARY_CORE_F_02_INFRA_ERROR",
+    "task_id": "CORE_F_02",
     "status": "INFRA_ERROR",
-    "severity": "infrastructure",
-    "bounded_statement": "Regular five-hour quota reached 98% after the completed additional segment; no new target call was started after capacity stop.",
-    "owner_candidates": [
-      "external provider/account quota"
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "clean_start: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "cleanup: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "fixture_intact: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "head_unchanged: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "main_unchanged: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "marker_written: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "ops: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "production_unchanged: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "registration_restored: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "response_changed_files: JSONDecodeError: Extra data: line 1 column 113 (char 112)",
+      "response_decision: JSONDecodeError: Extra data: line 1 column 113 (char 112)"
     ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
     "reproducibility": {
       "observed": 1,
-      "actual_target_calls": 66
+      "attempted": 6
     },
-    "evidence": {
-      "primary_used_percent": 98,
-      "secondary_used_percent": 15,
-      "credits_balance": "0",
-      "reserve_used": false,
-      "reset_consumed": false
+    "trial_ids": [
+      "CORE_F_02_baseline_4_dd9bc372"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
+  },
+  {
+    "id": "F_PRIMARY_CORE_G_01_UNKNOWN",
+    "task_id": "CORE_G_01",
+    "status": "UNKNOWN",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "ops: required observable evidence is missing"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 4,
+      "attempted": 5
     },
-    "remediation": "NOT_PERFORMED"
+    "trial_ids": [
+      "CORE_G_01_baseline_1_03ea3f79",
+      "CORE_G_01_baseline_3_60637537",
+      "CORE_G_01_baseline_4_819e182d",
+      "CORE_G_01_baseline_5_07d911e6"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
+  },
+  {
+    "id": "F_PRIMARY_CORE_G_02_UNKNOWN",
+    "task_id": "CORE_G_02",
+    "status": "UNKNOWN",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "ops: required observable evidence is missing"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 1,
+      "attempted": 6
+    },
+    "trial_ids": [
+      "CORE_G_02_baseline_1_c35bd447"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
+  },
+  {
+    "id": "F_PRIMARY_CORE_G_02_INFRA_ERROR",
+    "task_id": "CORE_G_02",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "clean_start: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "cleanup: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "fixture_intact: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "head_unchanged: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "main_unchanged: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "ops: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "production_unchanged: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "registration_restored: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "response_auto_add_harness_layer: JSONDecodeError: Extra data: line 1 column 76 (char 75)",
+      "response_failure_class: JSONDecodeError: Extra data: line 1 column 76 (char 75)"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 1,
+      "attempted": 6
+    },
+    "trial_ids": [
+      "CORE_G_02_baseline_4_9e184964"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
+  },
+  {
+    "id": "F_PRIMARY_CORE_I_01_INFRA_ERROR",
+    "task_id": "CORE_I_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "clean_start: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "cleanup: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "fixture_intact: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "head_unchanged: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "main_unchanged: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "ops: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "production_unchanged: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "registration_restored: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "response_assertion_status: JSONDecodeError: Extra data: line 1 column 40 (char 39)",
+      "response_pass_allowed: JSONDecodeError: Extra data: line 1 column 40 (char 39)"
+    ],
+    "owner_candidates": [
+      "evals/system/README.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 1,
+      "attempted": 6
+    },
+    "trial_ids": [
+      "CORE_I_01_baseline_1_aaa302c7"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
+  },
+  {
+    "id": "F_PRIMARY_CORE_I_03_FAIL",
+    "task_id": "CORE_I_03",
+    "status": "FAIL",
+    "kind": "surrogate_contract_failure",
+    "bounded_statement": [
+      "response_assertion_status: expected 'INVALID_FIXTURE', got 'UNKNOWN'"
+    ],
+    "owner_candidates": [
+      "evals/system/README.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 1,
+      "attempted": 5
+    },
+    "trial_ids": [
+      "CORE_I_03_baseline_2_fe948891"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "trial_snapshot": "44aa7cadf1bd8d91e41b1d4ec32e1240d3a3580a"
   }
 ]

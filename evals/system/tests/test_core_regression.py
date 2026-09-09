@@ -56,21 +56,23 @@ class CoreSchemaTests(unittest.TestCase):
             self.assertNotIn('"expected":', prompt)
             self.assertNotIn("known_pass", prompt)
 
-    def test_current_result_records_primary_checkpoint_and_preserves_legacy_audit(self):
+    def test_current_result_records_completed_primary_baseline_and_preserves_legacy_audit(self):
         result_path = Path(__file__).resolve().parents[1] / "core_result.json"
         findings_path = Path(__file__).resolve().parents[1] / "core_findings.json"
         result = json.loads(result_path.read_text(encoding="utf-8"))
         findings = json.loads(findings_path.read_text(encoding="utf-8"))
-        self.assertEqual(result["phase_status"], "PHASE3_BLOCKED")
+        self.assertEqual(result["phase_status"], "PHASE3_FAILED")
         self.assertEqual(result["legacy_identity_audit"]["legacy_unpinned_trial_count"], 32)
         self.assertEqual(result["legacy_identity_audit"]["identity_restorable_exactly"], 0)
         self.assertEqual(result["target_lane_selection"]["primary_lane_finalized"], True)
         self.assertEqual(result["primary_lane_state"]["primary_lane"], "model=gpt-5.6-sol;reasoning_effort=medium")
-        self.assertEqual(result["primary_lane_state"]["valid_trials"], 64)
-        self.assertEqual(result["primary_lane_state"]["valid_pass"], 53)
-        self.assertEqual(result["primary_lane_state"]["valid_fail"], 7)
-        self.assertEqual(result["primary_lane_state"]["valid_unknown"], 4)
-        self.assertEqual(result["primary_lane_state"]["total_remaining_trials"], 48)
+        self.assertEqual(result["primary_lane_state"]["valid_trials"], 112)
+        self.assertEqual(result["primary_lane_state"]["valid_pass"], 95)
+        self.assertEqual(result["primary_lane_state"]["valid_fail"], 8)
+        self.assertEqual(result["primary_lane_state"]["valid_unknown"], 9)
+        self.assertEqual(result["primary_lane_state"]["total_remaining_trials"], 0)
+        self.assertEqual(result["primary_lane_state"]["critical_gate"],
+                         {"PASS": 14, "FAIL": 6, "BLOCKED": 0})
         self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["gate_status"], "FAIL")
         self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["reproduction"], "2/5")
         self.assertEqual(result["task_summary"][3]["id"], "CORE_B_01")
@@ -79,7 +81,10 @@ class CoreSchemaTests(unittest.TestCase):
         self.assertEqual({item["id"] for item in findings}, {
             "F_CORE_B_01_FAIL", "F_PRIMARY_CORE_B_01_FAIL", "F_PRIMARY_CORE_B_02_UNKNOWN",
             "F_PRIMARY_CORE_C_02_FAIL", "F_PRIMARY_CORE_E_01_INFRA_ERROR",
-            "F_PRIMARY_QUOTA_CAPACITY", "F_TARGET_IDENTITY_LEGACY_UNPINNED"})
+            "F_PRIMARY_CORE_F_02_INFRA_ERROR", "F_PRIMARY_CORE_G_01_UNKNOWN",
+            "F_PRIMARY_CORE_G_02_UNKNOWN", "F_PRIMARY_CORE_G_02_INFRA_ERROR",
+            "F_PRIMARY_CORE_I_01_INFRA_ERROR", "F_PRIMARY_CORE_I_03_FAIL",
+            "F_TARGET_IDENTITY_LEGACY_UNPINNED"})
 
 
 class CoreEvidenceTests(unittest.TestCase):
