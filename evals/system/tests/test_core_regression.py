@@ -66,11 +66,11 @@ class CoreSchemaTests(unittest.TestCase):
         self.assertEqual(result["legacy_identity_audit"]["identity_restorable_exactly"], 0)
         self.assertEqual(result["target_lane_selection"]["primary_lane_finalized"], True)
         self.assertEqual(result["primary_lane_state"]["primary_lane"], "model=gpt-5.6-sol;reasoning_effort=medium")
-        self.assertEqual(result["primary_lane_state"]["valid_trials"], 30)
-        self.assertEqual(result["primary_lane_state"]["valid_pass"], 24)
-        self.assertEqual(result["primary_lane_state"]["valid_fail"], 2)
+        self.assertEqual(result["primary_lane_state"]["valid_trials"], 64)
+        self.assertEqual(result["primary_lane_state"]["valid_pass"], 53)
+        self.assertEqual(result["primary_lane_state"]["valid_fail"], 7)
         self.assertEqual(result["primary_lane_state"]["valid_unknown"], 4)
-        self.assertEqual(result["primary_lane_state"]["total_remaining_trials"], 82)
+        self.assertEqual(result["primary_lane_state"]["total_remaining_trials"], 48)
         self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["gate_status"], "FAIL")
         self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["reproduction"], "2/5")
         self.assertEqual(result["task_summary"][3]["id"], "CORE_B_01")
@@ -78,6 +78,7 @@ class CoreSchemaTests(unittest.TestCase):
         self.assertEqual(result["legacy_evidence"]["gate_eligible"], False)
         self.assertEqual({item["id"] for item in findings}, {
             "F_CORE_B_01_FAIL", "F_PRIMARY_CORE_B_01_FAIL", "F_PRIMARY_CORE_B_02_UNKNOWN",
+            "F_PRIMARY_CORE_C_02_FAIL", "F_PRIMARY_CORE_E_01_INFRA_ERROR",
             "F_PRIMARY_QUOTA_CAPACITY", "F_TARGET_IDENTITY_LEGACY_UNPINNED"})
 
 
