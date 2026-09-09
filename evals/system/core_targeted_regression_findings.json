@@ -4,7 +4,9 @@
     "status": "INFRA_ERROR",
     "kind": "suite_setup_failure",
     "bounded_statement": "The first 30-call suite used a user-installed Python that the target workspace sandbox could not execute. Twenty-seven calls directly observed access denied; three made no protocol attempt. The entire suite is excluded from product gates and preserved separately.",
-    "remediation": "Re-ran the same bounded six-task suite with the documented bundled target-accessible Python; no product or grader source changed."
+    "remediation": "Re-ran the same bounded six-task suite with the documented bundled target-accessible Python; no product or grader source changed.",
+    "preflight_required": true,
+    "preflight_contract": "Before a batch, verify the exact tool interpreter through one controlled fixture invocation in the same Codex target workspace; abort product measurement if a completed CORE_EVENT and journal entry are not observed."
   },
   {
     "id": "F_CORE_G_01_TARGETED",

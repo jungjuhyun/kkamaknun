@@ -75,7 +75,7 @@ The grader may use controlled fixture inputs, structured process results, filesy
 
 The runner uses Inspect AI for task/dataset/scorer/epochs/logging/re-score and a minimal custom runner for the authenticated local Codex CLI subprocess. Each target call executes from a fresh detached disposable Git worktree at the pinned snapshot. Runtime artifacts and Inspect logs use separate external directories.
 
-Only completed Codex JSONL events and independently observed process, filesystem, and Git state are evidence. The known-good scorer requires observed reads of the task, fallback fixture, and three owner records in addition to the final response. A correct response does not prove an unobserved tool path. Complete internal tool traces, complete model messages, and unobserved retrieval provenance remain `UNKNOWN`.
+Only completed Codex JSONL events and independently observed process, filesystem, and Git state are evidence. Owner records must be read through the controlled fixture interface; a direct repository read or a correct final response cannot manufacture that evidence. The known-good scorer requires observed reads of the task, fallback fixture, and three owner records in addition to the final response. A correct response does not prove an unobserved tool path. Complete internal tool traces, complete model messages, and unobserved retrieval provenance remain `UNKNOWN`.
 
 ### Actual ChatGPT Work
 
@@ -254,6 +254,8 @@ valid trials. Legacy observations do not reduce that count.
 ### Run, preserve, and re-score
 
 Use an external environment with only `core_requirements.txt` installed. Do not install Inspect SWE, Docker, PyRIT or Promptfoo. Windows may require the bundled Python executable for `--tool-python`, because a user-installed virtualenv launcher can be unavailable inside Codex's command environment. That setup failure is infrastructure, not a product failure.
+
+Before a batch, the operator must preflight the exact `--tool-python` in the same Codex target workspace with one controlled fixture invocation and require a completed `CORE_EVENT` plus journal entry. Use the bundled target-accessible runtime when the desktop environment supplies one; do not substitute a host-only or user-installed interpreter merely because it runs outside Codex. If the fixture journal is empty and a controlled command reports interpreter launch or access-denied failure, stop the batch and record `INFRA_ERROR`; do not treat its response-level FAIL/UNKNOWN labels as product evidence.
 
 ```text
 <venv-python> -m evals.system.core_regression --repo C:\kkamaknun --snapshot <exact-sha> --output <new-external-directory> --codex <codex.exe> --target-model <model> --target-reasoning-effort <effort> --tool-python <target-accessible-python> --workers 2

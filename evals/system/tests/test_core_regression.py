@@ -11,7 +11,7 @@ import unittest
 from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
-    grade_envelope, lane_state, load_core_tasks, findings_for, prompt_for, summarize,
+    fixture_interpreter_launch_failed, grade_envelope, lane_state, load_core_tasks, findings_for, prompt_for, summarize,
     target_identity, target_lane_id,
 )
 
@@ -66,6 +66,14 @@ class CoreSchemaTests(unittest.TestCase):
         self.assertIn("target differs from the requested target", prompt)
         self.assertIn("INVALID_FIXTURE", prompt)
 
+    def test_prompt_requires_fixture_only_routing_and_controlled_observation(self):
+        task = next(t for t in load_core_tasks() if t["id"] == "CORE_I_03")
+        prompt = prompt_for(task, "a" * 40, "python")
+        self.assertIn("only allowed repository-reading mechanism", prompt)
+        self.assertIn("read AGENTS.md exactly once", prompt)
+        self.assertIn("current owner it selects", prompt)
+        self.assertIn("controlled interface object", prompt)
+
     def test_current_result_records_completed_primary_baseline_and_preserves_legacy_audit(self):
         result_path = Path(__file__).resolve().parents[1] / "core_result.json"
         findings_path = Path(__file__).resolve().parents[1] / "core_findings.json"
@@ -117,6 +125,14 @@ class CoreEvidenceTests(unittest.TestCase):
         self.assertEqual(capture_events({"tools": [tool]}, []), [])
         tool["command"] = "echo fake"
         self.assertEqual(capture_events({"tools": [tool]}, [["read", "STATE.md"]]), [])
+
+    def test_fixture_interpreter_access_denied_is_infrastructure(self):
+        tool = {"command": "python .core_trial/tool.py read AGENTS.md", "exit_code": 1,
+                "aggregated_output": "ResourceUnavailable: 액세스가 거부되었습니다"}
+        self.assertTrue(fixture_interpreter_launch_failed([tool], []))
+        self.assertFalse(fixture_interpreter_launch_failed([tool], [["read", "AGENTS.md"]]))
+        self.assertFalse(fixture_interpreter_launch_failed(
+            [{**tool, "exit_code": 0}], []))
 
     def test_pass_wrong_answer_missing_infra_cross_target_remain_distinct(self):
         task = self.tasks["tool_semantics"]

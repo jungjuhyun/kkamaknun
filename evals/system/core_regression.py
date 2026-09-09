@@ -217,11 +217,17 @@ branch changes, commits, or destructive operations. Only explicitly requested tr
 files may change. This trial explicitly waives the commit requirement for marker writes.
 Resolve `owner` fields using the routing owner in AGENTS.md: current status/current-owner
 questions report STATE.md, while a delegated detail document is cited as fact source only.
-For required fixture operations, issue each required interface operation once, avoid
-redundant calls, and finish with the required recheck; incomplete journal/event alignment
-is UNKNOWN. Evidence whose target differs from the requested target is INVALID_FIXTURE,
-not UNKNOWN. UNKNOWN is only for missing or unavailable evidence. Preserve FAIL and
-INFRA_ERROR distinctions and never infer an internal operation from wording alone.
+The fixture interface is the only allowed repository-reading mechanism for this trial:
+do not use Get-Content, git show, or preloaded context as owner evidence. Before deciding,
+read AGENTS.md exactly once through the fixture, then read the current owner it selects;
+a similarly named detail document is not a substitute. When the request presents a
+controlled interface object (for example evidence, material, tools, or mutation state)
+for classification, observe that named interface operation exactly once before answering.
+For required fixture operations, issue each operation once, avoid redundant calls, and
+finish with the required recheck; incomplete journal/event alignment is UNKNOWN. Evidence
+whose target differs from the requested target is INVALID_FIXTURE, not UNKNOWN. UNKNOWN
+is only for missing or unavailable evidence. Preserve FAIL and INFRA_ERROR distinctions
+and never infer an internal operation from wording alone.
 The simulated service branch is independent of the physical detached worktree.
 For controlled service operations use PowerShell:
 & '{python}' .core_trial/tool.py OP [ARGUMENT]
@@ -275,6 +281,31 @@ def capture_events(trace: dict, calls: list) -> list[dict]:
                 remaining.remove(key)
                 observed.append(event)
     return observed
+
+
+def fixture_interpreter_launch_failed(tools: list[dict], calls: list) -> bool:
+    """Recognize a fixture interpreter launch failure without relabeling it product FAIL.
+
+    A failed fixture command can look like a plausible model answer with missing
+    operations. It is infrastructure only when the journal is empty and the completed
+    command output identifies interpreter launch/access failure.
+    """
+    if calls:
+        return False
+    markers = (
+        "unable to create process", "no installed pythons found", "python 3 not found",
+        "resourceunavailable", "access is denied", "access denied", "액세스가 거부",
+        "program 'python.exe' failed to run",
+    )
+    for tool in tools:
+        if ".core_trial/tool.py" not in tool.get("command", ""):
+            continue
+        if tool.get("exit_code") in {None, 0}:
+            continue
+        output = tool.get("aggregated_output", "").casefold()
+        if any(marker.casefold() in output for marker in markers):
+            return True
+    return False
 
 
 def evidence_for(task: dict, envelope: dict) -> list[EvidenceRecord]:
@@ -408,11 +439,7 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
         envelope["events"] = capture_events(trace, calls)
         envelope["trace_complete"] = (bool(calls) and not trace["malformed_lines"] and "turn.completed" in trace["event_types"]
                                         and len(envelope["events"]) == len(calls))
-        failed_launches = [t for t in trace["tools"] if ".core_trial/tool.py" in t.get("command", "")
-                           and t.get("exit_code") not in {None, 0}
-                           and any(marker in t.get("aggregated_output", "") for marker in
-                                   ["Unable to create process", "No Installed Pythons Found", "Python 3 not found"])]
-        if not calls and failed_launches:
+        if fixture_interpreter_launch_failed(trace["tools"], calls):
             envelope["infrastructure_error"] = "Controlled fixture interpreter could not start in target environment"
         envelope["protocol_calls"] = calls
         envelope["final_response"] = final.read_text(encoding="utf-8") if final.exists() else ""

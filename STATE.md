@@ -149,7 +149,8 @@ Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아�
 - baseline 실패 6개에 대한 공통 owner-routing/evidence-protocol remediation을 commit `1a42848409db02cf121100fd06ba0e20cbae26ac`에 반영했다. grader와 task expectation은 변경하지 않았다.
 - 같은 SHA의 `gpt-5.6-sol` / `medium` targeted regression에서 `CORE_B_01`, `CORE_B_02`, `CORE_C_02`는 5/5 PASS로 gate를 회복했다. `CORE_G_01`은 `PASS 3 / FAIL 1 / UNKNOWN 1`, `CORE_G_02`는 `PASS 2 / UNKNOWN 3`, `CORE_I_03`은 `PASS 4 / FAIL 1`로 gate가 남아 targeted regression은 `FAILED`다.
 - 첫 30-call 시도는 user-installed Python이 target sandbox에서 access denied되어 suite-wide setup INFRA로 제외했다. bundled target-accessible Python으로 실행한 별도 30-call suite만 product 결과로 집계했다. 두 실행의 원본 evidence는 각각 durable archive에 보존했다.
-- 현재 남은 product failure는 `CORE_G_01`, `CORE_G_02`, `CORE_I_03`이다. 다음 exact action은 이 세 task의 evidence를 다시 root-cause audit하는 것이며, 추가 remediation 승인 전에는 target regression을 반복하지 않는다. Phase 4와 전체 112-trial baseline rerun은 시작하지 않는다.
+- `CORE_G_01`, `CORE_G_02`, `CORE_I_03`의 targeted evidence audit은 완료했다. 공통 remediation은 fixture-only owner retrieval, `AGENTS.md` routing 뒤 selected owner read, controlled input의 명시적 관측을 target prompt에 통합하고, access-denied fixture interpreter launch를 `INFRA_ERROR`로 분류하도록 runner를 보정했다. future batch에는 동일 target workspace에서 exact interpreter의 `CORE_EVENT`/journal preflight를 먼저 요구한다.
+- 다음 exact action은 이 세 task만 `gpt-5.6-sol` / `medium`으로 targeted re-test하는 것이다. Phase 4와 전체 112-trial baseline rerun은 시작하지 않는다.
 - 상세 baseline은 `evals/system/core_result.json`, targeted 결과는 `evals/system/core_targeted_regression_result.json`, 현재 측정 계약은 `evals/system/README.md`가 owner다.
 - 영상 기획의 현재 실행 위치와 다음 행동은 위 기획 공정 상태를 그대로 따른다.
 
