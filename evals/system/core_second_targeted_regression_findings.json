@@ -1,0 +1,16 @@
+[
+  {
+    "id": "F_CORE_G_01_SECOND_TARGETED_UNKNOWN",
+    "task_id": "CORE_G_01",
+    "status": "UNKNOWN",
+    "distribution": "PASS 4 / FAIL 0 / UNKNOWN 1",
+    "bounded_statement": [
+      "The response fields were correct and the required AGENTS.md owner read was observed.",
+      "The target additionally invoked the evidence operation, which is unsupported for validator_boundary and exited with KeyError before emitting CORE_EVENT.",
+      "The extra journal entry therefore could not align with completed events, making ops evidence incomplete."
+    ],
+    "trial_id": "CORE_G_01_baseline_5_5caaef07",
+    "infrastructure_error": false,
+    "remediation": "NOT_PERFORMED"
+  }
+]
