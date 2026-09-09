@@ -152,8 +152,9 @@ Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아�
 - `CORE_G_01`, `CORE_G_02`, `CORE_I_03`의 targeted evidence audit은 완료했다. 공통 remediation은 fixture-only owner retrieval, `AGENTS.md` routing 뒤 selected owner read, controlled input의 명시적 관측을 target prompt에 통합하고, access-denied fixture interpreter launch를 `INFRA_ERROR`로 분류하도록 runner를 보정했다. future batch에는 동일 target workspace에서 exact interpreter의 `CORE_EVENT`/journal preflight를 먼저 요구한다.
 - commit `33c4e8e11bdbd086d36b809be5035629e2ebd378` second targeted re-test는 exact bundled-Python preflight를 통과한 뒤 15 valid trials를 실행했다. `CORE_G_02`와 `CORE_I_03`은 5/5 PASS로 gate를 회복했고, `CORE_G_01`은 `PASS 4 / UNKNOWN 1`로 gate가 남아 targeted regression은 `FAILED`다. setup 및 batch INFRA_ERROR는 없었다.
 - `CORE_G_01` 단일 UNKNOWN audit 결과, 불필요한 `evidence` 호출 자체보다 unsupported operation/scenario가 journal 기록 뒤 `CORE_EVENT` 없이 `KeyError`로 종료된 fixture protocol 결함이 trace 불완전의 직접 원인이었다. fixture는 이제 모든 journaled operation에 성공 또는 구조화된 실패 event를 남기며, capability 목록이 호출 지시가 아니라는 공통 안내를 사용한다.
-- 다음 exact action은 `CORE_G_01`만 `gpt-5.6-sol` / `medium`으로 5 valid trials targeted re-test하는 것이다. Phase 4와 전체 112-trial baseline rerun은 시작하지 않는다.
-- 상세 baseline은 `evals/system/core_result.json`, 첫 targeted 결과는 `evals/system/core_targeted_regression_result.json`, second targeted 결과는 `evals/system/core_second_targeted_regression_result.json`, 현재 측정 계약은 `evals/system/README.md`가 owner다.
+- commit `3aaf17ee5047275449c73ec92a9e89ca61f7dbda`에서 bundled-Python preflight를 통과한 뒤 실행한 `CORE_G_01` targeted re-test는 5/5 PASS로 gate를 회복했다. preflight 1회와 product trial 5회 외의 호출은 없었고 INFRA_ERROR도 없었다.
+- 개별 remediation 대상 6개는 후속 targeted regression에서 모두 gate를 회복했지만, Phase 3의 authoritative full-baseline 판정은 아직 최초 `PHASE3_FAILED` 기록이다. 다음 exact action은 현재 remediation snapshot에서 전체 Phase 3 baseline 확인 실행 여부를 결정하는 것이며, 승인 전에는 Phase 4나 112-trial rerun을 시작하지 않는다.
+- 상세 baseline은 `evals/system/core_result.json`, 첫 targeted 결과는 `evals/system/core_targeted_regression_result.json`, second targeted 결과는 `evals/system/core_second_targeted_regression_result.json`, G01 최종 targeted 결과는 `evals/system/core_g01_targeted_regression_result.json`, 현재 측정 계약은 `evals/system/README.md`가 owner다.
 - 영상 기획의 현재 실행 위치와 다음 행동은 위 기획 공정 상태를 그대로 따른다.
 
 ## 운영 원칙
