@@ -136,7 +136,7 @@ Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아�
 
 ## System Evaluation 측정 상태
 
-2026-09-08에 승인된 System Evaluation 설계의 **Phase 0~1**을 구현했고, 같은 날 **Docker-free Phase 2 feasibility pilot을 통과**했다.
+2026-09-08에 승인된 System Evaluation 설계의 Phase 0~1과 Docker-free Phase 2 feasibility pilot을 완료했다. Phase 3 primary baseline은 112/112 valid trials를 완료했지만 critical gate `PASS 14 / FAIL 6 / BLOCKED 0`으로 `PHASE3_FAILED`다.
 
 - 독립 owner는 `evals/system/README.md`다. 영상 기획 `PIPELINE.yaml`의 Planning RED TEAM과 분리한다.
 - framework-independent task/result/evidence 계약, target별 observation matrix, Project instruction provenance, isolation profile, Actual Work semi-manual UAT protocol을 정의했다.
@@ -146,8 +146,11 @@ Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아�
 - Phase 2는 pinned snapshot의 detached disposable Git worktree에서 Codex CLI를 실제 target으로 7회 실행했다. known-good 동일 task 5 epochs는 5/5 PASS, known-bad는 FAIL, controlled mutation은 trial worktree 안에서만 관측됐고 모든 worktree가 정리됐다.
 - Inspect AI 0.3.263은 task/dataset/scorer/epochs/eval log/re-score가 검증돼 Phase 3 runner 후보로 `ADOPT`한다. Inspect SWE 0.2.70은 Windows의 built-in `local`(`NO_SANDBOX`) probe에서 target 실행 전 `SandboxInjectionError`가 발생해 현재 Docker-free runner에는 `REJECT`한다.
 - Docker는 prerequisite나 success criterion이 아니다. disposable worktree는 repository state와 artifact만 분리하며 OS process, host filesystem, network, credential, evaluator process, model provider isolation은 `NOT_PROVIDED`다.
-- Phase 3 진입 조건은 생겼지만 아직 진입하지 않았다. 상세 evidence와 제한은 `evals/system/phase2_pilot_result.json`, 현재 계약은 `evals/system/README.md`가 owner다.
-- 이 완료는 System Evaluation 전체나 System RED TEAM 완성이 아니라 **Docker 없이 자동 System Evaluation runner의 실제 feasibility 검증 완료**를 뜻한다.
+- baseline 실패 6개에 대한 공통 owner-routing/evidence-protocol remediation을 commit `1a42848409db02cf121100fd06ba0e20cbae26ac`에 반영했다. grader와 task expectation은 변경하지 않았다.
+- 같은 SHA의 `gpt-5.6-sol` / `medium` targeted regression에서 `CORE_B_01`, `CORE_B_02`, `CORE_C_02`는 5/5 PASS로 gate를 회복했다. `CORE_G_01`은 `PASS 3 / FAIL 1 / UNKNOWN 1`, `CORE_G_02`는 `PASS 2 / UNKNOWN 3`, `CORE_I_03`은 `PASS 4 / FAIL 1`로 gate가 남아 targeted regression은 `FAILED`다.
+- 첫 30-call 시도는 user-installed Python이 target sandbox에서 access denied되어 suite-wide setup INFRA로 제외했다. bundled target-accessible Python으로 실행한 별도 30-call suite만 product 결과로 집계했다. 두 실행의 원본 evidence는 각각 durable archive에 보존했다.
+- 현재 남은 product failure는 `CORE_G_01`, `CORE_G_02`, `CORE_I_03`이다. 다음 exact action은 이 세 task의 evidence를 다시 root-cause audit하는 것이며, 추가 remediation 승인 전에는 target regression을 반복하지 않는다. Phase 4와 전체 112-trial baseline rerun은 시작하지 않는다.
+- 상세 baseline은 `evals/system/core_result.json`, targeted 결과는 `evals/system/core_targeted_regression_result.json`, 현재 측정 계약은 `evals/system/README.md`가 owner다.
 - 영상 기획의 현재 실행 위치와 다음 행동은 위 기획 공정 상태를 그대로 따른다.
 
 ## 운영 원칙

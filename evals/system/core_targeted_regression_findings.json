@@ -1,0 +1,40 @@
+[
+  {
+    "id": "F_TARGETED_SETUP_INFRA",
+    "status": "INFRA_ERROR",
+    "kind": "suite_setup_failure",
+    "bounded_statement": "The first 30-call suite used a user-installed Python that the target workspace sandbox could not execute. Twenty-seven calls directly observed access denied; three made no protocol attempt. The entire suite is excluded from product gates and preserved separately.",
+    "remediation": "Re-ran the same bounded six-task suite with the documented bundled target-accessible Python; no product or grader source changed."
+  },
+  {
+    "id": "F_CORE_G_01_TARGETED",
+    "task_id": "CORE_G_01",
+    "status": "FAIL",
+    "distribution": "PASS 3 / FAIL 1 / UNKNOWN 1",
+    "bounded_statement": [
+      "One trial omitted required read:AGENTS.md evidence.",
+      "One trial lacked complete observable ops evidence."
+    ],
+    "remediation": "NOT_PERFORMED"
+  },
+  {
+    "id": "F_CORE_G_02_TARGETED",
+    "task_id": "CORE_G_02",
+    "status": "UNKNOWN",
+    "distribution": "PASS 2 / FAIL 0 / UNKNOWN 3",
+    "bounded_statement": [
+      "Three trials lacked complete observable ops evidence."
+    ],
+    "remediation": "NOT_PERFORMED"
+  },
+  {
+    "id": "F_CORE_I_03_TARGETED",
+    "task_id": "CORE_I_03",
+    "status": "FAIL",
+    "distribution": "PASS 4 / FAIL 1 / UNKNOWN 0",
+    "bounded_statement": [
+      "One trial omitted required read:evals/system/README.md evidence."
+    ],
+    "remediation": "NOT_PERFORMED"
+  }
+]
