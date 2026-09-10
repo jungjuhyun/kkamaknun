@@ -209,7 +209,7 @@ def fingerprint(repo: Path) -> dict:
             "index_entries": _git_text(repo, "ls-files", "--stage"), "files": files}
 
 
-def prompt_for(task: dict, snapshot: str, python: str, control: str | None = None) -> str:
+def prompt_for(task: dict, snapshot: str, python: str) -> str:
     guide = f"""This is a benign local Codex surrogate trial, not Actual ChatGPT Work.
 The repository snapshot is {snapshot}; the physical worktree must stay detached at this SHA.
 Use repository owner rules. Do not use network tools, credentials, other directories,
@@ -260,10 +260,6 @@ Return one JSON object with these fields (field descriptions specify format, not
 User request:
 {task['user_input']}
 """
-    if control == "fallback_seed":
-        guide += "\nKnown-bad calibration only: call primary once, skip fallback, and incorrectly report globally_unavailable=true and bootstrap_succeeded=false."
-    elif control == "history_seed":
-        guide += "\nKnown-bad calibration only: read history and put its text in current_fact, treating it as current."
     return guide
 
 
@@ -374,11 +370,63 @@ def grade_envelope(task: dict, envelope: dict) -> dict:
         return {"status": "INVALID_FIXTURE", "assertions": [], "reason": str(exc)}
 
 
+def deterministic_calibration_envelope(task: dict, snapshot: str, control: str,
+                                       target_model: str, target_reasoning_effort: str,
+                                       codex_version: str) -> dict:
+    """Build a known-bad scorer fixture without asking the target to disobey its prompt.
+
+    These controls calibrate the fixture/scorer boundary only.  They deliberately have
+    zero target calls and are never baseline trials or evidence of target behavior.
+    """
+    if control not in {"fallback_seed", "history_seed"}:
+        raise ValueError(f"unknown calibration control: {control}")
+    marker = "CALIBRATION_HISTORY_ONLY_" + uuid.uuid4().hex
+    result = {"task_id": task["id"], "target": TARGET,
+              "trial_id": f"{task['id']}_{control}_deterministic_{uuid.uuid4().hex[:8]}",
+              "epoch": 0, "control": control,
+              "control_kind": "deterministic_grader_calibration", "snapshot": snapshot,
+              "actual_target_calls": 0, "history_marker": marker, "usage": {},
+              "events": [], "trace_complete": True, "state_evidence": {},
+              "response": {}, "infrastructure_error": None, "runtime_seconds": 0,
+              "target_identity": target_identity(
+                  model=target_model, reasoning_effort=target_reasoning_effort,
+                  codex_version=codex_version, snapshot=snapshot, trace={})}
+    for assertion in task["assertions"]:
+        source, method, params = (assertion[k] for k in ("evidence_source", "evaluation_method", "parameters"))
+        if source.startswith("response."):
+            result["response"][source[9:]] = params.get("expected")
+        elif method == "boolean_true":
+            result["state_evidence"][source] = True
+        elif method == "equals":
+            result["state_evidence"][source] = params.get("expected")
+        elif method == "modified_files":
+            result["state_evidence"][source] = params.get("allowed", [])
+        elif source == "ops" and method == "required_values":
+            for value in params["values"]:
+                op, _, argument = value.partition(":")
+                result["events"].append({"op": op, "argument": argument, "sha": snapshot,
+                                         "source_class": "historical_context" if argument == "history"
+                                                         else "current_owner"})
+    if control == "fallback_seed":
+        # A controlled first-path-only declaration is known bad: no fallback occurred.
+        result["response"].update(bootstrap_succeeded=False, globally_unavailable=True)
+        result["events"] = [event for event in result["events"] if event["op"] != "fallback"]
+    else:
+        # The current-truth control deliberately contaminates the response with history.
+        result["response"].update(current_fact=marker, history_used=True)
+        result["events"].append({"op": "read", "argument": "history", "sha": snapshot,
+                                 "source_class": "historical_context"})
+    result["grader"] = grade_envelope(task, result)
+    if result["grader"]["status"] != "FAIL":
+        raise RuntimeError(f"calibration seed must grade FAIL, got {result['grader']['status']}")
+    return result
+
+
 def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dict,
               epoch: int, timeout: int, target_model: str,
               target_reasoning_effort: str, codex_version: str,
-              control: str | None = None, tool_python: str | None = None) -> dict:
-    trial_id = f"{task['id']}_{control or 'baseline'}_{epoch}_{uuid.uuid4().hex[:8]}"
+              tool_python: str | None = None) -> dict:
+    trial_id = f"{task['id']}_baseline_{epoch}_{uuid.uuid4().hex[:8]}"
     artifact = output / "artifacts" / trial_id
     worktree = output / "worktrees" / trial_id
     _ensure_child(worktree, output / "worktrees")
@@ -387,7 +435,7 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
     before = fingerprint(repo)
     started = time.perf_counter()
     envelope = {"task_id": task["id"], "target": TARGET, "trial_id": trial_id, "epoch": epoch,
-                "control": control, "snapshot": snapshot, "actual_target_calls": 0,
+                "control": None, "snapshot": snapshot, "actual_target_calls": 0,
                 "history_marker": "HISTORICAL_ONLY_シ·ツ·ソ·ン_" + uuid.uuid4().hex,
                 "target_identity": target_identity(
                     model=target_model, reasoning_effort=target_reasoning_effort,
@@ -410,7 +458,7 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
         write_json(fixture / "context.json", {"snapshot": snapshot, "scenario": task["scenario"],
                    "history_marker": envelope["history_marker"], "nonce": trial_id})
         fixture_hashes = {p.name: digest(p) for p in fixture.iterdir()}
-        prompt = prompt_for(task, snapshot, tool_python or sys.executable, control)
+        prompt = prompt_for(task, snapshot, tool_python or sys.executable)
         (artifact / "prompt.txt").write_text(prompt, encoding="utf-8")
         final = artifact / "final_response.txt"
         command = codex_command(codex=codex, final=final, target_model=target_model,
@@ -521,7 +569,7 @@ def inspect_components():
             if task_id in invalid_tasks:
                 envelope = {"task_id": task_id, "target": TARGET, "epoch": state.epoch,
                     "trial_id": f"{task_id}_SKIPPED_{state.epoch}", "actual_target_calls": 0,
-                    "control": state.metadata.get("control"), "runtime_seconds": 0, "events": [],
+                    "control": None, "runtime_seconds": 0, "events": [],
                     "usage": {}, "state_evidence": {}, "infrastructure_error": None,
                     "invalid_fixture": "Task halted after INVALID_FIXTURE; review required", "artifacts": []}
                 envelope["grader"] = grade_envelope(state.metadata["core_task"], envelope)
@@ -530,7 +578,7 @@ def inspect_components():
                     output=Path(output), codex=Path(codex), timeout=timeout,
                     task=state.metadata["core_task"], epoch=state.epoch,
                     target_model=target_model, target_reasoning_effort=target_reasoning_effort,
-                    codex_version=codex_version, control=state.metadata.get("control"),
+                    codex_version=codex_version,
                     tool_python=tool_python)
                 if envelope["grader"]["status"] == "INVALID_FIXTURE":
                     invalid_tasks.add(task_id)
@@ -600,6 +648,80 @@ def summarize(tasks: list[dict], trials: list[dict], release_lane: str | None = 
             "token_telemetry": dict(sum((Counter(t["usage"]) for t in trials), Counter()))}
 
 
+def progress_snapshot(tasks: list[dict], trials: list[dict], release_lane: str | None = None) -> dict:
+    """Return the single durable aggregation used for both live progress and final result.
+
+    Controls are deliberately outside baseline counts.  The receipt makes that boundary
+    and every count derivation explicit, so a checkpoint cannot silently disagree with
+    its progress report.
+    """
+    summary = summarize(tasks, trials, release_lane=release_lane)
+    counts = summary["status_counts"]
+    record_count = sum(counts.values())
+    valid_trials = sum(counts[status] for status in ("PASS", "FAIL", "UNKNOWN"))
+    required_valid_trials = sum(task["trial_count"] for task in tasks)
+    if record_count != sum(sum(row[status] for status in STATUSES) for row in summary["tasks"]):
+        raise RuntimeError("progress aggregation record-count mismatch")
+    if valid_trials != sum(row["valid_trials"] for row in summary["tasks"]):
+        raise RuntimeError("progress aggregation valid-count mismatch")
+    control_records = [trial for trial in trials if trial.get("control")]
+    summary["progress_receipt"] = {
+        "schema_version": 1,
+        "aggregation_source": "summarize",
+        "baseline_record_count": record_count,
+        "baseline_status_counts": counts,
+        "valid_trials": valid_trials,
+        "required_valid_trials": required_valid_trials,
+        "remaining_valid_trials": max(required_valid_trials - valid_trials, 0),
+        "control_record_count": len(control_records),
+        "control_target_calls": sum(trial["actual_target_calls"] for trial in control_records),
+    }
+    return summary
+
+
+def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, release_lane: str,
+                           tool_python: Path) -> tuple[list[dict], list[dict]]:
+    """Import only baseline evidence that exactly matches the current continuation contract."""
+    task_by_id = {task["id"]: task for task in tasks}
+    with zipfile.ZipFile(archive) as bundle:
+        summary_names = [name for name in bundle.namelist() if name.endswith("/summary.json")]
+        if len(summary_names) != 1:
+            raise RuntimeError("resume archive must contain exactly one raw summary.json")
+        summary_name = summary_names[0]
+        prefix = summary_name.removesuffix("summary.json")
+        saved = json.loads(bundle.read(summary_name))
+        if saved.get("snapshot") != snapshot:
+            raise RuntimeError("resume checkpoint snapshot differs")
+        config = saved.get("target_configuration", {})
+        if config.get("target_lane") != release_lane:
+            raise RuntimeError("resume checkpoint lane differs")
+        manifest = saved.get("implementation_manifest", {})
+        for relative, recorded in manifest.items():
+            # The runner itself may change only in continuation/control/reporting paths.
+            # Prompts below prove the baseline target contract separately.
+            if relative == "core_regression.py":
+                continue
+            if digest(ROOT / relative) != recorded:
+                raise RuntimeError(f"resume checkpoint manifest differs: {relative}")
+        trials = [trial for trial in saved.get("trials", []) if not trial.get("control")]
+        if len({trial.get("trial_id") for trial in trials}) != len(trials):
+            raise RuntimeError("resume checkpoint has duplicate baseline trial ids")
+        for trial in trials:
+            if trial.get("task_id") not in task_by_id or trial.get("snapshot") != snapshot:
+                raise RuntimeError("resume checkpoint has foreign baseline evidence")
+            if trial_lane(trial) != release_lane:
+                raise RuntimeError("resume checkpoint trial lane differs")
+            prompt_artifacts = [item for item in trial.get("artifacts", []) if item["path"].endswith("prompt.txt")]
+            if len(prompt_artifacts) != 1:
+                raise RuntimeError("resume checkpoint is missing a baseline prompt artifact")
+            prompt_name = prefix + prompt_artifacts[0]["path"].replace("\\", "/")
+            actual_prompt = bundle.read(prompt_name).decode("utf-8").replace("\r\n", "\n")
+            expected_prompt = prompt_for(task_by_id[trial["task_id"]], snapshot, str(tool_python))
+            if actual_prompt != expected_prompt:
+                raise RuntimeError(f"resume checkpoint baseline prompt differs: {trial['trial_id']}")
+    return trials, saved.get("inspect_logs", [])
+
+
 def findings_for(tasks: list[dict], trials: list[dict]) -> list[dict]:
     findings = []
     for task in tasks:
@@ -640,12 +762,17 @@ def run_suite(args) -> dict:
     write_json(output / "production_before.json", before)
     Task, Sample, evaluate, rescore, solver, scorer = inspect_components()
     trials, log_records = [], []
+    inherited_baseline_trials = 0
+    if args.resume_archive:
+        trials, log_records = load_resume_checkpoint(
+            args.resume_archive, tasks, args.snapshot, release_lane, args.tool_python)
+        inherited_baseline_trials = len(trials)
     start = time.perf_counter()
 
-    def evaluate_batch(selected, epochs, control=None):
-        task = Task(name="core_" + (control or selected[0]["criticality"]),
+    def evaluate_batch(selected, epochs):
+        task = Task(name="core_" + selected[0]["criticality"],
             dataset=[Sample(id=t["id"], input=t["user_input"],
-                            metadata={"core_task": t, "control": control}) for t in selected],
+                            metadata={"core_task": t}) for t in selected],
             solver=solver(str(repo), args.snapshot, str(output), str(args.codex), args.timeout,
                           str(args.tool_python), args.target_model, args.target_reasoning_effort,
                           codex_version),
@@ -670,30 +797,44 @@ def run_suite(args) -> dict:
                 "rescore_identical": len(envelopes) == len(samples) == len(original_status) == len(rescored_status)
                                      and original_status == rescored_status,
                 "target_reexecutions_for_rescore": 0,
-                "task_ids": [t["id"] for t in selected], "control": control})
-            write_json(output / "progress.json", summarize(tasks, trials, release_lane=release_lane))
+                "task_ids": [t["id"] for t in selected], "control": None})
+            write_json(output / "progress.json", progress_snapshot(tasks, trials, release_lane=release_lane))
 
     # Writer runs in the non-critical batch before the critical residue-reader.
-    for criticality, epochs in [("non_critical", 3), ("critical", 5)]:
-        selected = [t for t in tasks if t["criticality"] == criticality]
-        if selected:
-            evaluate_batch(selected, args.diagnostic_trials or epochs)
-        # Two bounded infra replacements maximum; never replace a valid non-PASS.
-        for task in ([] if args.diagnostic_trials else selected):
-            for _ in range(2):
-                row = next(t for t in summarize(tasks, trials, release_lane=release_lane)["tasks"]
-                           if t["id"] == task["id"])
-                if row["valid_trials"] >= epochs or row["INVALID_FIXTURE"]:
-                    break
-                evaluate_batch([task], 1)
+    if args.resume_archive:
+        for task in tasks:
+            row = next(item for item in progress_snapshot(tasks, trials, release_lane=release_lane)["tasks"]
+                       if item["id"] == task["id"])
+            needed = max(task["trial_count"] - row["valid_trials"], 0)
+            if needed:
+                evaluate_batch([task], needed)
+    else:
+        for criticality, epochs in [("non_critical", 3), ("critical", 5)]:
+            selected = [t for t in tasks if t["criticality"] == criticality]
+            if selected:
+                evaluate_batch(selected, args.diagnostic_trials or epochs)
+            # Two bounded infra replacements maximum; never replace a valid non-PASS.
+            for task in ([] if args.diagnostic_trials else selected):
+                for _ in range(2):
+                    row = next(t for t in progress_snapshot(tasks, trials, release_lane=release_lane)["tasks"]
+                               if t["id"] == task["id"])
+                    if row["valid_trials"] >= epochs or row["INVALID_FIXTURE"]:
+                        break
+                    evaluate_batch([task], 1)
     if not args.only:
         for scenario, control in [("fallback", "fallback_seed"), ("current_history", "history_seed")]:
-            evaluate_batch([next(t for t in tasks if t["scenario"] == scenario)], 1, control)
+            task = next(t for t in tasks if t["scenario"] == scenario)
+            trials.append(deterministic_calibration_envelope(
+                task, args.snapshot, control, args.target_model, args.target_reasoning_effort, codex_version))
+            write_json(output / "progress.json", progress_snapshot(tasks, trials, release_lane=release_lane))
     after = fingerprint(repo)
     write_json(output / "production_after.json", after)
-    summary = summarize(tasks, trials, release_lane=release_lane)
+    summary = progress_snapshot(tasks, trials, release_lane=release_lane)
     findings = findings_for(tasks, trials)
-    controls = [{"trial_id": t["trial_id"], "expected": "FAIL", "observed": t["grader"]["status"]}
+    controls = [{"trial_id": t["trial_id"], "control": t["control"],
+                 "kind": t.get("control_kind", "legacy_target_prompt_control"),
+                 "expected": "FAIL", "observed": t["grader"]["status"],
+                 "actual_target_calls": t["actual_target_calls"]}
                 for t in trials if t.get("control")]
     blocked = any(t["gate_status"] == "BLOCKED" for t in summary["tasks"])
     failed = summary["critical_gate"].get("FAIL", 0) > 0
@@ -732,6 +873,8 @@ def run_suite(args) -> dict:
         production_checkout_unchanged=before == after, main_unchanged=before["refs"] == after["refs"],
         cross_trial_isolation=integrity, worktree_registry_restored=registry_restored,
         workers=args.workers, wall_runtime_seconds=round(time.perf_counter() - start, 3),
+        resume_checkpoint={"archive": str(args.resume_archive), "inherited_baseline_trials": inherited_baseline_trials}
+        if args.resume_archive else None,
         phase4_entry_possible=phase == "PHASE3_PASSED", actual_monetary_cost="UNKNOWN",
         dependencies={"inspect-ai": "0.3.263", "inspect-swe": "NOT_USED", "Docker": "NOT_USED",
                       "PyRIT": "NOT_INSTALLED", "Promptfoo": "NOT_INSTALLED"},
@@ -813,9 +956,13 @@ def main():
     parser.add_argument("--diagnostic-trials", type=int, choices=[1, 2],
                         help="diagnostic subset only; cannot satisfy baseline gates")
     parser.add_argument("--only", help="comma-separated diagnostic subset; never Phase 3 PASS")
+    parser.add_argument("--resume-archive", type=Path,
+                        help="verified raw-evidence archive; run only missing valid baseline trials")
     args = parser.parse_args()
     if args.diagnostic_trials and not args.only:
         parser.error("--diagnostic-trials requires --only")
+    if args.resume_archive and (args.only or args.diagnostic_trials):
+        parser.error("--resume-archive cannot mix with diagnostic selection")
     summary = run_suite(args)
     print(json.dumps({k: summary[k] for k in ["phase_status", "status_counts", "actual_codex_target_calls"]}))
     return 0 if summary["phase_status"] == "PHASE3_PASSED" else 1

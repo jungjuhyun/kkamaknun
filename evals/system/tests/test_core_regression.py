@@ -11,7 +11,8 @@ import unittest
 from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
-    fixture_interpreter_launch_failed, grade_envelope, lane_state, load_core_tasks, findings_for, prompt_for, summarize,
+    deterministic_calibration_envelope, fixture_interpreter_launch_failed, grade_envelope, lane_state,
+    load_core_tasks, load_resume_checkpoint, findings_for, progress_snapshot, prompt_for, summarize,
     target_identity, target_lane_id,
 )
 
@@ -191,6 +192,45 @@ class CoreEvidenceTests(unittest.TestCase):
         data["control"] = "history_seed"
         self.assertEqual(summarize([task], [data])["status_counts"]["FAIL"], 0)
         self.assertEqual(findings_for([task], [data]), [])
+
+    def test_calibration_is_fixture_backed_and_known_bad_without_target_call(self):
+        for control, scenario in [("fallback_seed", "fallback"), ("history_seed", "current_history")]:
+            with self.subTest(control=control):
+                task = self.tasks[scenario]
+                data = deterministic_calibration_envelope(
+                    task, "a" * 40, control, "gpt-5.6-sol", "medium", "test")
+                self.assertEqual(data["control_kind"], "deterministic_grader_calibration")
+                self.assertEqual(data["actual_target_calls"], 0)
+                self.assertEqual(data["grader"]["status"], "FAIL")
+                self.assertEqual(summarize([task], [data])["status_counts"]["FAIL"], 0)
+
+    def test_progress_receipt_is_exact_and_excludes_controls(self):
+        task = self.tasks["current_history"]
+        passed = envelope(task)
+        passed["grader"] = {"status": "PASS", "assertions": []}
+        infra = envelope(task)
+        infra["grader"] = {"status": "INFRA_ERROR", "assertions": []}
+        control = deterministic_calibration_envelope(
+            task, "a" * 40, "history_seed", "gpt-5.6-sol", "medium", "test")
+        receipt = progress_snapshot([task], [passed, infra, control])["progress_receipt"]
+        self.assertEqual(receipt["baseline_record_count"], 2)
+        self.assertEqual(receipt["valid_trials"], 1)
+        self.assertEqual(receipt["required_valid_trials"], 5)
+        self.assertEqual(receipt["remaining_valid_trials"], 4)
+        self.assertEqual(receipt["control_record_count"], 1)
+        self.assertEqual(receipt["control_target_calls"], 0)
+
+    def test_checkpoint_archive_import_preserves_exact_61_of_112_receipt(self):
+        archive = Path(__file__).resolve().parents[1] / "evidence" / "phase3_final_full_baseline_checkpoint_476bc22.zip"
+        tasks = load_core_tasks()
+        trials, logs = load_resume_checkpoint(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
+            target_lane_id("gpt-5.6-sol", "medium"), Path(sys.executable))
+        receipt = progress_snapshot(tasks, trials, target_lane_id("gpt-5.6-sol", "medium"))["progress_receipt"]
+        self.assertEqual(receipt["valid_trials"], 61)
+        self.assertEqual(receipt["remaining_valid_trials"], 51)
+        self.assertEqual(receipt["control_record_count"], 0)
+        self.assertEqual(len(logs), 44)
 
     def test_critical_fail_and_unknown_cannot_be_averaged_or_retried_away(self):
         task = self.tasks["current_owner"]
