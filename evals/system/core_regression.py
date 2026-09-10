@@ -751,7 +751,7 @@ def run_suite(args) -> dict:
     repo, output = args.repo.resolve(), args.output.resolve()
     if output.is_relative_to(repo) or repo.is_relative_to(output):
         raise RuntimeError("output must be a separate external directory")
-    if _git_text(repo, "rev-parse", "HEAD") != args.snapshot:
+    if _git_text(repo, "rev-parse", "HEAD") != args.snapshot and not args.resume_archive:
         raise RuntimeError("production HEAD differs from pinned snapshot")
     codex_version = subprocess.run([str(args.codex), "--version"], capture_output=True,
                                    text=True, check=False).stdout.strip()

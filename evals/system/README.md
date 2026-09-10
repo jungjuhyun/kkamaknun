@@ -218,7 +218,7 @@ The existing `TaskSpec`, `EvidenceRecord`, `grade_trial`, and critical gate rema
 | H | 2 | Residue writer/reader, clean worktrees and cleanup |
 | I | 3 | Wording-only UNKNOWN, infrastructure status, cross-target rejection |
 
-Twenty critical tasks request five trials each; four non-critical tasks request three. All 24 execute actual Codex. Two additional known-bad calibration calls replay the fallback and historical-contamination failures. Their expected FAIL counts remain separate. Every candidate in the Phase 3 request is covered by a task or merged assertion: success/failure receipts in A/E; local absence and fallback in E; current/history priority in B/C; main/scope/partial outcomes in F; missing/UNKNOWN and cross-target evidence in I. No security corpus or external taxonomy is added.
+Twenty critical tasks request five trials each; four non-critical tasks request three. All 24 execute actual Codex. Two additional deterministic known-bad controls calibrate the fallback and historical-contamination graders with zero target calls. Their expected FAIL counts remain separate and do not claim target behavior. Every candidate in the Phase 3 request is covered by a task or merged assertion: success/failure receipts in A/E; local absence and fallback in E; current/history priority in B/C; main/scope/partial outcomes in F; missing/UNKNOWN and cross-target evidence in I. No security corpus or external taxonomy is added.
 
 ### What is executed and observed
 
@@ -261,11 +261,14 @@ Before a batch, the operator must preflight the exact `--tool-python` in the sam
 
 ```text
 <venv-python> -m evals.system.core_regression --repo C:\kkamaknun --snapshot <exact-sha> --output <new-external-directory> --codex <codex.exe> --target-model <model> --target-reasoning-effort <effort> --tool-python <target-accessible-python> --workers 2
+<venv-python> -m evals.system.core_regression --repo C:\kkamaknun --snapshot <original-evaluation-sha> --output <new-external-directory> --codex <codex.exe> --target-model <model> --target-reasoning-effort <effort> --tool-python <target-accessible-python> --workers 2 --resume-archive <checkpoint-evidence.zip>
 <venv-python> -m evals.system.core_regression export <external-directory> evals/system
 <venv-python> -m evals.system.core_regression rescore <saved-log.eval> <new-rescored-log.eval>
 ```
 
 `--only <IDs> --diagnostic-trials 1` is a diagnostic subset and cannot satisfy Phase 3 gates. Full runs save raw envelopes, prompts, JSONL, final responses, Inspect logs, per-task summaries and findings. `export` produces `core_result.json`, `core_findings.json`, and `core_evidence.zip`; log paths are relative to the archive root and hashes identify the exact bytes. Extract the archive outside the repository to re-score. Re-scoring reads logged task specs and observable envelopes, uses no model grader, and launches no target. Local absolute artifact paths in the original command are historical provenance, not required for re-scoring.
+
+`--resume-archive` keeps the original evaluation snapshot even when the authoritative feature branch has advanced. Before scheduling work it verifies the archive snapshot and lane, fixture/scorer/schema/task manifests, every baseline prompt, task identity and unique trial IDs. Imported controls are discarded and regenerated deterministically. The runner schedules only each task's missing valid count; existing valid FAIL/UNKNOWN records are preserved and never replaced.
 
 `PHASE3_PASSED` requires the implemented full suite, all critical gates, correctly detected controls, repeatable logs/re-score and production/main/isolation invariants. `PHASE3_BLOCKED` records invalid-fixture or valid-trial shortfalls. `PHASE3_FAILED` records failed critical gates or isolation invariants. `PHASE3_PARTIAL` records incomplete diagnostic/calibration/log validation. Non-critical distributions have no additional pass threshold. None of these statuses authorizes remediation: failures only preserve evidence, bounded statement, owner candidates, severity and reproducibility. Harness behavior and Planning owners remain unchanged pending separate review.
 

@@ -90,6 +90,10 @@ class CoreSchemaTests(unittest.TestCase):
         self.assertNotIn('"expected":', route_prompt)
         self.assertNotIn('"expected":', mutation_prompt)
 
+    def test_resume_mode_uses_archive_snapshot_not_production_head(self):
+        source = (Path(__file__).resolve().parents[1] / "core_regression.py").read_text(encoding="utf-8")
+        self.assertIn('!= args.snapshot and not args.resume_archive', source)
+
     def test_current_result_records_completed_primary_baseline_and_preserves_legacy_audit(self):
         result_path = Path(__file__).resolve().parents[1] / "core_result.json"
         findings_path = Path(__file__).resolve().parents[1] / "core_findings.json"
