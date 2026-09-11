@@ -60,6 +60,22 @@ def current_manifest() -> dict[str, str]:
     return {str(path.relative_to(ROOT)): digest(path) for path in required_manifest_paths()}
 
 
+def historical_seed_ids_from_provenance(provenance: dict, *, require_canonical: bool = False) -> list[str]:
+    """Normalize the authenticated historical seed identity for special continuation only."""
+    if not isinstance(provenance, dict):
+        raise RuntimeError("release continuation historical seed identity differs")
+    has_canonical = "historical_seed_trial_ids" in provenance
+    has_legacy = "release_seed_trial_ids" in provenance
+    if (require_canonical and not has_canonical) or (not has_canonical and not has_legacy):
+        raise RuntimeError("release continuation historical seed identity differs")
+    canonical = provenance.get("historical_seed_trial_ids") if has_canonical else provenance.get("release_seed_trial_ids")
+    legacy = provenance.get("release_seed_trial_ids") if has_legacy else canonical
+    if (not isinstance(canonical, list) or not canonical or not all(type(value) is str for value in canonical)
+            or len(set(canonical)) != len(canonical) or legacy != canonical):
+        raise RuntimeError("release continuation historical seed identity differs")
+    return canonical
+
+
 def target_lane_id(model: str, reasoning_effort: str) -> str:
     """Return the stable lane key used for critical aggregation."""
     if not model or not reasoning_effort:
@@ -962,6 +978,7 @@ def load_surrogate_contract_release_seed(archive: Path, tasks: list[dict], snaps
         raise RuntimeError("surrogate continuation seed includes affected evidence")
     if seed_summary["progress_receipt"]["valid_trials"] != len(seed):
         raise RuntimeError("surrogate continuation seed is not valid-only")
+    seed_ids = sorted(trial["trial_id"] for trial in seed)
     return seed, {
         "mode": "surrogate_contract_release_seed",
         "impact_verdict": str(impact_path.relative_to(repository_root)),
@@ -972,11 +989,12 @@ def load_surrogate_contract_release_seed(archive: Path, tasks: list[dict], snaps
         "excluded_valid_trial_ids": sorted(
             trial["trial_id"] for trial in affected_raw if trial["grader"]["status"] in valid_statuses),
         "release_seed_valid_trials": len(seed),
-        "release_seed_trial_ids": sorted(trial["trial_id"] for trial in seed),
+        "historical_seed_trial_ids": seed_ids,
+        "release_seed_trial_ids": seed_ids,
         "remaining_valid_trials": expected_remaining,
         "new_trial_prompt_contract": "current_prompt_for",
         "scheduling_ledger": initial_scheduling_ledger(
-            tasks, seed, release_lane, historical_seed_trial_ids={trial["trial_id"] for trial in seed}),
+            tasks, seed, release_lane, historical_seed_trial_ids=set(seed_ids)),
     }
 
 
@@ -996,8 +1014,9 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
         lineage = saved.get("release_continuation")
         if not isinstance(lineage, dict) or lineage.get("mode") != "surrogate_contract_release_seed":
             raise RuntimeError("release continuation checkpoint lineage is missing")
+        initial_seed_ids = historical_seed_ids_from_provenance(initial)
         if (lineage.get("source_archive_sha256") != impact["source_recovered_archive"]["sha256"]
-                or lineage.get("historical_seed_trial_ids") != initial["release_seed_trial_ids"]
+                or historical_seed_ids_from_provenance(lineage, require_canonical=True) != initial_seed_ids
                 or lineage.get("excluded_valid_trial_ids") != initial["excluded_valid_trial_ids"]):
             raise RuntimeError("release continuation checkpoint lineage differs")
         if saved.get("snapshot") != snapshot or saved.get("target_configuration", {}).get("target_lane") != release_lane:
@@ -1062,11 +1081,11 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
     return combined, {
         **initial,
         "checkpoint_trial_ids": expected_ids,
-        "historical_seed_trial_ids": initial["release_seed_trial_ids"],
+        "historical_seed_trial_ids": initial_seed_ids,
         "new_current_prompt_trial_ids": sorted(trial["trial_id"] for trial in new_trials),
         "scheduling_ledger": validate_scheduling_ledger(
             lineage.get("scheduling_ledger"), tasks, combined, release_lane,
-            historical_seed_trial_ids=set(initial["release_seed_trial_ids"])),
+            historical_seed_trial_ids=set(initial_seed_ids)),
         "_artifact_source_archive": str(archive),
         "_artifact_source_prefix": prefix,
         "_inherited_logs": inherited_logs,
@@ -1080,7 +1099,7 @@ def materialize_inherited_current_artifacts(trials: list[dict], provenance: dict
     inherited_logs = provenance.pop("_inherited_logs", [])
     if not archive_name or prefix is None:
         return []
-    seed_ids = set(provenance["historical_seed_trial_ids"])
+    seed_ids = set(historical_seed_ids_from_provenance(provenance))
     with zipfile.ZipFile(Path(archive_name)) as bundle:
         for trial in trials:
             if trial["trial_id"] in seed_ids:
@@ -1152,6 +1171,7 @@ def run_suite(args) -> dict:
     inherited_baseline_trials = 0
     resume_provenance = None
     scheduling_ledger = {}
+    historical_seed_ids = None
     if args.resume_archive:
         if args.resume_surrogate_impact:
             trials, resume_provenance = load_surrogate_contract_release_seed(
@@ -1161,6 +1181,7 @@ def run_suite(args) -> dict:
                 args.resume_archive, tasks, args.snapshot, release_lane, args.tool_python)
         inherited_baseline_trials = len(trials)
         if resume_provenance:
+            historical_seed_ids = historical_seed_ids_from_provenance(resume_provenance)
             log_records = materialize_inherited_current_artifacts(trials, resume_provenance, output)
     start = time.perf_counter()
 
@@ -1200,7 +1221,7 @@ def run_suite(args) -> dict:
         scheduling_ledger = run_missing_with_bounded_infra(
             tasks, trials, release_lane, evaluate_batch,
             (resume_provenance or {}).get("scheduling_ledger"),
-            historical_seed_trial_ids=set((resume_provenance or {}).get("historical_seed_trial_ids", [])))
+            historical_seed_trial_ids=set(historical_seed_ids or []))
     else:
         for criticality, epochs in [("non_critical", 3), ("critical", 5)]:
             selected = [t for t in tasks if t["criticality"] == criticality]
@@ -1275,8 +1296,7 @@ def run_suite(args) -> dict:
             "Active Work instruction, hidden messages, unobserved tools and monetary cost UNKNOWN",
             "Inspect mock model performs no generation; actual target telemetry comes from Codex JSONL"])
     if resume_provenance and resume_provenance.get("mode") == "surrogate_contract_release_seed":
-        seed_ids = resume_provenance.get("historical_seed_trial_ids",
-                                        resume_provenance["release_seed_trial_ids"])
+        seed_ids = historical_seed_ids_from_provenance(resume_provenance)
         summary["release_continuation"] = {
             **resume_provenance,
             "historical_seed_trial_ids": seed_ids,

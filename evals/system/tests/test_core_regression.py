@@ -7,18 +7,20 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 import zipfile
 
+import evals.system.core_regression as core_regression
 from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
     deterministic_calibration_envelope, fixture_interpreter_launch_failed, grade_envelope, lane_state,
     export_result, load_core_tasks, load_resume_checkpoint, load_surrogate_contract_release_seed,
-    materialize_inherited_current_artifacts,
+    historical_seed_ids_from_provenance, materialize_inherited_current_artifacts,
     findings_for, phase_status, progress_snapshot, prompt_for,
-    resume_missing_tasks, run_missing_with_bounded_infra, summarize,
+    resume_missing_tasks, run_missing_with_bounded_infra, run_suite, summarize, validate_scheduling_ledger,
     target_identity, target_lane_id,
 )
 
@@ -385,11 +387,83 @@ class CoreEvidenceTests(unittest.TestCase):
         self.assertEqual(provenance["release_seed_valid_trials"], 64)
         self.assertEqual(len(provenance["excluded_valid_trial_ids"]), 30)
         self.assertEqual(len(provenance["release_seed_trial_ids"]), 64)
+        self.assertEqual(provenance["historical_seed_trial_ids"], provenance["release_seed_trial_ids"])
+        self.assertEqual(historical_seed_ids_from_provenance(provenance),
+                         provenance["historical_seed_trial_ids"])
         self.assertFalse(set(provenance["excluded_valid_trial_ids"]) & set(provenance["release_seed_trial_ids"]))
         self.assertEqual(provenance["remaining_valid_trials"], 48)
         self.assertEqual(provenance["new_trial_prompt_contract"], "current_prompt_for")
         self.assertIn("read STATE.md from\nbeginning to end exactly",
                       prompt_for(schedule[0][0], "a" * 40, "python"))
+
+    def test_initial_special_run_suite_preserves_authenticated_seed_for_scheduler(self):
+        root = Path(__file__).resolve().parents[1]
+        archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        seed, provenance = load_surrogate_contract_release_seed(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            CHECKPOINT_TOOL_PYTHON)
+        original = core_regression.run_missing_with_bounded_infra
+        observed = {}
+
+        def deterministic_schedule(selected, trials, release_lane, run_batch, ledger, *, historical_seed_trial_ids):
+            observed["seed_ids"] = set(historical_seed_trial_ids or [])
+
+            def no_target_batch(batch, count):
+                for task in batch:
+                    for ordinal in range(count):
+                        data = envelope(task)
+                        data.update(trial_id=f"deterministic-{task['id']}-{ordinal}",
+                                    snapshot="476bc226433efc95c0b546948c2c7160ff97616c",
+                                    actual_target_calls=0,
+                                    grader={"status": "PASS", "assertions": []})
+                        trials.append(data)
+
+            result = original(selected, trials, release_lane, no_target_batch, ledger,
+                              historical_seed_trial_ids=historical_seed_trial_ids)
+            observed["initial_requested"] = sum(
+                entry["initial_requested_count"] for entry in result.values())
+            return result
+
+        with tempfile.TemporaryDirectory() as temporary, \
+                patch("evals.system.core_regression.inspect_components", return_value=(None,) * 6), \
+                patch("evals.system.core_regression.importlib.metadata.version", return_value="0.3.263"), \
+                patch("evals.system.core_regression.run_missing_with_bounded_infra", deterministic_schedule):
+            output = Path(temporary) / "output"
+            args = SimpleNamespace(repo=root.parents[1], snapshot="476bc226433efc95c0b546948c2c7160ff97616c",
+                output=output, codex=Path(sys.executable), target_model="gpt-5.6-sol",
+                target_reasoning_effort="medium", timeout=1, workers=2,
+                tool_python=CHECKPOINT_TOOL_PYTHON, only=None, diagnostic_trials=None,
+                resume_archive=archive, resume_surrogate_impact=True)
+            summary = run_suite(args)
+        self.assertEqual(observed["seed_ids"], set(provenance["historical_seed_trial_ids"]))
+        self.assertEqual(len(observed["seed_ids"]), 64)
+        self.assertEqual(observed["initial_requested"], 48)
+        current_ids = set(summary["release_continuation"]["new_current_prompt_trial_ids"])
+        self.assertEqual(sum(trial["actual_target_calls"] for trial in summary["trials"]
+                             if trial["trial_id"] in current_ids), 0)
+        self.assertEqual(summary["progress_receipt"]["valid_trials"], 112)
+
+    def test_historical_seed_identity_alias_and_malformed_values_fail_closed(self):
+        root = Path(__file__).resolve().parents[1]
+        archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        seed, provenance = load_surrogate_contract_release_seed(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            CHECKPOINT_TOOL_PYTHON)
+        for malformed in [
+                {},
+                {"historical_seed_trial_ids": []},
+                {"historical_seed_trial_ids": provenance["historical_seed_trial_ids"],
+                 "release_seed_trial_ids": provenance["historical_seed_trial_ids"][:-1]},
+        ]:
+            with self.assertRaisesRegex(RuntimeError, "historical seed identity"):
+                historical_seed_ids_from_provenance(malformed)
+        with self.assertRaisesRegex(RuntimeError, "historical seed differs"):
+            validate_scheduling_ledger(provenance["scheduling_ledger"], tasks, seed, lane,
+                                       historical_seed_trial_ids={"foreign"})
 
     def test_surrogate_contract_release_seed_fails_closed_for_wrong_inputs(self):
         root = Path(__file__).resolve().parents[1]
@@ -614,6 +688,26 @@ class CoreEvidenceTests(unittest.TestCase):
                 initial_trial_ids=initial_ids[:-1] + [historical_trial]))
             corrupt("duplicate_provenance.zip", lambda ledger: ledger[target["id"]].update(
                 replacement_trial_ids=["replacement-1", "replacement-1"]))
+
+            def corrupt_seed_identity(name, mutate):
+                destination = base / name
+                with zipfile.ZipFile(authenticated_archive) as source, zipfile.ZipFile(destination, "w") as output:
+                    for member in source.namelist():
+                        data = source.read(member)
+                        if member == "summary.json":
+                            summary = json.loads(data)
+                            mutate(summary["release_continuation"])
+                            data = json.dumps(summary).encode("utf-8")
+                        output.writestr(member, data)
+                with self.assertRaisesRegex(RuntimeError, "historical seed identity"):
+                    load_surrogate_contract_release_seed(
+                        destination, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+                        CHECKPOINT_TOOL_PYTHON)
+
+            corrupt_seed_identity("seed_alias_mismatch.zip", lambda lineage: lineage.update(
+                release_seed_trial_ids=lineage["release_seed_trial_ids"][:-1]))
+            corrupt_seed_identity("seed_identity_missing.zip", lambda lineage: lineage.pop(
+                "historical_seed_trial_ids"))
 
     def test_unified_bounded_infra_replacement_policy(self):
         task = self.tasks["current_owner"]
