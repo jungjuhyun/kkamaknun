@@ -6,7 +6,7 @@ This directory owns the framework-independent measurement contract, target obser
 
 An independent owner is necessary because `tools/harness/PIPELINE.yaml` and `PLAYBOOK.md` own video planning and its Planning RED TEAM. Putting system evaluation there would mix targets, graders, and PASS meanings. Plans remain historical or executable plans rather than current measurement contracts.
 
-This phase does not change the Work Project instruction, video-planning pipeline, Planning RED TEAM, locks, common rules, or current video content.
+This phase does not change the ChatGPT Project instruction, video-planning pipeline, Planning RED TEAM, locks, common rules, or current video content.
 
 ## Current implementation state
 
@@ -98,7 +98,7 @@ If a required assertion depends on unavailable internal evidence, the assertion 
 - `VERIFIED`: a supported independent path confirms the active UI instruction. Requires exact text bytes, a SHA-256 content hash, and `active_ui_match=true`.
 - `USER_SUPPLIED`: the hash identifies supplied text only. It is not evidence of the active UI version.
 - `UNKNOWN`: no active version claim is made. An instruction content hash is forbidden.
-- `NOT_APPLICABLE`: the target does not use a Work Project instruction.
+- `NOT_APPLICABLE`: the target does not use a ChatGPT Project instruction.
 
 A screenshot may have an `artifact_hash`; it is not an instruction `content_hash`.
 
@@ -226,7 +226,7 @@ Twenty critical tasks request five trials each; four non-critical tasks request 
 
 The common target guide applies routing and operation discipline as contracts, not as task-specific hints. A route-only common-process decision observes supplied material and then reads the selected process owner; it does not generate a plan, and a runtime-state pointer cannot replace that owner read. A marker write is authorized only after one `mutation_state` observation confirms both a non-main logical branch and the requested path within the allowed set. A logical-main state is a refusal boundary: no marker write may follow it. These rules preserve the fixture's generic operation surface while keeping the branch decision in the observable protocol rather than the physical detached worktree.
 
-The output field descriptions constrain the answer format without supplying expected decisions. The grader's expected answers are not included in baseline prompts. Bootstrap tasks use the **existing evaluation receipt/freshness contract**; the active Work Project instruction is unavailable and is never recreated or claimed verified. The physical worktree stays detached; main/feature decisions use controlled logical branch metadata, so no trial ever needs to mutate actual main.
+The output field descriptions constrain the answer format without supplying expected decisions. The grader's expected answers are not included in baseline prompts. Bootstrap tasks use one common surrogate sequence synchronized to the supplied ChatGPT Project bootstrap contract: establish an immutable snapshot, read `STATE.md` from beginning to end, read `AGENTS.md` at that same SHA, follow its required owner routing at that same SHA, then recheck selector head/freshness before deciding. This substitutes a controlled contract for the surrogate; it does not claim active Project-instruction verification. The physical worktree stays detached; main/feature decisions use controlled logical branch metadata, so no trial ever needs to mutate actual main.
 
 The runner independently captures the production checkout's tracked/untracked hashes, index entries and branch refs, trial changes and marker content, process outcome, command events, usage telemetry, unique artifacts, cleanup and worktree registrations. Up to two calls may run concurrently in separate worktrees; all registry entries must be restored at suite end. Non-critical residue writers finish before the critical reader batch. This checks repository/artifact separation; OS/process/network/credential isolation remains NOT_PROVIDED.
 

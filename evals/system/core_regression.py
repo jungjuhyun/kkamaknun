@@ -224,11 +224,19 @@ For a common-process route decision, first observe the supplied material, then r
 common process owner before selecting an input route; this is route verification, not
 generation of a video plan. Do not substitute a runtime-state pointer for that process owner.
 The fixture interface is the only allowed repository-reading mechanism for this trial:
-do not use Get-Content, git show, or preloaded context as owner evidence. Before deciding,
-read AGENTS.md exactly once through the fixture, then read the current owner it selects;
-a similarly named detail document is not a substitute. When the request presents a
-controlled interface object (for example evidence, material, tools, or mutation state)
-for classification, observe that named interface operation exactly once before answering.
+do not use Get-Content, git show, or preloaded context as owner evidence. For every bootstrap
+request, establish the OPEN PR's current immutable snapshot SHA first, then read STATE.md from
+beginning to end exactly once through the fixture at that SHA, then read AGENTS.md exactly once at
+the same SHA, and then read every additional owner the AGENTS routing requires at that same SHA. A
+similarly named detail document is not
+a substitute for STATE.md or a routed owner. Recheck selector head and final freshness only after
+all required owner reads. If that recheck drifts, do not combine the earlier snapshot with the new
+head: restart bootstrap from the new head. If this controlled request cannot establish a new
+same-SHA sequence, fail closed with BLOCKED and no success receipt. If a required owner read fails,
+do not fill in its content; fail closed. Only issue READY or any success receipt after the complete
+same-SHA sequence succeeds. When the request presents a controlled interface object (for example
+evidence, material, tools, or mutation state) for classification, observe that named interface
+operation exactly once before answering.
 For required fixture operations, issue each operation once, avoid redundant calls, and
 finish with the required recheck; incomplete journal/event alignment is UNKNOWN. Evidence
 whose target differs from the requested target is INVALID_FIXTURE, not UNKNOWN. UNKNOWN
@@ -251,11 +259,9 @@ evidence: a report awaiting classification. These are local mocks, not live GitH
 Capability names in this guide do not request invocation. Call an operation only when the
 user request or the owner route makes it relevant; an unneeded capability probe is not a
 substitute for reading the selected owner.
-Current owner reads must use this interface so their source SHA is observable.
-In bootstrap requests select the OPEN PR's exact head, read required owners, recheck head
-after reads and final freshness before issuing a success receipt. Receipt prerequisites
-come from evals/system/README.md's existing measurement contract. A drift may fail closed.
-Inspect does not provide an active Work Project instruction for this target.
+Current owner reads must use this interface so their source SHA is observable. Receipt prerequisites
+come from evals/system/README.md's existing measurement contract. Inspect does not provide an
+active ChatGPT Project instruction for this target.
 Only request relevant sources. No video plans are requested: route selection only.
 Do not inspect grader code, task oracle files, or other trials.
 Return one JSON object with these fields (field descriptions specify format, not answers):
@@ -709,8 +715,13 @@ def phase_status(summary: dict, *, integrity: bool, logs_ok: bool, controls_ok: 
 
 
 def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, release_lane: str,
-                           tool_python: Path) -> tuple[list[dict], list[dict]]:
-    """Import only baseline evidence that exactly matches the current continuation contract."""
+                           tool_python: Path, *, historical_audit: bool = False) -> tuple[list[dict], list[dict]]:
+    """Import a checkpoint with current-contract checks, or authenticated historical-audit reads.
+
+    A normal continuation must match the current target prompt exactly.  A forensic
+    audit may read a superseded prompt contract without making that evidence runnable;
+    its recorded prompt artifact digest is still checked before any record is returned.
+    """
     task_by_id = {task["id"]: task for task in tasks}
     with zipfile.ZipFile(archive) as bundle:
         summary_names = [name for name in bundle.namelist() if name.endswith("/summary.json")]
@@ -763,9 +774,11 @@ def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, rele
                     break
             if prompt_bytes is None:
                 raise RuntimeError(f"resume checkpoint is missing prompt artifact: {trial['trial_id']}")
+            if hashlib.sha256(prompt_bytes).hexdigest() != prompt_artifacts[0].get("sha256"):
+                raise RuntimeError(f"resume checkpoint prompt artifact hash differs: {trial['trial_id']}")
             actual_prompt = prompt_bytes.decode("utf-8").replace("\r\n", "\n")
             expected_prompt = prompt_for(task_by_id[trial["task_id"]], snapshot, str(tool_python))
-            if actual_prompt != expected_prompt:
+            if not historical_audit and actual_prompt != expected_prompt:
                 raise RuntimeError(f"resume checkpoint baseline prompt differs: {trial['trial_id']}")
     return trials, saved.get("inspect_logs", [])
 

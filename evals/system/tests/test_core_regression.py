@@ -78,9 +78,31 @@ class CoreSchemaTests(unittest.TestCase):
         prompt = prompt_for(task, "a" * 40, "python")
         self.assertIn("only allowed repository-reading mechanism", prompt)
         self.assertIn("read AGENTS.md exactly once", prompt)
-        self.assertIn("current owner it selects", prompt)
+        self.assertIn("read STATE.md from\nbeginning to end exactly", prompt)
+        self.assertIn("every additional owner the AGENTS routing requires", prompt)
         self.assertIn("controlled interface object", prompt)
         self.assertIn("Capability names in this guide do not request invocation", prompt)
+
+    def test_common_surrogate_bootstrap_sequence_matches_project_contract(self):
+        bootstrap_scenarios = ["stable", "bootstrap_drift", "final_drift", "mixed_sha", "fallback", "owner_failure"]
+        tasks = {task["scenario"]: task for task in load_core_tasks()}
+        sequence = [
+            "establish the OPEN PR's current immutable snapshot SHA first",
+            "read STATE.md from\nbeginning to end exactly",
+            "read AGENTS.md exactly once",
+            "every additional owner the AGENTS routing requires",
+            "Recheck selector head and final freshness only after",
+            "Only issue READY or any success receipt after the complete",
+        ]
+        for scenario in bootstrap_scenarios:
+            with self.subTest(scenario=scenario):
+                prompt = prompt_for(tasks[scenario], "a" * 40, "python")
+                positions = [prompt.index(step) for step in sequence]
+                self.assertEqual(positions, sorted(positions))
+                self.assertIn("requires at that same SHA", prompt)
+                self.assertIn("restart bootstrap from the new head", prompt)
+                self.assertIn("fail closed with BLOCKED and no success receipt", prompt)
+                self.assertNotIn("read AGENTS.md exactly once through the fixture, then read the current owner", prompt)
 
     def test_prompt_applies_common_process_and_mutation_preconditions(self):
         route_task = next(t for t in load_core_tasks() if t["scenario"] == "material_first")
@@ -235,7 +257,7 @@ class CoreEvidenceTests(unittest.TestCase):
         tasks = load_core_tasks()
         trials, logs = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
-            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
+            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON, historical_audit=True)
         receipt = progress_snapshot(tasks, trials, target_lane_id("gpt-5.6-sol", "medium"))["progress_receipt"]
         self.assertEqual(receipt["valid_trials"], 61)
         self.assertEqual(receipt["remaining_valid_trials"], 51)
@@ -254,7 +276,7 @@ class CoreEvidenceTests(unittest.TestCase):
         tasks = load_core_tasks()
         trials, logs = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
-            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
+            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON, historical_audit=True)
         receipt = progress_snapshot(tasks, trials, target_lane_id("gpt-5.6-sol", "medium"))["progress_receipt"]
         self.assertEqual(receipt["valid_trials"], 94)
         self.assertEqual(receipt["remaining_valid_trials"], 18)
@@ -262,37 +284,73 @@ class CoreEvidenceTests(unittest.TestCase):
             "PASS": 92, "FAIL": 2, "UNKNOWN": 0, "INFRA_ERROR": 109, "INVALID_FIXTURE": 0})
         self.assertEqual(len(logs), 64)
 
-    def test_current_verdict_reaggregates_recovered_archive_without_rewriting_history(self):
+    def test_pre_surrogate_synchronization_verdict_remains_historical(self):
         root = Path(__file__).resolve().parents[1]
         archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
         historical_path = root / "core_final_full_baseline_resume_94_checkpoint_result.json"
-        verdict_path = root / "core_final_full_baseline_resume_94_current_verdict.json"
-        verdict = json.loads(verdict_path.read_text(encoding="utf-8"))
+        pre_sync_verdict_path = root / "core_final_full_baseline_resume_94_current_verdict.json"
+        pre_sync_verdict = json.loads(pre_sync_verdict_path.read_text(encoding="utf-8"))
         historical = json.loads(historical_path.read_text(encoding="utf-8"))
         tasks = load_core_tasks()
         lane = target_lane_id("gpt-5.6-sol", "medium")
         trials, logs = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
-            CHECKPOINT_TOOL_PYTHON)
+            CHECKPOINT_TOOL_PYTHON, historical_audit=True)
         summary = progress_snapshot(tasks, trials, lane)
         state = lane_state(tasks, trials, lane)
         self.assertEqual(historical["phase_status"], "PHASE3_BLOCKED")
-        self.assertEqual(verdict["kind"], "phase3_current_authoritative_recovered_verdict")
-        self.assertEqual(verdict["historical_classification"]["sha256"],
+        self.assertEqual(pre_sync_verdict["kind"], "phase3_current_authoritative_recovered_verdict")
+        self.assertEqual(pre_sync_verdict["historical_classification"]["sha256"],
                          hashlib.sha256(historical_path.read_bytes()).hexdigest())
-        self.assertEqual(verdict["source_recovered_archive"]["sha256"],
+        self.assertEqual(pre_sync_verdict["source_recovered_archive"]["sha256"],
                          hashlib.sha256(archive.read_bytes()).hexdigest())
-        self.assertEqual(verdict["source_recovered_archive"]["baseline_records"], len(trials))
-        self.assertEqual(verdict["source_recovered_archive"]["inspect_logs"], len(logs))
-        self.assertEqual(verdict["aggregation"]["status_counts"], summary["status_counts"])
-        self.assertEqual(verdict["aggregation"]["critical_gate"], state["critical_gate"])
-        self.assertEqual(verdict["aggregation"]["valid_trials"],
+        self.assertEqual(pre_sync_verdict["source_recovered_archive"]["baseline_records"], len(trials))
+        self.assertEqual(pre_sync_verdict["source_recovered_archive"]["inspect_logs"], len(logs))
+        self.assertEqual(pre_sync_verdict["aggregation"]["status_counts"], summary["status_counts"])
+        self.assertEqual(pre_sync_verdict["aggregation"]["critical_gate"], state["critical_gate"])
+        self.assertEqual(pre_sync_verdict["aggregation"]["valid_trials"],
                          summary["progress_receipt"]["valid_trials"])
-        self.assertEqual(verdict["aggregation"]["remaining_valid_trials"],
+        self.assertEqual(pre_sync_verdict["aggregation"]["remaining_valid_trials"],
                          summary["progress_receipt"]["remaining_valid_trials"])
-        self.assertEqual(verdict["phase_status"], phase_status(
+        self.assertEqual(pre_sync_verdict["phase_status"], phase_status(
             summary, integrity=True, logs_ok=True, controls_ok=True, diagnostic=False))
-        self.assertEqual(verdict["reclassification"]["target_calls"], 0)
+        self.assertEqual(pre_sync_verdict["reclassification"]["target_calls"], 0)
+
+    def test_surrogate_contract_impact_excludes_bootstrap_scope_from_release_evidence(self):
+        root = Path(__file__).resolve().parents[1]
+        archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        impact = json.loads((root / "core_final_full_baseline_resume_94_surrogate_contract_impact.json")
+                            .read_text(encoding="utf-8"))
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        trials, _ = load_resume_checkpoint(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            CHECKPOINT_TOOL_PYTHON, historical_audit=True)
+        affected_ids = set(impact["affected_historical_trials"]["task_ids"])
+        affected = [trial for trial in trials if trial["task_id"] in affected_ids]
+        eligible = [trial for trial in trials if trial["task_id"] not in affected_ids]
+        affected_summary = progress_snapshot(tasks, affected, lane)
+        eligible_summary = progress_snapshot(tasks, eligible, lane)
+        self.assertEqual(impact["source_recovered_archive"]["sha256"],
+                         hashlib.sha256(archive.read_bytes()).hexdigest())
+        self.assertEqual(impact["kind"], "phase3_recovered_evidence_surrogate_contract_impact")
+        self.assertEqual(impact["superseded_interpretations"][0]["phase_status"], "PHASE3_FAILED")
+        self.assertEqual(impact["affected_historical_trials"]["raw_record_count"], len(affected))
+        self.assertEqual(impact["affected_historical_trials"]["valid_record_count"],
+                         affected_summary["progress_receipt"]["valid_trials"])
+        self.assertEqual(impact["affected_historical_trials"]["status_counts"],
+                         affected_summary["status_counts"])
+        self.assertFalse(impact["affected_historical_trials"]["release_evidence_reusable"])
+        self.assertEqual(impact["release_eligible_aggregation"]["status_counts"],
+                         eligible_summary["status_counts"])
+        self.assertEqual(impact["release_eligible_aggregation"]["eligible_valid_trials"],
+                         eligible_summary["progress_receipt"]["valid_trials"])
+        self.assertEqual(impact["release_eligible_aggregation"]["remaining_valid_trials"],
+                         112 - eligible_summary["progress_receipt"]["valid_trials"])
+        self.assertEqual(impact["release_eligible_aggregation"]["critical_gate"],
+                         lane_state(tasks, eligible, lane)["critical_gate"])
+        self.assertEqual(impact["phase_status"], "PHASE3_BLOCKED")
+        self.assertEqual(impact["audit_target_calls"], 0)
 
     def test_critical_fail_and_unknown_cannot_be_averaged_or_retried_away(self):
         task = self.tasks["current_owner"]
@@ -342,7 +400,7 @@ class CoreEvidenceTests(unittest.TestCase):
         lane = target_lane_id("gpt-5.6-sol", "medium")
         trials, _ = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
-            CHECKPOINT_TOOL_PYTHON)
+            CHECKPOINT_TOOL_PYTHON, historical_audit=True)
         before = sum(trial["actual_target_calls"] for trial in trials)
         with self.assertRaisesRegex(RuntimeError, "failed critical gate; no target trials scheduled"):
             resume_missing_tasks(tasks, trials, lane)
