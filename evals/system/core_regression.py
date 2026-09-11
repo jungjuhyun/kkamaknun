@@ -195,7 +195,8 @@ def codex_command(*, codex: Path, final: Path, target_model: str,
                "-c", 'sandbox_mode="workspace-write"']
     if writable_root is not None:
         command.extend(["-c", "sandbox_workspace_write.writable_roots=["
-                        + json.dumps(str(writable_root)) + "]"])
+                        + json.dumps(str(writable_root)) + "]",
+                        "--add-dir", str(writable_root)])
     return command + ["-"]
 
 

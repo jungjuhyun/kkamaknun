@@ -1029,6 +1029,7 @@ class CoreEvidenceTests(unittest.TestCase):
         self.assertIn("gpt-5.6-sol", command)
         self.assertIn('model_reasoning_effort="medium"', command)
         self.assertIn('sandbox_workspace_write.writable_roots=["C:\\\\trial-worktree"]', command)
+        self.assertEqual(command[command.index("--add-dir") + 1], r"C:\trial-worktree")
 
     def test_effective_identity_stays_unknown_without_independent_observation(self):
         identity = target_identity(
