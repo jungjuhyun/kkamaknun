@@ -712,56 +712,79 @@ def resume_missing_tasks(tasks: list[dict], trials: list[dict], release_lane: st
             for task in tasks if state["task_state"][task["id"]]["remaining_trials"]]
 
 
-def initial_scheduling_ledger(tasks: list[dict], trials: list[dict], release_lane: str) -> dict[str, dict]:
+def initial_scheduling_ledger(tasks: list[dict], trials: list[dict], release_lane: str,
+                              *, historical_seed_trial_ids: set[str] | None = None) -> dict[str, dict]:
     """Create the release-workload ledger; completed seed tasks need no initial batch."""
-    state = lane_state(tasks, trials, release_lane)
-    return {task["id"]: {"initial_scheduled": state["task_state"][task["id"]]["remaining_trials"] == 0,
+    seed_ids = historical_seed_trial_ids or set()
+    records = {trial["trial_id"]: trial for trial in trials}
+    if not seed_ids <= set(records):
+        raise RuntimeError("continuation scheduling ledger historical seed differs")
+    state = lane_state(tasks, [records[trial_id] for trial_id in seed_ids], release_lane)
+    return {task["id"]: {"initial_scheduled": False,
+                         "initial_requested_count": state["task_state"][task["id"]]["remaining_trials"],
                          "replacement_attempts": 0, "initial_trial_ids": [],
                          "replacement_trial_ids": []} for task in tasks}
 
 
 def validate_scheduling_ledger(ledger: dict, tasks: list[dict], trials: list[dict],
-                               release_lane: str) -> dict[str, dict]:
+                               release_lane: str, *, historical_seed_trial_ids: set[str] | None = None) -> dict[str, dict]:
     """Reject malformed or evidence-contradictory durable scheduling state."""
     task_ids = {task["id"] for task in tasks}
     if not isinstance(ledger, dict) or set(ledger) != task_ids:
         raise RuntimeError("continuation scheduling ledger task identity differs")
-    rows = {row["id"]: row for row in progress_snapshot(tasks, trials, release_lane)["tasks"]}
+    seed_ids = historical_seed_trial_ids or set()
+    records = {trial["trial_id"]: trial for trial in trials}
+    if not seed_ids <= set(records):
+        raise RuntimeError("continuation scheduling ledger historical seed differs")
+    seed_trials = [records[trial_id] for trial_id in seed_ids]
+    seed_state = lane_state(tasks, seed_trials, release_lane)["task_state"]
+    current_trials = [trial for trial in trials if trial["trial_id"] not in seed_ids and not trial.get("control")]
+    current_by_task = {task_id: {trial["trial_id"] for trial in current_trials if trial["task_id"] == task_id}
+                       for task_id in task_ids}
     normalized = {}
     for task_id, entry in ledger.items():
         if not isinstance(entry, dict) or set(entry) != {
-                "initial_scheduled", "replacement_attempts", "initial_trial_ids", "replacement_trial_ids"}:
+                "initial_scheduled", "initial_requested_count", "replacement_attempts",
+                "initial_trial_ids", "replacement_trial_ids"}:
             raise RuntimeError("continuation scheduling ledger shape differs")
-        initial, attempts = entry["initial_scheduled"], entry["replacement_attempts"]
+        initial, requested, attempts = (entry["initial_scheduled"], entry["initial_requested_count"],
+                                        entry["replacement_attempts"])
         initial_ids, replacement_ids = entry["initial_trial_ids"], entry["replacement_trial_ids"]
-        if type(initial) is not bool or type(attempts) is not int or not 0 <= attempts <= 2:
+        if (type(initial) is not bool or type(requested) is not int or type(attempts) is not int
+                or requested < 0 or not 0 <= attempts <= 2):
             raise RuntimeError("continuation scheduling ledger value differs")
         if (not isinstance(initial_ids, list) or not isinstance(replacement_ids, list)
                 or not all(type(value) is str for value in initial_ids + replacement_ids)
                 or len(set(initial_ids + replacement_ids)) != len(initial_ids + replacement_ids)
                 or len(replacement_ids) != attempts):
             raise RuntimeError("continuation scheduling ledger provenance differs")
-        records = {trial["trial_id"]: trial for trial in trials}
         if any(value not in records or records[value]["task_id"] != task_id
-               for value in initial_ids + replacement_ids):
+               or value in seed_ids for value in initial_ids + replacement_ids):
             raise RuntimeError("continuation scheduling ledger provenance differs")
+        expected_initial = seed_state[task_id]["remaining_trials"]
+        if requested != expected_initial:
+            raise RuntimeError("continuation scheduling ledger initial workload differs")
         if not initial and (initial_ids or replacement_ids or attempts):
             raise RuntimeError("continuation scheduling ledger contradicts evidence")
-        row = rows[task_id]
-        if initial and row["valid_trials"] < row["trials_requested"] and not initial_ids:
+        if initial != bool(current_by_task[task_id]):
             raise RuntimeError("continuation scheduling ledger contradicts evidence")
-        if attempts and not initial:
+        if initial and (requested == 0 or len(initial_ids) != requested):
             raise RuntimeError("continuation scheduling ledger contradicts evidence")
-        normalized[task_id] = {"initial_scheduled": initial, "replacement_attempts": attempts,
+        if set(initial_ids) | set(replacement_ids) != current_by_task[task_id]:
+            raise RuntimeError("continuation scheduling ledger current trial coverage differs")
+        normalized[task_id] = {"initial_scheduled": initial, "initial_requested_count": requested,
+                               "replacement_attempts": attempts,
                                "initial_trial_ids": initial_ids, "replacement_trial_ids": replacement_ids}
     return normalized
 
 
 def run_missing_with_bounded_infra(tasks: list[dict], trials: list[dict], release_lane: str,
-                                   run_batch, scheduling_ledger: dict[str, dict] | None = None) -> dict[str, dict]:
+                                   run_batch, scheduling_ledger: dict[str, dict] | None = None,
+                                   *, historical_seed_trial_ids: set[str] | None = None) -> dict[str, dict]:
     """Preserve one initial batch and at most two INFRA replacements across generations."""
     ledger = validate_scheduling_ledger(scheduling_ledger or initial_scheduling_ledger(
-        tasks, trials, release_lane), tasks, trials, release_lane)
+        tasks, trials, release_lane, historical_seed_trial_ids=historical_seed_trial_ids), tasks, trials, release_lane,
+        historical_seed_trial_ids=historical_seed_trial_ids)
     state = lane_state(tasks, trials, release_lane)
     if state["critical_gate"]["FAIL"]:
         raise RuntimeError("resume checkpoint has a failed critical gate; no target trials scheduled")
@@ -789,7 +812,8 @@ def run_missing_with_bounded_infra(tasks: list[dict], trials: list[dict], releas
             if len(added) != 1:
                 raise RuntimeError("continuation replacement did not produce one trial")
             entry["replacement_trial_ids"].extend(added)
-    return ledger
+    return validate_scheduling_ledger(ledger, tasks, trials, release_lane,
+                                      historical_seed_trial_ids=historical_seed_trial_ids)
 
 
 def phase_status(summary: dict, *, integrity: bool, logs_ok: bool, controls_ok: bool,
@@ -805,7 +829,8 @@ def phase_status(summary: dict, *, integrity: bool, logs_ok: bool, controls_ok: 
 
 
 def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, release_lane: str,
-                           tool_python: Path, *, historical_audit: bool = False) -> tuple[list[dict], list[dict]]:
+                           tool_python: Path, *, historical_audit: bool = False,
+                           archived_manifest_trusted: bool = False) -> tuple[list[dict], list[dict]]:
     """Import a checkpoint with current-contract checks, or authenticated historical-audit reads.
 
     A normal continuation must match the current target prompt exactly.  A forensic
@@ -842,7 +867,7 @@ def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, rele
         for relative, recorded in manifest.items():
             # The runner itself may change only in continuation/control/reporting paths.
             # Prompts below prove the baseline target contract separately.
-            if relative == "core_regression.py":
+            if archived_manifest_trusted or relative == "core_regression.py":
                 continue
             if digest(ROOT / relative) != recorded:
                 raise RuntimeError(f"resume checkpoint manifest differs: {relative}")
@@ -905,7 +930,8 @@ def load_surrogate_contract_release_seed(archive: Path, tasks: list[dict], snaps
             or impact.get("audit_target_calls") != 0):
         raise RuntimeError("surrogate continuation impact verdict differs")
     raw_trials, _ = load_resume_checkpoint(
-        archive, tasks, snapshot, release_lane, tool_python, historical_audit=True)
+        archive, tasks, snapshot, release_lane, tool_python, historical_audit=True,
+        archived_manifest_trusted=True)
     affected_data = impact.get("affected_historical_trials", {})
     affected_ids = set(affected_data.get("task_ids", []))
     task_ids = {task["id"] for task in tasks}
@@ -949,7 +975,8 @@ def load_surrogate_contract_release_seed(archive: Path, tasks: list[dict], snaps
         "release_seed_trial_ids": sorted(trial["trial_id"] for trial in seed),
         "remaining_valid_trials": expected_remaining,
         "new_trial_prompt_contract": "current_prompt_for",
-        "scheduling_ledger": initial_scheduling_ledger(tasks, seed, release_lane),
+        "scheduling_ledger": initial_scheduling_ledger(
+            tasks, seed, release_lane, historical_seed_trial_ids={trial["trial_id"] for trial in seed}),
     }
 
 
@@ -1038,7 +1065,8 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
         "historical_seed_trial_ids": initial["release_seed_trial_ids"],
         "new_current_prompt_trial_ids": sorted(trial["trial_id"] for trial in new_trials),
         "scheduling_ledger": validate_scheduling_ledger(
-            lineage.get("scheduling_ledger"), tasks, combined, release_lane),
+            lineage.get("scheduling_ledger"), tasks, combined, release_lane,
+            historical_seed_trial_ids=set(initial["release_seed_trial_ids"])),
         "_artifact_source_archive": str(archive),
         "_artifact_source_prefix": prefix,
         "_inherited_logs": inherited_logs,
@@ -1171,7 +1199,8 @@ def run_suite(args) -> dict:
     if args.resume_archive:
         scheduling_ledger = run_missing_with_bounded_infra(
             tasks, trials, release_lane, evaluate_batch,
-            (resume_provenance or {}).get("scheduling_ledger"))
+            (resume_provenance or {}).get("scheduling_ledger"),
+            historical_seed_trial_ids=set((resume_provenance or {}).get("historical_seed_trial_ids", [])))
     else:
         for criticality, epochs in [("non_critical", 3), ("critical", 5)]:
             selected = [t for t in tasks if t["criticality"] == criticality]

@@ -261,7 +261,8 @@ class CoreEvidenceTests(unittest.TestCase):
         tasks = load_core_tasks()
         trials, logs = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
-            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON, historical_audit=True)
+            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON, historical_audit=True,
+            archived_manifest_trusted=True)
         receipt = progress_snapshot(tasks, trials, target_lane_id("gpt-5.6-sol", "medium"))["progress_receipt"]
         self.assertEqual(receipt["valid_trials"], 61)
         self.assertEqual(receipt["remaining_valid_trials"], 51)
@@ -280,7 +281,8 @@ class CoreEvidenceTests(unittest.TestCase):
         tasks = load_core_tasks()
         trials, logs = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
-            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON, historical_audit=True)
+            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON, historical_audit=True,
+            archived_manifest_trusted=True)
         receipt = progress_snapshot(tasks, trials, target_lane_id("gpt-5.6-sol", "medium"))["progress_receipt"]
         self.assertEqual(receipt["valid_trials"], 94)
         self.assertEqual(receipt["remaining_valid_trials"], 18)
@@ -293,7 +295,8 @@ class CoreEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "baseline prompt differs"):
             load_resume_checkpoint(
                 archive, load_core_tasks(), "476bc226433efc95c0b546948c2c7160ff97616c",
-                target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
+                target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON,
+                archived_manifest_trusted=True)
 
     def test_pre_surrogate_synchronization_verdict_remains_historical(self):
         root = Path(__file__).resolve().parents[1]
@@ -306,13 +309,14 @@ class CoreEvidenceTests(unittest.TestCase):
         lane = target_lane_id("gpt-5.6-sol", "medium")
         trials, logs = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
-            CHECKPOINT_TOOL_PYTHON, historical_audit=True)
+            CHECKPOINT_TOOL_PYTHON, historical_audit=True, archived_manifest_trusted=True)
         summary = progress_snapshot(tasks, trials, lane)
         state = lane_state(tasks, trials, lane)
         self.assertEqual(historical["phase_status"], "PHASE3_BLOCKED")
         self.assertEqual(pre_sync_verdict["kind"], "phase3_current_authoritative_recovered_verdict")
         self.assertEqual(pre_sync_verdict["historical_classification"]["sha256"],
-                         hashlib.sha256(historical_path.read_bytes()).hexdigest())
+                         hashlib.sha256(historical_path.read_text(encoding="utf-8").replace("\r\n", "\n")
+                                        .encode("utf-8")).hexdigest())
         self.assertEqual(pre_sync_verdict["source_recovered_archive"]["sha256"],
                          hashlib.sha256(archive.read_bytes()).hexdigest())
         self.assertEqual(pre_sync_verdict["source_recovered_archive"]["baseline_records"], len(trials))
@@ -336,7 +340,7 @@ class CoreEvidenceTests(unittest.TestCase):
         lane = target_lane_id("gpt-5.6-sol", "medium")
         trials, _ = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
-            CHECKPOINT_TOOL_PYTHON, historical_audit=True)
+            CHECKPOINT_TOOL_PYTHON, historical_audit=True, archived_manifest_trusted=True)
         affected_ids = set(impact["affected_historical_trials"]["task_ids"])
         affected = [trial for trial in trials if trial["task_id"] in affected_ids]
         eligible = [trial for trial in trials if trial["task_id"] not in affected_ids]
@@ -441,22 +445,23 @@ class CoreEvidenceTests(unittest.TestCase):
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
             CHECKPOINT_TOOL_PYTHON)
 
-        def new_trials(records, start, count):
+        def new_trials(task_ids):
             result = []
-            slots = [task for task, needed in resume_missing_tasks(tasks, records, lane)
-                     for _ in range(needed)]
-            for index in range(start, start + count):
-                task = slots[index - start]
-                data = envelope(task)
-                data.update(trial_id=f"current-{index:02d}", snapshot="476bc226433efc95c0b546948c2c7160ff97616c",
-                            grader={"status": "PASS", "assertions": []}, trace_identity_observation={},
-                            target_identity=target_identity(model="gpt-5.6-sol", reasoning_effort="medium",
-                                codex_version="test", snapshot="476bc226433efc95c0b546948c2c7160ff97616c", trace={}),
-                            artifacts=[])
-                result.append(data)
+            for task_id in task_ids:
+                task = next(item for item in tasks if item["id"] == task_id)
+                needed = next(count for item, count in resume_missing_tasks(tasks, seed, lane)
+                              if item["id"] == task_id)
+                for ordinal in range(needed):
+                    data = envelope(task)
+                    data.update(trial_id=f"current-{task_id}-{ordinal:02d}", snapshot="476bc226433efc95c0b546948c2c7160ff97616c",
+                                grader={"status": "PASS", "assertions": []}, trace_identity_observation={},
+                                target_identity=target_identity(model="gpt-5.6-sol", reasoning_effort="medium",
+                                    codex_version="test", snapshot="476bc226433efc95c0b546948c2c7160ff97616c", trace={}),
+                                artifacts=[])
+                    result.append(data)
             return result
 
-        def checkpoint(directory, records, inherited=None):
+        def checkpoint(directory, records, inherited=None, ledger_override=None):
             output, destination = directory / "output", directory / "export"
             directory.mkdir(); output.mkdir(); destination.mkdir()
             if inherited:
@@ -475,12 +480,13 @@ class CoreEvidenceTests(unittest.TestCase):
             manifest_paths = [root / name for name in ["core_regression.py", "core_fixture.py", "schema.py",
                 "scorers.py", "core_requirements.txt"]] + sorted((root / "tasks/core").glob("*.json"))
             ids = sorted(trial["trial_id"] for trial in records)
-            ledger = copy.deepcopy(provenance["scheduling_ledger"])
-            for trial in records:
-                if trial["trial_id"] not in provenance["release_seed_trial_ids"]:
-                    ledger[trial["task_id"]]["initial_scheduled"] = True
-                    if trial["trial_id"] not in ledger[trial["task_id"]]["initial_trial_ids"]:
-                        ledger[trial["task_id"]]["initial_trial_ids"].append(trial["trial_id"])
+            ledger = copy.deepcopy(ledger_override or provenance["scheduling_ledger"])
+            if not ledger_override:
+                for trial in records:
+                    if trial["trial_id"] not in provenance["release_seed_trial_ids"]:
+                        ledger[trial["task_id"]]["initial_scheduled"] = True
+                        if trial["trial_id"] not in ledger[trial["task_id"]]["initial_trial_ids"]:
+                            ledger[trial["task_id"]]["initial_trial_ids"].append(trial["trial_id"])
             lineage = {**provenance, "historical_seed_trial_ids": provenance["release_seed_trial_ids"],
                        "checkpoint_trial_ids": ids,
                        "new_current_prompt_trial_ids": sorted(set(ids) - set(provenance["release_seed_trial_ids"])),
@@ -497,12 +503,14 @@ class CoreEvidenceTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temporary:
             base = Path(temporary)
-            first = checkpoint(base / "first", copy.deepcopy(seed) + new_trials(seed, 0, 9))
+            first = checkpoint(base / "first", copy.deepcopy(seed) + new_trials(
+                ["CORE_F_03", "CORE_G_01", "CORE_G_02"]))
             first_records, first_lineage = load_surrogate_contract_release_seed(
                 first, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane, CHECKPOINT_TOOL_PYTHON)
             self.assertEqual(len(first_records), 73)
             self.assertEqual(sum(n for _, n in resume_missing_tasks(tasks, first_records, lane)), 39)
-            second = checkpoint(base / "second", copy.deepcopy(first_records) + new_trials(first_records, 9, 16),
+            second = checkpoint(base / "second", copy.deepcopy(first_records) + new_trials(
+                ["CORE_A_01", "CORE_A_02", "CORE_H_02", "CORE_I_01"]),
                                 first_lineage)
             second_records, second_lineage = load_surrogate_contract_release_seed(
                 second, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane, CHECKPOINT_TOOL_PYTHON)
@@ -510,12 +518,102 @@ class CoreEvidenceTests(unittest.TestCase):
             self.assertEqual(sum(n for _, n in resume_missing_tasks(tasks, second_records, lane)), 23)
             self.assertEqual(len({trial["trial_id"] for trial in second_records}), 89)
             self.assertEqual(first_lineage["historical_seed_trial_ids"], provenance["release_seed_trial_ids"])
-            final = checkpoint(base / "final", copy.deepcopy(second_records) + new_trials(second_records, 25, 23),
+            final = checkpoint(base / "final", copy.deepcopy(second_records) + new_trials(
+                ["CORE_A_03", "CORE_B_02", "CORE_E_01", "CORE_E_02", "CORE_I_02", "CORE_I_03"]),
                                second_lineage)
             final_records, _ = load_surrogate_contract_release_seed(
                 final, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane, CHECKPOINT_TOOL_PYTHON)
             self.assertEqual(len(final_records), 112)
             self.assertEqual(sum(n for _, n in resume_missing_tasks(tasks, final_records, lane)), 0)
+
+            target = next(task for task in tasks if task["id"] == "CORE_A_01")
+            infra_records = copy.deepcopy(seed) + new_trials([target["id"]])
+            initial_ids = [trial["trial_id"] for trial in infra_records if trial["task_id"] == target["id"]]
+            for trial in infra_records:
+                if trial["trial_id"] in initial_ids:
+                    trial["grader"] = {"status": "PASS" if trial["trial_id"] != initial_ids[-1]
+                                       else "INFRA_ERROR", "assertions": []}
+            for ordinal in [1, 2]:
+                replacement = copy.deepcopy(infra_records[-1])
+                replacement["trial_id"] = f"replacement-{ordinal}"
+                replacement["grader"] = {"status": "INFRA_ERROR", "assertions": []}
+                replacement["artifacts"] = []
+                infra_records.append(replacement)
+            authenticated = copy.deepcopy(provenance["scheduling_ledger"])
+            authenticated[target["id"]].update(initial_scheduled=True,
+                                                 initial_trial_ids=initial_ids,
+                                                 replacement_attempts=2,
+                                                 replacement_trial_ids=["replacement-1", "replacement-2"])
+            authenticated_archive = checkpoint(base / "authenticated", infra_records,
+                                                ledger_override=authenticated)
+            imported, imported_lineage = load_surrogate_contract_release_seed(
+                authenticated_archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+                CHECKPOINT_TOOL_PYTHON)
+            resume_calls = []
+            run_missing_with_bounded_infra([target], imported, lane,
+                                           lambda batch, count: resume_calls.append(count),
+                                           {target["id"]: imported_lineage["scheduling_ledger"][target["id"]]},
+                                           historical_seed_trial_ids=set(provenance["release_seed_trial_ids"]))
+            self.assertEqual(resume_calls, [])
+
+            def corrupt(name, mutate):
+                destination = base / name
+                with zipfile.ZipFile(authenticated_archive) as source, zipfile.ZipFile(destination, "w") as output:
+                    for member in source.namelist():
+                        data = source.read(member)
+                        if member == "summary.json":
+                            summary = json.loads(data)
+                            mutate(summary["release_continuation"]["scheduling_ledger"])
+                            data = json.dumps(summary).encode("utf-8")
+                        output.writestr(member, data)
+                with self.assertRaisesRegex(RuntimeError, "scheduling ledger"):
+                    load_surrogate_contract_release_seed(
+                        destination, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+                        CHECKPOINT_TOOL_PYTHON)
+
+            corrupt("downgrade_2_to_1.zip", lambda ledger: ledger[target["id"]].update(
+                replacement_attempts=1, replacement_trial_ids=["replacement-1"]))
+            corrupt("downgrade_2_to_0.zip", lambda ledger: ledger[target["id"]].update(
+                replacement_attempts=0, replacement_trial_ids=[]))
+            one_attempt = copy.deepcopy(authenticated)
+            one_attempt[target["id"]].update(replacement_attempts=1,
+                                               replacement_trial_ids=["replacement-1"])
+            one_attempt_records = [trial for trial in infra_records if trial["trial_id"] != "replacement-2"]
+            one_attempt_archive = checkpoint(base / "one_attempt", one_attempt_records,
+                                             ledger_override=one_attempt)
+            _, one_attempt_lineage = load_surrogate_contract_release_seed(
+                one_attempt_archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+                CHECKPOINT_TOOL_PYTHON)
+            self.assertEqual(one_attempt_lineage["scheduling_ledger"][target["id"]]["replacement_attempts"], 1)
+            def corrupt_one(name, mutate):
+                destination = base / name
+                with zipfile.ZipFile(one_attempt_archive) as source, zipfile.ZipFile(destination, "w") as output:
+                    for member in source.namelist():
+                        data = source.read(member)
+                        if member == "summary.json":
+                            summary = json.loads(data)
+                            mutate(summary["release_continuation"]["scheduling_ledger"])
+                            data = json.dumps(summary).encode("utf-8")
+                        output.writestr(member, data)
+                with self.assertRaisesRegex(RuntimeError, "scheduling ledger"):
+                    load_surrogate_contract_release_seed(destination, tasks,
+                        "476bc226433efc95c0b546948c2c7160ff97616c", lane, CHECKPOINT_TOOL_PYTHON)
+            corrupt_one("downgrade_1_to_0.zip", lambda ledger: ledger[target["id"]].update(
+                replacement_attempts=0, replacement_trial_ids=[]))
+            corrupt("replacement_as_initial.zip", lambda ledger: ledger[target["id"]].update(
+                replacement_attempts=1, replacement_trial_ids=["replacement-1"],
+                initial_trial_ids=initial_ids + ["replacement-2"]))
+            corrupt("initial_deleted.zip", lambda ledger: ledger[target["id"]].update(
+                initial_trial_ids=initial_ids[:-1]))
+            foreign = next(task for task in tasks if task["id"] == "CORE_A_02")
+            foreign_trial = next(trial["trial_id"] for trial in infra_records if trial["task_id"] == target["id"])
+            corrupt("cross_task.zip", lambda ledger: ledger[foreign["id"]].update(
+                initial_scheduled=True, initial_trial_ids=[foreign_trial], initial_requested_count=5))
+            historical_trial = provenance["release_seed_trial_ids"][0]
+            corrupt("historical_as_current.zip", lambda ledger: ledger[target["id"]].update(
+                initial_trial_ids=initial_ids[:-1] + [historical_trial]))
+            corrupt("duplicate_provenance.zip", lambda ledger: ledger[target["id"]].update(
+                replacement_trial_ids=["replacement-1", "replacement-1"]))
 
     def test_unified_bounded_infra_replacement_policy(self):
         task = self.tasks["current_owner"]
@@ -559,6 +657,7 @@ class CoreEvidenceTests(unittest.TestCase):
             lambda batch, count: [one_left_calls.append(count), partial.append(dict(envelope(task),
                 trial_id="replacement", grader={"status": one_left_statuses.pop(0), "assertions": []}))],
             {task["id"]: {"initial_scheduled": True, "replacement_attempts": 1,
+                            "initial_requested_count": 5,
                             "initial_trial_ids": [f"partial-{i}" for i in range(5)],
                             "replacement_trial_ids": ["replacement-prior"]}})
         self.assertEqual(one_left_calls, [1]); self.assertEqual(one_left[task["id"]]["replacement_attempts"], 2)
@@ -568,6 +667,7 @@ class CoreEvidenceTests(unittest.TestCase):
             lambda batch, count: [two_left_calls.append(count), partial_two.append(dict(envelope(task),
                 trial_id=f"replacement-{len(partial_two)}", grader={"status": two_left_statuses.pop(0), "assertions": []}))],
             {task["id"]: {"initial_scheduled": True, "replacement_attempts": 0,
+                            "initial_requested_count": 5,
                             "initial_trial_ids": [f"partial-{i}" for i in range(5)],
                             "replacement_trial_ids": []}})
         self.assertEqual(two_left_calls, [1, 1]); self.assertEqual(two_left[task["id"]]["replacement_attempts"], 2)
@@ -579,10 +679,16 @@ class CoreEvidenceTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "scheduling ledger"):
                 run_missing_with_bounded_infra([task], partial[:5], lane, lambda batch, count: None, bad)
         complete = [envelope(task) for _ in range(5)]
-        for data in complete: data["grader"] = {"status": "PASS", "assertions": []}
+        for index, data in enumerate(complete):
+            data["trial_id"] = f"complete-{index}"
+            data["grader"] = {"status": "PASS", "assertions": []}
         calls = []
         self.assertEqual(run_missing_with_bounded_infra([task], complete, lane,
-                         lambda batch, count: calls.append(count))[task["id"]]["replacement_attempts"], 0)
+                         lambda batch, count: calls.append(count),
+                         {task["id"]: {"initial_scheduled": True, "initial_requested_count": 5,
+                                         "replacement_attempts": 0,
+                                         "initial_trial_ids": [f"complete-{i}" for i in range(5)],
+                                         "replacement_trial_ids": []}})[task["id"]]["replacement_attempts"], 0)
         self.assertEqual(calls, [])
 
     def test_critical_fail_and_unknown_cannot_be_averaged_or_retried_away(self):
@@ -633,7 +739,7 @@ class CoreEvidenceTests(unittest.TestCase):
         lane = target_lane_id("gpt-5.6-sol", "medium")
         trials, _ = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
-            CHECKPOINT_TOOL_PYTHON, historical_audit=True)
+            CHECKPOINT_TOOL_PYTHON, historical_audit=True, archived_manifest_trusted=True)
         before = sum(trial["actual_target_calls"] for trial in trials)
         with self.assertRaisesRegex(RuntimeError, "failed critical gate; no target trials scheduled"):
             resume_missing_tasks(tasks, trials, lane)
