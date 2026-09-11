@@ -40,6 +40,7 @@ UNKNOWN_IDENTITY = "UNKNOWN"
 PROTECTED = ["AGENTS.md", "CLAUDE.md", "PLAYBOOK.md", "FIRST_VIDEO.md",
              "tools/harness/PIPELINE.yaml", "tools/harness/COMMON_RULES.json",
              "tools/harness/STATE.json", "tools/harness/EP1_LOCK.json"]
+SURROGATE_CONTRACT_IMPACT = ROOT / "core_final_full_baseline_resume_94_surrogate_contract_impact.json"
 
 
 def digest(path: Path) -> str:
@@ -783,6 +784,82 @@ def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, rele
     return trials, saved.get("inspect_logs", [])
 
 
+def load_surrogate_contract_release_seed(archive: Path, tasks: list[dict], snapshot: str,
+                                          release_lane: str, tool_python: Path,
+                                          *, impact_path: Path = SURROGATE_CONTRACT_IMPACT) -> tuple[list[dict], dict]:
+    """Return the one audited release seed allowed after the bootstrap-surrogate correction.
+
+    This is deliberately narrower than ``historical_audit``.  It accepts only the
+    repository-owned impact verdict and its named, hashed recovered archive, validates
+    the historical records for forensic provenance, then returns only unaffected valid
+    trials.  Normal ``--resume-archive`` remains strict-current-prompt only.
+    """
+    archive = archive.resolve()
+    if impact_path.resolve() != SURROGATE_CONTRACT_IMPACT.resolve():
+        raise RuntimeError("surrogate continuation requires the authoritative impact verdict")
+    impact = json.loads(impact_path.read_text(encoding="utf-8"))
+    source = impact.get("source_recovered_archive", {})
+    repository_root = ROOT.parents[1]
+    expected_archive = (repository_root / source.get("path", "")).resolve()
+    if archive.resolve() != expected_archive:
+        raise RuntimeError("surrogate continuation archive is not the impact verdict source")
+    if digest(archive) != source.get("sha256") or source.get("raw_evidence_rewritten") is not False:
+        raise RuntimeError("surrogate continuation archive identity differs")
+    if (impact.get("kind") != "phase3_recovered_evidence_surrogate_contract_impact"
+            or impact.get("phase") != 3
+            or impact.get("phase_status") != "PHASE3_BLOCKED"
+            or impact.get("evaluation_snapshot") != snapshot
+            or impact.get("lane") != release_lane
+            or impact.get("audit_target_calls") != 0):
+        raise RuntimeError("surrogate continuation impact verdict differs")
+    raw_trials, _ = load_resume_checkpoint(
+        archive, tasks, snapshot, release_lane, tool_python, historical_audit=True)
+    affected_data = impact.get("affected_historical_trials", {})
+    affected_ids = set(affected_data.get("task_ids", []))
+    task_ids = {task["id"] for task in tasks}
+    if not affected_ids or not affected_ids <= task_ids:
+        raise RuntimeError("surrogate continuation affected-task identity differs")
+    affected_raw = [trial for trial in raw_trials if trial["task_id"] in affected_ids]
+    eligible_raw = [trial for trial in raw_trials if trial["task_id"] not in affected_ids]
+    affected_summary = progress_snapshot(tasks, affected_raw, release_lane)
+    eligible_summary = progress_snapshot(tasks, eligible_raw, release_lane)
+    if (affected_data.get("raw_record_count") != len(affected_raw)
+            or affected_data.get("valid_record_count") != affected_summary["progress_receipt"]["valid_trials"]
+            or affected_data.get("status_counts") != affected_summary["status_counts"]
+            or affected_data.get("release_evidence_reusable") is not False):
+        raise RuntimeError("surrogate continuation affected-evidence scope differs")
+    aggregation = impact.get("release_eligible_aggregation", {})
+    valid_statuses = {"PASS", "FAIL", "UNKNOWN"}
+    seed = [trial for trial in eligible_raw if trial["grader"]["status"] in valid_statuses]
+    seed_summary = progress_snapshot(tasks, seed, release_lane)
+    expected_remaining = sum(task["trial_count"] for task in tasks) - len(seed)
+    if (aggregation.get("status_counts") != eligible_summary["status_counts"]
+            or aggregation.get("eligible_valid_trials") != len(seed)
+            or aggregation.get("remaining_valid_trials") != expected_remaining
+            or aggregation.get("critical_gate") != lane_state(tasks, seed, release_lane)["critical_gate"]
+            or expected_remaining != impact.get("next_release_evidence", {}).get("required_new_valid_trials")
+            or impact.get("next_release_evidence", {}).get("execution") != "NOT_RUN"):
+        raise RuntimeError("surrogate continuation release aggregation differs")
+    if any(trial["task_id"] in affected_ids for trial in seed):
+        raise RuntimeError("surrogate continuation seed includes affected evidence")
+    if seed_summary["progress_receipt"]["valid_trials"] != len(seed):
+        raise RuntimeError("surrogate continuation seed is not valid-only")
+    return seed, {
+        "mode": "surrogate_contract_release_seed",
+        "impact_verdict": str(impact_path.relative_to(repository_root)),
+        "source_archive": str(archive.relative_to(repository_root)),
+        "source_archive_sha256": source["sha256"],
+        "excluded_task_ids": sorted(affected_ids),
+        "excluded_valid_trials": affected_summary["progress_receipt"]["valid_trials"],
+        "excluded_valid_trial_ids": sorted(
+            trial["trial_id"] for trial in affected_raw if trial["grader"]["status"] in valid_statuses),
+        "release_seed_valid_trials": len(seed),
+        "release_seed_trial_ids": sorted(trial["trial_id"] for trial in seed),
+        "remaining_valid_trials": expected_remaining,
+        "new_trial_prompt_contract": "current_prompt_for",
+    }
+
+
 def findings_for(tasks: list[dict], trials: list[dict]) -> list[dict]:
     findings = []
     for task in tasks:
@@ -824,9 +901,14 @@ def run_suite(args) -> dict:
     Task, Sample, evaluate, rescore, solver, scorer = inspect_components()
     trials, log_records = [], []
     inherited_baseline_trials = 0
+    resume_provenance = None
     if args.resume_archive:
-        trials, log_records = load_resume_checkpoint(
-            args.resume_archive, tasks, args.snapshot, release_lane, args.tool_python)
+        if args.resume_surrogate_impact:
+            trials, resume_provenance = load_surrogate_contract_release_seed(
+                args.resume_archive, tasks, args.snapshot, release_lane, args.tool_python)
+        else:
+            trials, log_records = load_resume_checkpoint(
+                args.resume_archive, tasks, args.snapshot, release_lane, args.tool_python)
         inherited_baseline_trials = len(trials)
     start = time.perf_counter()
 
@@ -928,7 +1010,8 @@ def run_suite(args) -> dict:
         production_checkout_unchanged=before == after, main_unchanged=before["refs"] == after["refs"],
         cross_trial_isolation=integrity, worktree_registry_restored=registry_restored,
         workers=args.workers, wall_runtime_seconds=round(time.perf_counter() - start, 3),
-        resume_checkpoint={"archive": str(args.resume_archive), "inherited_baseline_trials": inherited_baseline_trials}
+        resume_checkpoint={"archive": str(args.resume_archive), "inherited_baseline_trials": inherited_baseline_trials,
+                           "provenance": resume_provenance}
         if args.resume_archive else None,
         phase4_entry_possible=phase == "PHASE3_PASSED", actual_monetary_cost="UNKNOWN",
         dependencies={"inspect-ai": "0.3.263", "inspect-swe": "NOT_USED", "Docker": "NOT_USED",
@@ -1013,11 +1096,15 @@ def main():
     parser.add_argument("--only", help="comma-separated diagnostic subset; never Phase 3 PASS")
     parser.add_argument("--resume-archive", type=Path,
                         help="verified raw-evidence archive; run only missing valid baseline trials")
+    parser.add_argument("--resume-surrogate-impact", action="store_true",
+                        help="use only the authoritative surrogate-contract impact release seed")
     args = parser.parse_args()
     if args.diagnostic_trials and not args.only:
         parser.error("--diagnostic-trials requires --only")
     if args.resume_archive and (args.only or args.diagnostic_trials):
         parser.error("--resume-archive cannot mix with diagnostic selection")
+    if args.resume_surrogate_impact and not args.resume_archive:
+        parser.error("--resume-surrogate-impact requires --resume-archive")
     summary = run_suite(args)
     print(json.dumps({k: summary[k] for k in ["phase_status", "status_counts", "actual_codex_target_calls"]}))
     return 0 if summary["phase_status"] == "PHASE3_PASSED" else 1

@@ -8,12 +8,15 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
+import zipfile
 
 from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
     deterministic_calibration_envelope, fixture_interpreter_launch_failed, grade_envelope, lane_state,
-    load_core_tasks, load_resume_checkpoint, findings_for, phase_status, progress_snapshot, prompt_for,
+    load_core_tasks, load_resume_checkpoint, load_surrogate_contract_release_seed,
+    findings_for, phase_status, progress_snapshot, prompt_for,
     resume_missing_tasks, summarize,
     target_identity, target_lane_id,
 )
@@ -284,6 +287,13 @@ class CoreEvidenceTests(unittest.TestCase):
             "PASS": 92, "FAIL": 2, "UNKNOWN": 0, "INFRA_ERROR": 109, "INVALID_FIXTURE": 0})
         self.assertEqual(len(logs), 64)
 
+    def test_normal_resume_keeps_strict_current_prompt_equality(self):
+        archive = Path(__file__).resolve().parents[1] / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        with self.assertRaisesRegex(RuntimeError, "baseline prompt differs"):
+            load_resume_checkpoint(
+                archive, load_core_tasks(), "476bc226433efc95c0b546948c2c7160ff97616c",
+                target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
+
     def test_pre_surrogate_synchronization_verdict_remains_historical(self):
         root = Path(__file__).resolve().parents[1]
         archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
@@ -351,6 +361,75 @@ class CoreEvidenceTests(unittest.TestCase):
                          lane_state(tasks, eligible, lane)["critical_gate"])
         self.assertEqual(impact["phase_status"], "PHASE3_BLOCKED")
         self.assertEqual(impact["audit_target_calls"], 0)
+
+    def test_surrogate_contract_release_seed_is_exactly_64_and_schedules_48(self):
+        root = Path(__file__).resolve().parents[1]
+        archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        seed, provenance = load_surrogate_contract_release_seed(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            CHECKPOINT_TOOL_PYTHON)
+        excluded = {"CORE_A_01", "CORE_A_02", "CORE_A_03", "CORE_B_02", "CORE_E_01", "CORE_E_02"}
+        self.assertEqual(len(seed), 64)
+        self.assertTrue(all(trial["grader"]["status"] == "PASS" for trial in seed))
+        self.assertFalse({trial["task_id"] for trial in seed} & excluded)
+        schedule = resume_missing_tasks(tasks, seed, lane)
+        self.assertEqual(sum(needed for _, needed in schedule), 48)
+        self.assertEqual(provenance["excluded_valid_trials"], 30)
+        self.assertEqual(provenance["release_seed_valid_trials"], 64)
+        self.assertEqual(len(provenance["excluded_valid_trial_ids"]), 30)
+        self.assertEqual(len(provenance["release_seed_trial_ids"]), 64)
+        self.assertFalse(set(provenance["excluded_valid_trial_ids"]) & set(provenance["release_seed_trial_ids"]))
+        self.assertEqual(provenance["remaining_valid_trials"], 48)
+        self.assertEqual(provenance["new_trial_prompt_contract"], "current_prompt_for")
+        self.assertIn("read STATE.md from\nbeginning to end exactly",
+                      prompt_for(schedule[0][0], "a" * 40, "python"))
+
+    def test_surrogate_contract_release_seed_fails_closed_for_wrong_inputs(self):
+        root = Path(__file__).resolve().parents[1]
+        archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        with self.assertRaisesRegex(RuntimeError, "impact verdict differs"):
+            load_surrogate_contract_release_seed(
+                archive, tasks, "f" * 40, lane, CHECKPOINT_TOOL_PYTHON)
+        with self.assertRaisesRegex(RuntimeError, "impact verdict differs"):
+            load_surrogate_contract_release_seed(
+                archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
+                target_lane_id("gpt-5.6-sol", "low"), CHECKPOINT_TOOL_PYTHON)
+        with tempfile.TemporaryDirectory() as temporary:
+            wrong_archive = Path(temporary) / archive.name
+            shutil.copyfile(archive, wrong_archive)
+            with self.assertRaisesRegex(RuntimeError, "not the impact verdict source"):
+                load_surrogate_contract_release_seed(
+                    wrong_archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+                    CHECKPOINT_TOOL_PYTHON)
+            wrong_impact = Path(temporary) / "wrong_impact.json"
+            wrong_impact.write_text("{}", encoding="utf-8")
+            with self.assertRaisesRegex(RuntimeError, "authoritative impact verdict"):
+                load_surrogate_contract_release_seed(
+                    archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+                    CHECKPOINT_TOOL_PYTHON, impact_path=wrong_impact)
+            altered_manifest = Path(temporary) / "altered_manifest.zip"
+            with zipfile.ZipFile(archive) as source, zipfile.ZipFile(altered_manifest, "w") as destination:
+                summary_name = next(name for name in source.namelist() if name.endswith("/summary.json"))
+                for name in source.namelist():
+                    data = source.read(name)
+                    if name == summary_name:
+                        summary = json.loads(data)
+                        summary["implementation_manifest"]["core_fixture.py"] = "0" * 64
+                        data = json.dumps(summary).encode("utf-8")
+                    destination.writestr(name, data)
+            with self.assertRaisesRegex(RuntimeError, "manifest differs: core_fixture.py"):
+                load_resume_checkpoint(
+                    altered_manifest, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+                    CHECKPOINT_TOOL_PYTHON, historical_audit=True)
+        with patch("evals.system.core_regression.digest", return_value="0" * 64):
+            with self.assertRaisesRegex(RuntimeError, "archive identity differs"):
+                load_surrogate_contract_release_seed(
+                    archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+                    CHECKPOINT_TOOL_PYTHON)
 
     def test_critical_fail_and_unknown_cannot_be_averaged_or_retried_away(self):
         task = self.tasks["current_owner"]
