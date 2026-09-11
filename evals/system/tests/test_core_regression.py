@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -260,6 +261,38 @@ class CoreEvidenceTests(unittest.TestCase):
         self.assertEqual(receipt["baseline_status_counts"], {
             "PASS": 92, "FAIL": 2, "UNKNOWN": 0, "INFRA_ERROR": 109, "INVALID_FIXTURE": 0})
         self.assertEqual(len(logs), 64)
+
+    def test_current_verdict_reaggregates_recovered_archive_without_rewriting_history(self):
+        root = Path(__file__).resolve().parents[1]
+        archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        historical_path = root / "core_final_full_baseline_resume_94_checkpoint_result.json"
+        verdict_path = root / "core_final_full_baseline_resume_94_current_verdict.json"
+        verdict = json.loads(verdict_path.read_text(encoding="utf-8"))
+        historical = json.loads(historical_path.read_text(encoding="utf-8"))
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        trials, logs = load_resume_checkpoint(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            CHECKPOINT_TOOL_PYTHON)
+        summary = progress_snapshot(tasks, trials, lane)
+        state = lane_state(tasks, trials, lane)
+        self.assertEqual(historical["phase_status"], "PHASE3_BLOCKED")
+        self.assertEqual(verdict["kind"], "phase3_current_authoritative_recovered_verdict")
+        self.assertEqual(verdict["historical_classification"]["sha256"],
+                         hashlib.sha256(historical_path.read_bytes()).hexdigest())
+        self.assertEqual(verdict["source_recovered_archive"]["sha256"],
+                         hashlib.sha256(archive.read_bytes()).hexdigest())
+        self.assertEqual(verdict["source_recovered_archive"]["baseline_records"], len(trials))
+        self.assertEqual(verdict["source_recovered_archive"]["inspect_logs"], len(logs))
+        self.assertEqual(verdict["aggregation"]["status_counts"], summary["status_counts"])
+        self.assertEqual(verdict["aggregation"]["critical_gate"], state["critical_gate"])
+        self.assertEqual(verdict["aggregation"]["valid_trials"],
+                         summary["progress_receipt"]["valid_trials"])
+        self.assertEqual(verdict["aggregation"]["remaining_valid_trials"],
+                         summary["progress_receipt"]["remaining_valid_trials"])
+        self.assertEqual(verdict["phase_status"], phase_status(
+            summary, integrity=True, logs_ok=True, controls_ok=True, diagnostic=False))
+        self.assertEqual(verdict["reclassification"]["target_calls"], 0)
 
     def test_critical_fail_and_unknown_cannot_be_averaged_or_retried_away(self):
         task = self.tasks["current_owner"]
