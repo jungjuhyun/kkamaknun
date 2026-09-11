@@ -1037,6 +1037,7 @@ class CoreEvidenceTests(unittest.TestCase):
             writable_root=Path(r"C:\\trial-worktree"))
         self.assertIn("--model", command)
         self.assertIn("gpt-5.6-sol", command)
+        self.assertEqual(command[command.index("--sandbox") + 1], "workspace-write")
         self.assertIn('model_reasoning_effort="medium"', command)
         self.assertIn('sandbox_workspace_write.writable_roots=["C:\\\\trial-worktree"]', command)
         self.assertEqual(command[command.index("--add-dir") + 1], r"C:\trial-worktree")

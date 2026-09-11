@@ -189,6 +189,7 @@ def codex_command(*, codex: Path, final: Path, target_model: str,
                   target_reasoning_effort: str, writable_root: Path | None = None) -> list[str]:
     """Construct the explicit target invocation used by every actual trial."""
     command = [str(codex), "exec", "--json", "--ephemeral", "--skip-git-repo-check",
+               "--sandbox", "workspace-write",
                "--model", target_model,
                "-c", f'model_reasoning_effort="{target_reasoning_effort}"',
                "-o", str(final), "-c", 'approval_policy="never"',
