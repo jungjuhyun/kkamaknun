@@ -200,6 +200,16 @@ def codex_command(*, codex: Path, final: Path, target_model: str,
     return command + ["-"]
 
 
+def grant_fixture_journal_write(journal: Path) -> None:
+    """Give the Windows restricted-token group write access to the sole mutable fixture file."""
+    if os.name != "nt":
+        return
+    result = subprocess.run(["icacls", str(journal), "/grant", "CodexSandboxUsers:(M)"],
+                            capture_output=True, text=True, check=False)
+    if result.returncode:
+        raise RuntimeError("could not provision writable fixture journal")
+
+
 def load_core_tasks() -> list[dict]:
     tasks = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((ROOT / "tasks/core").glob("*.json"))]
     if not 20 <= len(tasks) <= 30:
@@ -548,6 +558,7 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
         immutable_fixture_hashes = {p.name: digest(p) for p in fixture.iterdir()}
         # The journal is runner-owned mutable protocol state, never fixture source.
         write_json(fixture / "calls.json", [])
+        grant_fixture_journal_write(fixture / "calls.json")
         prompt = prompt_for(task, snapshot, tool_python or sys.executable)
         (artifact / "prompt.txt").write_text(prompt, encoding="utf-8")
         final = artifact / "final_response.txt"

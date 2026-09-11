@@ -202,6 +202,16 @@ class CoreEvidenceTests(unittest.TestCase):
             with self.assertRaises(json.JSONDecodeError):
                 dispatch(root, "freshness")
 
+    def test_windows_journal_acl_provisioning_is_limited_to_the_mutable_journal(self):
+        with tempfile.TemporaryDirectory() as directory, \
+                patch("evals.system.core_regression.os.name", "nt"), \
+                patch("evals.system.core_regression.subprocess.run") as run:
+            journal = Path(directory) / "calls.json"
+            run.return_value = SimpleNamespace(returncode=0)
+            core_regression.grant_fixture_journal_write(journal)
+            self.assertEqual(run.call_args.args[0],
+                             ["icacls", str(journal), "/grant", "CodexSandboxUsers:(M)"])
+
     def test_fixture_command_access_failures_are_infrastructure(self):
         tool = {"command": "python .core_trial/tool.py read AGENTS.md", "exit_code": 1,
                 "aggregated_output": "ResourceUnavailable: 액세스가 거부되었습니다"}
