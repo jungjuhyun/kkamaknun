@@ -16,6 +16,10 @@ from evals.system.core_regression import (
     target_identity, target_lane_id,
 )
 
+CHECKPOINT_TOOL_PYTHON = Path(
+    r"C:\Users\jungj\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+)
+
 
 def envelope(task):
     data = {"task_id": task["id"], "target": TARGET, "snapshot": "a" * 40,
@@ -229,12 +233,32 @@ class CoreEvidenceTests(unittest.TestCase):
         tasks = load_core_tasks()
         trials, logs = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
-            target_lane_id("gpt-5.6-sol", "medium"), Path(sys.executable))
+            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
         receipt = progress_snapshot(tasks, trials, target_lane_id("gpt-5.6-sol", "medium"))["progress_receipt"]
         self.assertEqual(receipt["valid_trials"], 61)
         self.assertEqual(receipt["remaining_valid_trials"], 51)
         self.assertEqual(receipt["control_record_count"], 0)
         self.assertEqual(len(logs), 44)
+
+    def test_incomplete_manual_checkpoint_cannot_be_imported_as_resume_evidence(self):
+        archive = Path(__file__).resolve().parents[1] / "evidence" / "phase3_resume_94_of_112_checkpoint.zip"
+        with self.assertRaisesRegex(RuntimeError, "exactly one raw summary.json"):
+            load_resume_checkpoint(
+                archive, load_core_tasks(), "476bc226433efc95c0b546948c2c7160ff97616c",
+                target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
+
+    def test_recovered_checkpoint_imports_all_94_completed_valid_trials(self):
+        archive = Path(__file__).resolve().parents[1] / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        tasks = load_core_tasks()
+        trials, logs = load_resume_checkpoint(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
+            target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
+        receipt = progress_snapshot(tasks, trials, target_lane_id("gpt-5.6-sol", "medium"))["progress_receipt"]
+        self.assertEqual(receipt["valid_trials"], 94)
+        self.assertEqual(receipt["remaining_valid_trials"], 18)
+        self.assertEqual(receipt["baseline_status_counts"], {
+            "PASS": 92, "FAIL": 2, "UNKNOWN": 0, "INFRA_ERROR": 109, "INVALID_FIXTURE": 0})
+        self.assertEqual(len(logs), 64)
 
     def test_critical_fail_and_unknown_cannot_be_averaged_or_retried_away(self):
         task = self.tasks["current_owner"]

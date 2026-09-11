@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from functools import lru_cache
 import hashlib
 import importlib.metadata
+from io import BytesIO
 import json
 import os
 from pathlib import Path
@@ -690,6 +691,17 @@ def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, rele
         summary_name = summary_names[0]
         prefix = summary_name.removesuffix("summary.json")
         saved = json.loads(bundle.read(summary_name))
+        prompt_sources = [(bundle, prefix)]
+        inherited_name = Path(saved.get("resume_checkpoint", {}).get("archive", "")).name
+        if inherited_name:
+            nested_names = [name for name in bundle.namelist() if Path(name).name == inherited_name]
+            if len(nested_names) != 1:
+                raise RuntimeError("resume checkpoint inherited archive is missing or ambiguous")
+            nested = zipfile.ZipFile(BytesIO(bundle.read(nested_names[0])))
+            nested_summaries = [name for name in nested.namelist() if name.endswith("/summary.json")]
+            if len(nested_summaries) != 1:
+                raise RuntimeError("resume checkpoint inherited archive has no unique raw summary.json")
+            prompt_sources.append((nested, nested_summaries[0].removesuffix("summary.json")))
         if saved.get("snapshot") != snapshot:
             raise RuntimeError("resume checkpoint snapshot differs")
         config = saved.get("target_configuration", {})
@@ -714,8 +726,16 @@ def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, rele
             prompt_artifacts = [item for item in trial.get("artifacts", []) if item["path"].endswith("prompt.txt")]
             if len(prompt_artifacts) != 1:
                 raise RuntimeError("resume checkpoint is missing a baseline prompt artifact")
-            prompt_name = prefix + prompt_artifacts[0]["path"].replace("\\", "/")
-            actual_prompt = bundle.read(prompt_name).decode("utf-8").replace("\r\n", "\n")
+            prompt_path = prompt_artifacts[0]["path"].replace("\\", "/")
+            prompt_bytes = None
+            for source, source_prefix in prompt_sources:
+                candidate = source_prefix + prompt_path
+                if candidate in source.namelist():
+                    prompt_bytes = source.read(candidate)
+                    break
+            if prompt_bytes is None:
+                raise RuntimeError(f"resume checkpoint is missing prompt artifact: {trial['trial_id']}")
+            actual_prompt = prompt_bytes.decode("utf-8").replace("\r\n", "\n")
             expected_prompt = prompt_for(task_by_id[trial["task_id"]], snapshot, str(tool_python))
             if actual_prompt != expected_prompt:
                 raise RuntimeError(f"resume checkpoint baseline prompt differs: {trial['trial_id']}")
