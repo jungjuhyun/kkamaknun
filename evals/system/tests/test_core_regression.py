@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -7,12 +8,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import zipfile
 
 from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
     deterministic_calibration_envelope, fixture_interpreter_launch_failed, grade_envelope, lane_state,
-    load_core_tasks, load_resume_checkpoint, findings_for, progress_snapshot, prompt_for, summarize,
+    load_core_tasks, load_resume_checkpoint, findings_for, progress_snapshot, prompt_for,
+    source_manifest_matches, summarize,
     target_identity, target_lane_id,
 )
 
@@ -231,6 +234,18 @@ class CoreEvidenceTests(unittest.TestCase):
     def test_checkpoint_archive_import_preserves_exact_61_of_112_receipt(self):
         archive = Path(__file__).resolve().parents[1] / "evidence" / "phase3_final_full_baseline_checkpoint_476bc22.zip"
         tasks = load_core_tasks()
+        with zipfile.ZipFile(archive) as bundle:
+            saved = json.loads(bundle.read("full_run/summary.json"))
+        schema_matches = source_manifest_matches(
+            Path(__file__).resolve().parents[1] / "schema.py",
+            saved["implementation_manifest"]["schema.py"],
+        )
+        if not schema_matches:
+            with self.assertRaisesRegex(RuntimeError, "manifest differs: schema.py"):
+                load_resume_checkpoint(
+                    archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
+                    target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
+            return
         trials, logs = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
             target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
@@ -239,6 +254,14 @@ class CoreEvidenceTests(unittest.TestCase):
         self.assertEqual(receipt["remaining_valid_trials"], 51)
         self.assertEqual(receipt["control_record_count"], 0)
         self.assertEqual(len(logs), 44)
+
+    def test_source_manifest_accepts_legacy_crlf_across_platforms(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "source.py"
+            source.write_bytes(b"one\ntwo\n")
+            legacy_windows = hashlib.sha256(b"one\r\ntwo\r\n").hexdigest()
+            self.assertTrue(source_manifest_matches(source, legacy_windows))
+            self.assertFalse(source_manifest_matches(source, hashlib.sha256(b"changed\n").hexdigest()))
 
     def test_incomplete_manual_checkpoint_cannot_be_imported_as_resume_evidence(self):
         archive = Path(__file__).resolve().parents[1] / "evidence" / "phase3_resume_94_of_112_checkpoint.zip"
@@ -250,6 +273,18 @@ class CoreEvidenceTests(unittest.TestCase):
     def test_recovered_checkpoint_imports_all_94_completed_valid_trials(self):
         archive = Path(__file__).resolve().parents[1] / "evidence" / "phase3_resume_94_of_112_recovered.zip"
         tasks = load_core_tasks()
+        with zipfile.ZipFile(archive) as bundle:
+            saved = json.loads(bundle.read("continuation_run1/summary.json"))
+        schema_matches = source_manifest_matches(
+            Path(__file__).resolve().parents[1] / "schema.py",
+            saved["implementation_manifest"]["schema.py"],
+        )
+        if not schema_matches:
+            with self.assertRaisesRegex(RuntimeError, "manifest differs: schema.py"):
+                load_resume_checkpoint(
+                    archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
+                    target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
+            return
         trials, logs = load_resume_checkpoint(
             archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c",
             target_lane_id("gpt-5.6-sol", "medium"), CHECKPOINT_TOOL_PYTHON)
