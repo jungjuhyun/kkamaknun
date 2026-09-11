@@ -46,20 +46,6 @@ def digest(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def source_digest(path: Path) -> str:
-    """Hash text measurement source independently of checkout line endings."""
-    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
-
-
-def source_manifest_matches(path: Path, recorded: str) -> bool:
-    """Accept canonical manifests and legacy LF/CRLF byte manifests only."""
-    data = path.read_bytes().replace(b"\r\n", b"\n")
-    return recorded in {
-        hashlib.sha256(data).hexdigest(),
-        hashlib.sha256(data.replace(b"\n", b"\r\n")).hexdigest(),
-    }
-
-
 def write_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
@@ -706,7 +692,7 @@ def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, rele
         prefix = summary_name.removesuffix("summary.json")
         saved = json.loads(bundle.read(summary_name))
         prompt_sources = [(bundle, prefix)]
-        inherited_name = saved.get("resume_checkpoint", {}).get("archive", "").replace("\\", "/").rsplit("/", 1)[-1]
+        inherited_name = Path(saved.get("resume_checkpoint", {}).get("archive", "")).name
         if inherited_name:
             nested_names = [name for name in bundle.namelist() if Path(name).name == inherited_name]
             if len(nested_names) != 1:
@@ -727,7 +713,7 @@ def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, rele
             # Prompts below prove the baseline target contract separately.
             if relative == "core_regression.py":
                 continue
-            if not source_manifest_matches(ROOT / relative, recorded):
+            if digest(ROOT / relative) != recorded:
                 raise RuntimeError(f"resume checkpoint manifest differs: {relative}")
         trials = [trial for trial in saved.get("trials", []) if not trial.get("control")]
         if len({trial.get("trial_id") for trial in trials}) != len(trials):
@@ -883,7 +869,7 @@ def run_suite(args) -> dict:
         claim="Initial executable Core Regression MVP baseline; not System RED TEAM completion",
         target=TARGET, project_instruction={"provenance": "NOT_APPLICABLE"},
         inspect_version=importlib.metadata.version("inspect-ai"),
-        implementation_manifest={str(p.relative_to(ROOT)): source_digest(p) for p in
+        implementation_manifest={str(p.relative_to(ROOT)): digest(p) for p in
             [ROOT / "core_regression.py", ROOT / "core_fixture.py", ROOT / "schema.py", ROOT / "scorers.py",
              ROOT / "core_requirements.txt", *sorted((ROOT / "tasks/core").glob("*.json"))]},
         protected_owner_blobs={p: _git_text(repo, "rev-parse", f"{args.snapshot}:{p}") for p in PROTECTED},
