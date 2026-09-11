@@ -470,10 +470,14 @@ class CoreEvidenceTests(unittest.TestCase):
             manifest_paths = [root / name for name in ["core_regression.py", "core_fixture.py", "schema.py",
                 "scorers.py", "core_requirements.txt"]] + sorted((root / "tasks/core").glob("*.json"))
             ids = sorted(trial["trial_id"] for trial in records)
+            ledger = copy.deepcopy(provenance["scheduling_ledger"])
+            for trial in records:
+                if trial["trial_id"] not in provenance["release_seed_trial_ids"]:
+                    ledger[trial["task_id"]]["initial_scheduled"] = True
             lineage = {**provenance, "historical_seed_trial_ids": provenance["release_seed_trial_ids"],
                        "checkpoint_trial_ids": ids,
                        "new_current_prompt_trial_ids": sorted(set(ids) - set(provenance["release_seed_trial_ids"])),
-                       "infra_replacement_attempts": {}}
+                       "scheduling_ledger": ledger}
             summary = {"snapshot": "476bc226433efc95c0b546948c2c7160ff97616c",
                        "target_configuration": {"target_lane": lane}, "trials": records,
                        "implementation_manifest": {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -514,19 +518,48 @@ class CoreEvidenceTests(unittest.TestCase):
             attempts = run_missing_with_bounded_infra([task], trials, lane, run)
             return trials, calls, attempts
 
-        trials, calls, attempts = execute(["PASS"] * 4 + ["INFRA_ERROR", "PASS"])
-        self.assertEqual(calls, [5, 1]); self.assertEqual(attempts, {task["id"]: 1})
+        trials, calls, ledger = execute(["PASS"] * 4 + ["INFRA_ERROR", "PASS"])
+        self.assertEqual(calls, [5, 1]); self.assertEqual(ledger[task["id"]]["replacement_attempts"], 1)
         self.assertEqual(summarize([task], trials, lane)["tasks"][0]["valid_trials"], 5)
         for status in ["FAIL", "UNKNOWN", "INVALID_FIXTURE"]:
-            trials, calls, attempts = execute(["PASS"] * 4 + [status])
-            self.assertEqual(calls, [5]); self.assertEqual(attempts, {})
-        trials, calls, attempts = execute(["PASS"] * 4 + ["INFRA_ERROR", "INFRA_ERROR", "INFRA_ERROR"])
-        self.assertEqual(calls, [5, 1, 1]); self.assertEqual(attempts, {task["id"]: 2})
+            trials, calls, ledger = execute(["PASS"] * 4 + [status])
+            self.assertEqual(calls, [5]); self.assertEqual(ledger[task["id"]]["replacement_attempts"], 0)
+        trials, calls, ledger = execute(["PASS"] * 4 + ["INFRA_ERROR", "INFRA_ERROR", "INFRA_ERROR"])
+        self.assertEqual(calls, [5, 1, 1]); self.assertEqual(ledger[task["id"]]["replacement_attempts"], 2)
+        resumed_calls = []
+        resumed = run_missing_with_bounded_infra([task], trials, lane,
+                                                  lambda batch, count: resumed_calls.append(count), ledger)
+        self.assertEqual(resumed_calls, [])
+        self.assertEqual(resumed[task["id"]], {"initial_scheduled": True, "replacement_attempts": 2})
+        partial = [envelope(task) for _ in range(5)]
+        for index, data in enumerate(partial):
+            data["trial_id"] = f"partial-{index}"
+            data["grader"] = {"status": "PASS" if index < 4 else "INFRA_ERROR", "assertions": []}
+        one_left_calls, one_left_statuses = [], ["PASS"]
+        one_left = run_missing_with_bounded_infra([task], partial, lane,
+            lambda batch, count: [one_left_calls.append(count), partial.append(dict(envelope(task),
+                trial_id="replacement", grader={"status": one_left_statuses.pop(0), "assertions": []}))],
+            {task["id"]: {"initial_scheduled": True, "replacement_attempts": 1}})
+        self.assertEqual(one_left_calls, [1]); self.assertEqual(one_left[task["id"]]["replacement_attempts"], 2)
+        two_left_calls, two_left_statuses = [], ["INFRA_ERROR", "INFRA_ERROR"]
+        partial_two = copy.deepcopy(partial[:5])
+        two_left = run_missing_with_bounded_infra([task], partial_two, lane,
+            lambda batch, count: [two_left_calls.append(count), partial_two.append(dict(envelope(task),
+                trial_id=f"replacement-{len(partial_two)}", grader={"status": two_left_statuses.pop(0), "assertions": []}))],
+            {task["id"]: {"initial_scheduled": True, "replacement_attempts": 0}})
+        self.assertEqual(two_left_calls, [1, 1]); self.assertEqual(two_left[task["id"]]["replacement_attempts"], 2)
+        for bad in [{task["id"]: {"initial_scheduled": True, "replacement_attempts": -1}},
+                    {task["id"]: {"initial_scheduled": True, "replacement_attempts": 3}},
+                    {task["id"]: {"initial_scheduled": True, "replacement_attempts": "1"}},
+                    {"UNKNOWN": {"initial_scheduled": True, "replacement_attempts": 0}},
+                    {task["id"]: {"initial_scheduled": False, "replacement_attempts": 1}}]:
+            with self.assertRaisesRegex(RuntimeError, "scheduling ledger"):
+                run_missing_with_bounded_infra([task], partial[:5], lane, lambda batch, count: None, bad)
         complete = [envelope(task) for _ in range(5)]
         for data in complete: data["grader"] = {"status": "PASS", "assertions": []}
         calls = []
         self.assertEqual(run_missing_with_bounded_infra([task], complete, lane,
-                         lambda batch, count: calls.append(count)), {})
+                         lambda batch, count: calls.append(count))[task["id"]]["replacement_attempts"], 0)
         self.assertEqual(calls, [])
 
     def test_critical_fail_and_unknown_cannot_be_averaged_or_retried_away(self):
