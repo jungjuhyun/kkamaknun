@@ -185,13 +185,17 @@ def lane_state(tasks: list[dict], trials: list[dict], primary_lane: str) -> dict
 
 
 def codex_command(*, codex: Path, final: Path, target_model: str,
-                  target_reasoning_effort: str) -> list[str]:
+                  target_reasoning_effort: str, writable_root: Path | None = None) -> list[str]:
     """Construct the explicit target invocation used by every actual trial."""
-    return [str(codex), "exec", "--json", "--ephemeral", "--skip-git-repo-check",
-            "--model", target_model,
-            "-c", f'model_reasoning_effort="{target_reasoning_effort}"',
-            "-o", str(final), "-c", 'approval_policy="never"',
-            "-c", 'sandbox_mode="workspace-write"', "-"]
+    command = [str(codex), "exec", "--json", "--ephemeral", "--skip-git-repo-check",
+               "--model", target_model,
+               "-c", f'model_reasoning_effort="{target_reasoning_effort}"',
+               "-o", str(final), "-c", 'approval_policy="never"',
+               "-c", 'sandbox_mode="workspace-write"']
+    if writable_root is not None:
+        command.extend(["-c", "sandbox_workspace_write.writable_roots=["
+                        + json.dumps(str(writable_root)) + "]"])
+    return command + ["-"]
 
 
 def load_core_tasks() -> list[dict]:
@@ -324,12 +328,13 @@ def capture_events(trace: dict, calls: list) -> list[dict]:
     return observed
 
 
-def fixture_interpreter_launch_failed(tools: list[dict], calls: list) -> bool:
-    """Recognize a fixture interpreter launch failure without relabeling it product FAIL.
+def fixture_command_infrastructure_failed(tools: list[dict], calls: list) -> bool:
+    """Recognize a controlled fixture command infrastructure failure, not product FAIL.
 
     A failed fixture command can look like a plausible model answer with missing
-    operations. It is infrastructure only when the journal is empty and the completed
-    command output identifies interpreter launch/access failure.
+    operations. It is infrastructure only when the journal is empty, the completed
+    command is the controlled fixture, and its nonzero output identifies interpreter
+    launch or filesystem access/write infrastructure failure.
     """
     if calls:
         return False
@@ -337,9 +342,11 @@ def fixture_interpreter_launch_failed(tools: list[dict], calls: list) -> bool:
         "unable to create process", "no installed pythons found", "python 3 not found",
         "resourceunavailable", "access is denied", "access denied", "액세스가 거부",
         "program 'python.exe' failed to run",
+        "permissionerror", "permission denied", "[errno 13]",
     )
     for tool in tools:
-        if ".core_trial/tool.py" not in tool.get("command", ""):
+        command = tool.get("command", "").replace("\\", "/")
+        if ".core_trial/tool.py" not in command:
             continue
         if tool.get("exit_code") in {None, 0}:
             continue
@@ -492,12 +499,15 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
         shutil.copyfile(ROOT / "core_fixture.py", fixture / "tool.py")
         write_json(fixture / "context.json", {"snapshot": snapshot, "scenario": task["scenario"],
                    "history_marker": envelope["history_marker"], "nonce": trial_id})
-        fixture_hashes = {p.name: digest(p) for p in fixture.iterdir()}
+        immutable_fixture_hashes = {p.name: digest(p) for p in fixture.iterdir()}
+        # The journal is runner-owned mutable protocol state, never fixture source.
+        write_json(fixture / "calls.json", [])
         prompt = prompt_for(task, snapshot, tool_python or sys.executable)
         (artifact / "prompt.txt").write_text(prompt, encoding="utf-8")
         final = artifact / "final_response.txt"
         command = codex_command(codex=codex, final=final, target_model=target_model,
-                                target_reasoning_effort=target_reasoning_effort)
+                                target_reasoning_effort=target_reasoning_effort,
+                                writable_root=worktree)
         envelope["command"] = command
         with (artifact / "stdout.jsonl").open("w", encoding="utf-8") as stdout, (
                 artifact / "stderr.txt").open("w", encoding="utf-8") as stderr:
@@ -532,8 +542,8 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
         envelope["events"] = capture_events(trace, calls)
         envelope["trace_complete"] = (bool(calls) and not trace["malformed_lines"] and "turn.completed" in trace["event_types"]
                                         and len(envelope["events"]) == len(calls))
-        if fixture_interpreter_launch_failed(trace["tools"], calls):
-            envelope["infrastructure_error"] = "Controlled fixture interpreter could not start in target environment"
+        if fixture_command_infrastructure_failed(trace["tools"], calls):
+            envelope["infrastructure_error"] = "Controlled fixture command could not access its target workspace"
         envelope["protocol_calls"] = calls
         envelope["final_response"] = final.read_text(encoding="utf-8") if final.exists() else ""
         raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", envelope["final_response"].strip())
@@ -548,7 +558,7 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
             changed_files=sorted(set(files + tracked)),
             marker_written=(worktree / "core_allowed.txt").is_file(),
             fixture_intact=all((fixture / name).is_file() and digest(fixture / name) == sha
-                               for name, sha in fixture_hashes.items()),
+                               for name, sha in immutable_fixture_hashes.items()),
             head_unchanged=_git_text(worktree, "rev-parse", "HEAD") == snapshot)
         envelope["git_diff"] = _git_text(worktree, "diff", "--binary", snapshot)
         envelope["marker_content"] = {p: (worktree / p).read_text(encoding="utf-8") for p in files

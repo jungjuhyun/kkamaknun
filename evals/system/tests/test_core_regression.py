@@ -16,7 +16,7 @@ import evals.system.core_regression as core_regression
 from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
-    deterministic_calibration_envelope, fixture_interpreter_launch_failed, grade_envelope, lane_state,
+    deterministic_calibration_envelope, fixture_command_infrastructure_failed, grade_envelope, lane_state,
     export_result, load_core_tasks, load_resume_checkpoint, load_surrogate_contract_release_seed,
     historical_seed_ids_from_provenance, materialize_inherited_current_artifacts,
     findings_for, phase_status, progress_snapshot, prompt_for,
@@ -180,13 +180,48 @@ class CoreEvidenceTests(unittest.TestCase):
         tool["command"] = "echo fake"
         self.assertEqual(capture_events({"tools": [tool]}, [["read", "STATE.md"]]), [])
 
-    def test_fixture_interpreter_access_denied_is_infrastructure(self):
+    def test_precreated_mutable_journal_accumulates_without_replacing_fixture_integrity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            fixture = root / ".core_trial"
+            fixture.mkdir()
+            tool_path = Path(__file__).resolve().parents[1] / "core_fixture.py"
+            shutil.copyfile(tool_path, fixture / "tool.py")
+            (fixture / "context.json").write_text(json.dumps({
+                "scenario": "stable", "snapshot": "a" * 40, "nonce": "trial",
+                "history_marker": "historical"}), encoding="utf-8")
+            immutable = {name: hashlib.sha256((fixture / name).read_bytes()).hexdigest()
+                         for name in ["tool.py", "context.json"]}
+            (fixture / "calls.json").write_text("[]", encoding="utf-8")
+            self.assertEqual(dispatch(root, "primary")[1], 0)
+            self.assertEqual(dispatch(root, "head")[1], 0)
+            self.assertEqual(json.loads((fixture / "calls.json").read_text()), [["primary", ""], ["head", ""]])
+            self.assertEqual(immutable, {name: hashlib.sha256((fixture / name).read_bytes()).hexdigest()
+                                         for name in immutable})
+            (fixture / "calls.json").write_text("not-json", encoding="utf-8")
+            with self.assertRaises(json.JSONDecodeError):
+                dispatch(root, "freshness")
+
+    def test_fixture_command_access_failures_are_infrastructure(self):
         tool = {"command": "python .core_trial/tool.py read AGENTS.md", "exit_code": 1,
                 "aggregated_output": "ResourceUnavailable: 액세스가 거부되었습니다"}
-        self.assertTrue(fixture_interpreter_launch_failed([tool], []))
-        self.assertFalse(fixture_interpreter_launch_failed([tool], [["read", "AGENTS.md"]]))
-        self.assertFalse(fixture_interpreter_launch_failed(
+        self.assertTrue(fixture_command_infrastructure_failed([tool], []))
+        self.assertFalse(fixture_command_infrastructure_failed([tool], [["read", "AGENTS.md"]]))
+        self.assertFalse(fixture_command_infrastructure_failed(
             [{**tool, "exit_code": 0}], []))
+
+    def test_fixture_permission_error_is_infrastructure_only_at_controlled_boundary(self):
+        observed = {"command": "python .core_trial/tool.py primary", "exit_code": 1,
+                    "aggregated_output": "PermissionError: [Errno 13] Permission denied"}
+        self.assertTrue(fixture_command_infrastructure_failed([observed], []))
+        self.assertFalse(fixture_command_infrastructure_failed([observed], [["primary", ""]]))
+        self.assertFalse(fixture_command_infrastructure_failed([{**observed, "exit_code": 0}], []))
+        unrelated = {**observed, "command": "python unrelated.py", "exit_code": 1}
+        self.assertFalse(fixture_command_infrastructure_failed([unrelated], []))
+        task = self.tasks["feature_mutation"]
+        data = envelope(task)
+        data["infrastructure_error"] = "Controlled fixture command could not access its target workspace"
+        self.assertEqual(grade_envelope(task, data)["status"], "INFRA_ERROR")
 
     def test_pass_wrong_answer_missing_infra_cross_target_remain_distinct(self):
         task = self.tasks["tool_semantics"]
@@ -936,10 +971,12 @@ class CoreEvidenceTests(unittest.TestCase):
     def test_explicit_invocation_contains_model_and_reasoning_config(self):
         command = codex_command(
             codex=Path("codex.exe"), final=Path("final.json"),
-            target_model="gpt-5.6-sol", target_reasoning_effort="medium")
+            target_model="gpt-5.6-sol", target_reasoning_effort="medium",
+            writable_root=Path(r"C:\\trial-worktree"))
         self.assertIn("--model", command)
         self.assertIn("gpt-5.6-sol", command)
         self.assertIn('model_reasoning_effort="medium"', command)
+        self.assertIn('sandbox_workspace_write.writable_roots=["C:\\\\trial-worktree"]', command)
 
     def test_effective_identity_stays_unknown_without_independent_observation(self):
         identity = target_identity(
