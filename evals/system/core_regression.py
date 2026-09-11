@@ -131,7 +131,9 @@ def lane_state(tasks: list[dict], trials: list[dict], primary_lane: str) -> dict
         "FAIL": sum(v["gate_status"] == "FAIL" for v in critical),
         "BLOCKED": sum(v["gate_status"] == "BLOCKED" for v in critical),
     }
-    status = ("FAIL" if critical_gate["FAIL"] and not critical_remaining else
+    # A valid critical failure is terminal for the release gate. Remaining work may
+    # explain why other tasks are blocked, but cannot make this suite retryable.
+    status = ("FAIL" if critical_gate["FAIL"] else
               "BLOCKED" if critical_remaining or critical_gate["BLOCKED"] else "PASS")
     observed_lanes = {trial_lane(trial) for trial in trials}
     legacy_count = sum(trial_lane(trial) == TargetIdentityStatus.LEGACY_UNPINNED.value
@@ -680,6 +682,32 @@ def progress_snapshot(tasks: list[dict], trials: list[dict], release_lane: str |
     return summary
 
 
+def resume_missing_tasks(tasks: list[dict], trials: list[dict], release_lane: str) -> list[tuple[dict, int]]:
+    """Return only retryable missing work, rejecting an already failed critical gate.
+
+    This runs after evidence import and before the first target batch. Valid FAIL and
+    UNKNOWN records remain part of the evidence; this merely prevents a continuation
+    from spending target calls after a release gate is already irrecoverably failed.
+    """
+    state = lane_state(tasks, trials, release_lane)
+    if state["critical_gate"]["FAIL"]:
+        raise RuntimeError("resume checkpoint has a failed critical gate; no target trials scheduled")
+    return [(task, state["task_state"][task["id"]]["remaining_trials"])
+            for task in tasks if state["task_state"][task["id"]]["remaining_trials"]]
+
+
+def phase_status(summary: dict, *, integrity: bool, logs_ok: bool, controls_ok: bool,
+                 diagnostic: bool) -> str:
+    """Apply the documented Phase 3 status precedence to one aggregate summary."""
+    failed = summary["critical_gate"].get("FAIL", 0) > 0
+    blocked = any(task["gate_status"] == "BLOCKED" for task in summary["tasks"])
+    if failed or not integrity:
+        return "PHASE3_FAILED"
+    if blocked:
+        return "PHASE3_BLOCKED"
+    return "PHASE3_PASSED" if logs_ok and controls_ok and not diagnostic else "PHASE3_PARTIAL"
+
+
 def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, release_lane: str,
                            tool_python: Path) -> tuple[list[dict], list[dict]]:
     """Import only baseline evidence that exactly matches the current continuation contract."""
@@ -822,12 +850,8 @@ def run_suite(args) -> dict:
 
     # Writer runs in the non-critical batch before the critical residue-reader.
     if args.resume_archive:
-        for task in tasks:
-            row = next(item for item in progress_snapshot(tasks, trials, release_lane=release_lane)["tasks"]
-                       if item["id"] == task["id"])
-            needed = max(task["trial_count"] - row["valid_trials"], 0)
-            if needed:
-                evaluate_batch([task], needed)
+        for task, needed in resume_missing_tasks(tasks, trials, release_lane):
+            evaluate_batch([task], needed)
     else:
         for criticality, epochs in [("non_critical", 3), ("critical", 5)]:
             selected = [t for t in tasks if t["criticality"] == criticality]
@@ -856,15 +880,13 @@ def run_suite(args) -> dict:
                  "expected": "FAIL", "observed": t["grader"]["status"],
                  "actual_target_calls": t["actual_target_calls"]}
                 for t in trials if t.get("control")]
-    blocked = any(t["gate_status"] == "BLOCKED" for t in summary["tasks"])
-    failed = summary["critical_gate"].get("FAIL", 0) > 0
     registry_restored = worktrees_before == _git_text(repo, "worktree", "list", "--porcelain")
     integrity = before == after and registry_restored and all(t["state_evidence"].get(k) is True for t in trials
         for k in ["production_unchanged", "main_unchanged", "cleanup", "registration_restored", "clean_start"])
     logs_ok = all(l["rescore_identical"] and l["eval_status"] == "success" for l in log_records)
     controls_ok = len(controls) == 2 and all(c["observed"] == "FAIL" for c in controls)
-    phase = "PHASE3_BLOCKED" if blocked else "PHASE3_FAILED" if failed or not integrity else (
-        "PHASE3_PASSED" if logs_ok and controls_ok and not args.only else "PHASE3_PARTIAL")
+    phase = phase_status(summary, integrity=integrity, logs_ok=logs_ok, controls_ok=controls_ok,
+                         diagnostic=bool(args.only))
     summary.update(schema_version=1, phase=3, phase_status=phase, snapshot=args.snapshot,
         claim="Initial executable Core Regression MVP baseline; not System RED TEAM completion",
         target=TARGET, project_instruction={"provenance": "NOT_APPLICABLE"},

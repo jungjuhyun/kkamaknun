@@ -12,7 +12,8 @@ from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
     deterministic_calibration_envelope, fixture_interpreter_launch_failed, grade_envelope, lane_state,
-    load_core_tasks, load_resume_checkpoint, findings_for, progress_snapshot, prompt_for, summarize,
+    load_core_tasks, load_resume_checkpoint, findings_for, phase_status, progress_snapshot, prompt_for,
+    resume_missing_tasks, summarize,
     target_identity, target_lane_id,
 )
 
@@ -270,6 +271,49 @@ class CoreEvidenceTests(unittest.TestCase):
         row = summarize([task], trials)["tasks"][0]
         self.assertEqual(row["valid_trials"], 7)
         self.assertEqual(row["gate_status"], "FAIL")
+
+    def test_critical_fail_with_remaining_trials_is_suite_fail(self):
+        task = self.tasks["current_owner"]
+        failed = envelope(task)
+        failed["grader"] = {"status": "FAIL", "assertions": []}
+        state = lane_state([task], [failed], target_lane_id("gpt-5.6-sol", "medium"))
+        self.assertEqual(state["critical_remaining_trials"], 4)
+        self.assertEqual(state["critical_gate"]["FAIL"], 1)
+        self.assertEqual(state["status"], "FAIL")
+
+    def test_critical_fail_outweighs_other_critical_and_noncritical_shortfalls(self):
+        failed_task = self.tasks["current_owner"]
+        blocked_critical = self.tasks["bootstrap_drift"]
+        blocked_noncritical = self.tasks["pre_shoot"]
+        failed = envelope(failed_task)
+        failed["grader"] = {"status": "FAIL", "assertions": []}
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        summary = summarize([failed_task, blocked_critical, blocked_noncritical], [failed], lane)
+        state = lane_state([failed_task, blocked_critical, blocked_noncritical], [failed], lane)
+        self.assertEqual(state["status"], "FAIL")
+        self.assertEqual(phase_status(summary, integrity=True, logs_ok=True, controls_ok=True,
+                                      diagnostic=False), "PHASE3_FAILED")
+
+    def test_pure_shortfall_remains_blocked(self):
+        task = self.tasks["current_owner"]
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        summary = summarize([task], [], lane)
+        state = lane_state([task], [], lane)
+        self.assertEqual(state["status"], "BLOCKED")
+        self.assertEqual(phase_status(summary, integrity=True, logs_ok=True, controls_ok=True,
+                                      diagnostic=False), "PHASE3_BLOCKED")
+
+    def test_resume_critical_fail_fast_schedules_no_target_trials(self):
+        archive = Path(__file__).resolve().parents[1] / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        trials, _ = load_resume_checkpoint(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            CHECKPOINT_TOOL_PYTHON)
+        before = sum(trial["actual_target_calls"] for trial in trials)
+        with self.assertRaisesRegex(RuntimeError, "failed critical gate; no target trials scheduled"):
+            resume_missing_tasks(tasks, trials, lane)
+        self.assertEqual(sum(trial["actual_target_calls"] for trial in trials), before)
 
     def test_infra_shortfall_blocks_without_product_failure(self):
         task = self.tasks["current_owner"]
