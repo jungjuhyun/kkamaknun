@@ -15,9 +15,9 @@ import zipfile
 import evals.system.core_regression as core_regression
 from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
-    TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
+    TARGET, aggregate_lane, capture_events, codex_command, controlled_fixture_event_pairs, evidence_for,
     deterministic_calibration_envelope, fixture_command_infrastructure_failed, grade_envelope, lane_state,
-    export_result, load_core_tasks, load_resume_checkpoint, load_surrogate_contract_release_seed,
+    export_result, fixture_trace_complete, load_core_tasks, load_resume_checkpoint, load_surrogate_contract_release_seed,
     historical_seed_ids_from_provenance, materialize_inherited_current_artifacts,
     findings_for, phase_status, progress_snapshot, prompt_for,
     resume_missing_tasks, run_missing_with_bounded_infra, run_suite, summarize, validate_scheduling_ledger,
@@ -222,6 +222,58 @@ class CoreEvidenceTests(unittest.TestCase):
         data = envelope(task)
         data["infrastructure_error"] = "Controlled fixture command could not access its target workspace"
         self.assertEqual(grade_envelope(task, data)["status"], "INFRA_ERROR")
+
+    def test_later_journal_entries_cannot_hide_prior_controlled_access_failure(self):
+        failed = {"type": "command_execution", "command": "python .core_trial/tool.py primary", "exit_code": 1,
+                  "aggregated_output": "PermissionError: [Errno 13] Permission denied"}
+        fallback = {"type": "command_execution", "command": "python .core_trial/tool.py fallback", "exit_code": 0,
+                    "aggregated_output": 'CORE_EVENT={"op":"fallback","argument":""}'}
+        calls = [["fallback", ""]]
+        self.assertTrue(fixture_command_infrastructure_failed([failed, fallback], calls))
+        self.assertFalse(fixture_trace_complete(
+            {"tools": [failed, fallback], "malformed_lines": [], "event_types": {"turn.completed"}},
+            calls, capture_events({"tools": [failed, fallback]}, calls)))
+        task = self.tasks["stable"]
+        data = envelope(task)
+        data["command_events"], data["protocol_calls"] = [failed, fallback], calls
+        data["infrastructure_error"] = "Controlled fixture command could not access its target workspace"
+        self.assertEqual(grade_envelope(task, data)["status"], "INFRA_ERROR")
+
+    def test_trace_requires_exact_event_journal_coverage(self):
+        tools = [
+            {"type": "command_execution", "command": "python .core_trial/tool.py primary", "exit_code": 0,
+             "aggregated_output": 'CORE_EVENT={"op":"primary","argument":""}'},
+            {"type": "command_execution", "command": "python .core_trial/tool.py head", "exit_code": 0,
+             "aggregated_output": 'CORE_EVENT={"op":"head","argument":""}'},
+        ]
+        trace = {"tools": tools, "malformed_lines": [], "event_types": {"turn.completed"}}
+        calls = [["primary", ""]]
+        self.assertEqual(controlled_fixture_event_pairs(tools), [("primary", ""), ("head", "")])
+        self.assertFalse(fixture_trace_complete(trace, calls, capture_events(trace, calls)))
+        self.assertTrue(fixture_trace_complete(trace, [["primary", ""], ["head", ""]],
+                                               capture_events(trace, [["primary", ""], ["head", ""]])))
+
+    def test_export_handles_calibration_controls_without_artifacts(self):
+        task = self.tasks["stable"]
+        trial = envelope(task)
+        trial.update(artifacts=[], trace_identity_observation={})
+        trial["grader"] = grade_envelope(task, trial)
+        control = deterministic_calibration_envelope(
+            task, "a" * 40, "fallback_seed", "gpt-5.6-sol", "medium", "test")
+        control["grader"] = grade_envelope(task, control)
+        with tempfile.TemporaryDirectory() as temporary:
+            output, destination = Path(temporary) / "output", Path(temporary) / "export"
+            output.mkdir(); destination.mkdir()
+            lane = target_lane_id("gpt-5.6-sol", "medium")
+            summary = progress_snapshot([task], [trial, control], release_lane=lane)
+            summary.update(snapshot="a" * 40, target_configuration={"target_lane": lane},
+                           trials=[trial, control])
+            (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+            (output / "findings.json").write_text("[]", encoding="utf-8")
+            export_result(output, destination)
+            self.assertTrue((destination / "core_result.json").is_file())
+            self.assertTrue((destination / "core_findings.json").is_file())
+            self.assertTrue((destination / "core_evidence.zip").is_file())
 
     def test_pass_wrong_answer_missing_infra_cross_target_remain_distinct(self):
         task = self.tasks["tool_semantics"]

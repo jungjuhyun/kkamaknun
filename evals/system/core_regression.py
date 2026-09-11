@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import asyncio
 from collections import Counter
 from dataclasses import asdict
@@ -328,16 +329,50 @@ def capture_events(trace: dict, calls: list) -> list[dict]:
     return observed
 
 
+def controlled_fixture_event_pairs(tools: list[dict]) -> list[tuple[str, str]]:
+    """Return every fixture event emitted by a completed controlled command.
+
+    ``capture_events`` intentionally returns only entries that also occur in the
+    independent journal.  Completeness needs the complementary view too: an
+    emitted command event without a journal entry must not be hidden by another
+    command's later journal entry.
+    """
+    pairs = []
+    for tool in tools:
+        command = tool.get("command", "").replace("\\", "/")
+        if tool.get("type") != "command_execution" or ".core_trial/tool.py" not in command:
+            continue
+        for line in tool.get("aggregated_output", "").splitlines():
+            if not line.startswith("CORE_EVENT="):
+                continue
+            try:
+                event = json.loads(line[len("CORE_EVENT="):])
+            except json.JSONDecodeError:
+                continue
+            op, argument = event.get("op"), event.get("argument", "")
+            if isinstance(op, str) and isinstance(argument, str):
+                pairs.append((op, argument))
+    return pairs
+
+
+def fixture_trace_complete(trace: dict, calls: list, events: list[dict]) -> bool:
+    """Require exact command-event/journal coverage for the whole fixture trace."""
+    journal_pairs = [(op, argument) for op, argument in calls
+                     if isinstance(op, str) and isinstance(argument, str)]
+    return (bool(calls) and len(journal_pairs) == len(calls)
+            and not trace["malformed_lines"] and "turn.completed" in trace["event_types"]
+            and len(events) == len(calls)
+            and Counter(controlled_fixture_event_pairs(trace["tools"])) == Counter(journal_pairs)
+            and not fixture_command_infrastructure_failed(trace["tools"], calls))
+
+
 def fixture_command_infrastructure_failed(tools: list[dict], calls: list) -> bool:
     """Recognize a controlled fixture command infrastructure failure, not product FAIL.
 
     A failed fixture command can look like a plausible model answer with missing
-    operations. It is infrastructure only when the journal is empty, the completed
-    command is the controlled fixture, and its nonzero output identifies interpreter
-    launch or filesystem access/write infrastructure failure.
+    operations.  Classification is per command, not per trial: later successful
+    journal writes cannot erase an earlier controlled command's access failure.
     """
-    if calls:
-        return False
     markers = (
         "unable to create process", "no installed pythons found", "python 3 not found",
         "resourceunavailable", "access is denied", "access denied", "액세스가 거부",
@@ -351,7 +386,17 @@ def fixture_command_infrastructure_failed(tools: list[dict], calls: list) -> boo
         if tool.get("exit_code") in {None, 0}:
             continue
         output = tool.get("aggregated_output", "").casefold()
-        if any(marker.casefold() in output for marker in markers):
+        # The fixture writes its independent journal before emitting CORE_EVENT.
+        # An access failure with neither a command event nor a matching journal
+        # operation is therefore infrastructure evidence for this command.
+        command_tail = command.split(".core_trial/tool.py", 1)[1].strip().strip("\"'")
+        command_parts = command_tail.split(maxsplit=1)
+        operation = command_parts[0] if command_parts else ""
+        argument = command_parts[1].strip("\"'") if len(command_parts) == 2 else ""
+        matching_journal = any(call == [operation, argument] for call in calls if isinstance(call, list))
+        emitted_event = any(line.startswith("CORE_EVENT=") for line in tool.get("aggregated_output", "").splitlines())
+        if (any(marker.casefold() in output for marker in markers)
+                and not matching_journal and not emitted_event):
             return True
     return False
 
@@ -540,8 +585,7 @@ def run_trial(*, repo: Path, snapshot: str, output: Path, codex: Path, task: dic
         calls_path = fixture / "calls.json"
         calls = json.loads(calls_path.read_text()) if calls_path.exists() else []
         envelope["events"] = capture_events(trace, calls)
-        envelope["trace_complete"] = (bool(calls) and not trace["malformed_lines"] and "turn.completed" in trace["event_types"]
-                                        and len(envelope["events"]) == len(calls))
+        envelope["trace_complete"] = fixture_trace_complete(trace, calls, envelope["events"])
         if fixture_command_infrastructure_failed(trace["tools"], calls):
             envelope["infrastructure_error"] = "Controlled fixture command could not access its target workspace"
         envelope["protocol_calls"] = calls
@@ -1021,6 +1065,25 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
         summary_name = summaries[0]
         prefix = summary_name.removesuffix("summary.json")
         saved = json.loads(bundle.read(summary_name))
+        interpretation = saved.get("measurement_interpretation")
+        if interpretation is not None:
+            if (not isinstance(interpretation, dict) or set(interpretation) != {
+                    "schema_version", "raw_summary", "reclassified_trials"}
+                    or interpretation["schema_version"] != 1):
+                raise RuntimeError("release continuation measurement interpretation differs")
+            raw_record = interpretation["raw_summary"]
+            if (not isinstance(raw_record, dict) or set(raw_record) != {"path", "sha256"}
+                    or raw_record["path"] != "raw_summary.json" or raw_record["path"] not in bundle.namelist()):
+                raise RuntimeError("release continuation raw measurement summary differs")
+            raw_bytes = bundle.read(raw_record["path"])
+            if hashlib.sha256(raw_bytes).hexdigest() != raw_record["sha256"]:
+                raise RuntimeError("release continuation raw measurement summary hash differs")
+            raw_summary = json.loads(raw_bytes)
+            expected, changes = audited_measurement_summary(raw_summary, tasks, release_lane)
+            expected["implementation_manifest"] = current_manifest()
+            expected["measurement_interpretation"] = interpretation
+            if not changes or changes != interpretation["reclassified_trials"] or saved != expected:
+                raise RuntimeError("release continuation measurement interpretation differs")
         lineage = saved.get("release_continuation")
         if not isinstance(lineage, dict) or lineage.get("mode") != "surrogate_contract_release_seed":
             raise RuntimeError("release continuation checkpoint lineage is missing")
@@ -1156,6 +1219,50 @@ def findings_for(tasks: list[dict], trials: list[dict]) -> list[dict]:
                 "trial_ids": [t["trial_id"] for t in bad], "remediation": "NOT_PERFORMED",
                 "scope": "controlled Codex surrogate only; not a Work product finding"})
     return findings
+
+
+def audited_measurement_trial(task: dict, trial: dict) -> tuple[dict, dict | None]:
+    """Derive a corrected classification without changing the captured envelope."""
+    if not fixture_command_infrastructure_failed(
+            trial.get("command_events", []), trial.get("protocol_calls", [])):
+        return trial, None
+    audited = copy.deepcopy(trial)
+    raw_status = audited.get("grader", {}).get("status")
+    audited["trace_complete"] = False
+    audited["infrastructure_error"] = "Controlled fixture command could not access its target workspace"
+    audited["grader"] = grade_envelope(task, audited)
+    return audited, {"trial_id": trial["trial_id"], "raw_status": raw_status,
+                     "audited_status": audited["grader"]["status"],
+                     "reason": "controlled_fixture_command_access_failure"}
+
+
+def audited_measurement_summary(raw_summary: dict, tasks: list[dict], release_lane: str) -> tuple[dict, list[dict]]:
+    """Build a portable audited derivative while retaining the immutable raw summary."""
+    task_by_id = {task["id"]: task for task in tasks}
+    trials, changes = [], []
+    for trial in raw_summary.get("trials", []):
+        if trial.get("control") or trial.get("task_id") not in task_by_id:
+            trials.append(copy.deepcopy(trial))
+            continue
+        audited, change = audited_measurement_trial(task_by_id[trial["task_id"]], trial)
+        trials.append(audited)
+        if change:
+            changes.append(change)
+    if not changes:
+        return copy.deepcopy(raw_summary), []
+    derived = copy.deepcopy(raw_summary)
+    derived["trials"] = trials
+    aggregate = progress_snapshot(tasks, trials, release_lane=release_lane)
+    for key, value in aggregate.items():
+        derived[key] = value
+    logs_ok = all(record.get("rescore_identical") and record.get("eval_status") == "success"
+                  for record in derived.get("inspect_logs", []))
+    controls = [trial for trial in trials if trial.get("control")]
+    controls_ok = len(controls) == 2 and all(trial["grader"]["status"] == "FAIL" for trial in controls)
+    derived["phase_status"] = phase_status(
+        aggregate, integrity=derived.get("cross_trial_isolation") is True,
+        logs_ok=logs_ok, controls_ok=controls_ok, diagnostic=False)
+    return derived, changes
 
 
 def run_suite(args) -> dict:
@@ -1325,21 +1432,38 @@ def run_suite(args) -> dict:
 
 def export_result(output: Path, destination: Path) -> None:
     """Preserve portable raw evidence + logs and a compact reviewer-facing result."""
-    summary = json.loads((output / "summary.json").read_text(encoding="utf-8"))
+    raw_summary_bytes = (output / "summary.json").read_bytes()
+    raw_summary = json.loads(raw_summary_bytes)
+    release_lane = raw_summary.get("target_configuration", {}).get("target_lane", "")
+    summary, audit_changes = audited_measurement_summary(raw_summary, load_core_tasks(), release_lane)
+    if audit_changes:
+        summary["implementation_manifest"] = current_manifest()
+        summary["measurement_interpretation"] = {
+            "schema_version": 1,
+            "raw_summary": {"path": "raw_summary.json", "sha256": hashlib.sha256(raw_summary_bytes).hexdigest()},
+            "reclassified_trials": audit_changes,
+        }
     archive = destination / "core_evidence.zip"
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
         for path in sorted(output.rglob("*")):
-            if path.is_file() and "worktrees" not in path.relative_to(output).parts:
+            if (path.is_file() and path.name != "summary.json"
+                    and "worktrees" not in path.relative_to(output).parts):
                 bundle.write(path, path.relative_to(output).as_posix())
+        if audit_changes:
+            bundle.writestr("raw_summary.json", raw_summary_bytes)
+        bundle.writestr("summary.json", json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
     trials = summary.pop("trials")
-    summary["trial_receipts"] = [{k: t[k] for k in ["trial_id", "task_id", "control", "epoch",
-        "actual_target_calls", "runtime_seconds", "usage", "state_evidence", "artifacts",
-        "infrastructure_error", "grader", "target_identity", "trace_identity_observation"]}
-        for t in trials]
+    receipt_fields = ["trial_id", "task_id", "control", "epoch", "actual_target_calls",
+                      "runtime_seconds", "usage", "state_evidence", "infrastructure_error",
+                      "grader", "target_identity", "trace_identity_observation"]
+    summary["trial_receipts"] = [{**{key: trial.get(key, {}) if key in {"usage", "state_evidence", "trace_identity_observation"}
+                                      else trial.get(key) for key in receipt_fields},
+                                  "artifacts": trial.get("artifacts", [])}
+                                 for trial in trials]
     summary["evidence_bundle"] = {"path": archive.name, "sha256": digest(archive),
                                   "format": "zip", "raw_source_directory": str(output)}
     write_json(destination / "core_result.json", summary)
-    shutil.copyfile(output / "findings.json", destination / "core_findings.json")
+    write_json(destination / "core_findings.json", findings_for(load_core_tasks(), trials))
 
 
 def rescore_log(log_path: Path, destination: Path) -> dict:
