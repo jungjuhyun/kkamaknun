@@ -16,6 +16,7 @@ from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
     deterministic_calibration_envelope, fixture_interpreter_launch_failed, grade_envelope, lane_state,
     export_result, load_core_tasks, load_resume_checkpoint, load_surrogate_contract_release_seed,
+    materialize_inherited_current_artifacts,
     findings_for, phase_status, progress_snapshot, prompt_for,
     resume_missing_tasks, run_missing_with_bounded_infra, summarize,
     target_identity, target_lane_id,
@@ -455,11 +456,15 @@ class CoreEvidenceTests(unittest.TestCase):
                 result.append(data)
             return result
 
-        def checkpoint(directory, records):
+        def checkpoint(directory, records, inherited=None):
             output, destination = directory / "output", directory / "export"
             directory.mkdir(); output.mkdir(); destination.mkdir()
+            if inherited:
+                materialize_inherited_current_artifacts(records, inherited, output)
             for trial in records:
                 if trial["trial_id"] in provenance["release_seed_trial_ids"]:
+                    continue
+                if trial["artifacts"] and all((output / item["path"]).is_file() for item in trial["artifacts"]):
                     continue
                 prompt = prompt_for(next(t for t in tasks if t["id"] == trial["task_id"]),
                                     "476bc226433efc95c0b546948c2c7160ff97616c", str(CHECKPOINT_TOOL_PYTHON))
@@ -474,6 +479,8 @@ class CoreEvidenceTests(unittest.TestCase):
             for trial in records:
                 if trial["trial_id"] not in provenance["release_seed_trial_ids"]:
                     ledger[trial["task_id"]]["initial_scheduled"] = True
+                    if trial["trial_id"] not in ledger[trial["task_id"]]["initial_trial_ids"]:
+                        ledger[trial["task_id"]]["initial_trial_ids"].append(trial["trial_id"])
             lineage = {**provenance, "historical_seed_trial_ids": provenance["release_seed_trial_ids"],
                        "checkpoint_trial_ids": ids,
                        "new_current_prompt_trial_ids": sorted(set(ids) - set(provenance["release_seed_trial_ids"])),
@@ -495,13 +502,20 @@ class CoreEvidenceTests(unittest.TestCase):
                 first, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane, CHECKPOINT_TOOL_PYTHON)
             self.assertEqual(len(first_records), 73)
             self.assertEqual(sum(n for _, n in resume_missing_tasks(tasks, first_records, lane)), 39)
-            second = checkpoint(base / "second", copy.deepcopy(first_records) + new_trials(first_records, 9, 16))
-            second_records, _ = load_surrogate_contract_release_seed(
+            second = checkpoint(base / "second", copy.deepcopy(first_records) + new_trials(first_records, 9, 16),
+                                first_lineage)
+            second_records, second_lineage = load_surrogate_contract_release_seed(
                 second, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane, CHECKPOINT_TOOL_PYTHON)
             self.assertEqual(len(second_records), 89)
             self.assertEqual(sum(n for _, n in resume_missing_tasks(tasks, second_records, lane)), 23)
             self.assertEqual(len({trial["trial_id"] for trial in second_records}), 89)
             self.assertEqual(first_lineage["historical_seed_trial_ids"], provenance["release_seed_trial_ids"])
+            final = checkpoint(base / "final", copy.deepcopy(second_records) + new_trials(second_records, 25, 23),
+                               second_lineage)
+            final_records, _ = load_surrogate_contract_release_seed(
+                final, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane, CHECKPOINT_TOOL_PYTHON)
+            self.assertEqual(len(final_records), 112)
+            self.assertEqual(sum(n for _, n in resume_missing_tasks(tasks, final_records, lane)), 0)
 
     def test_unified_bounded_infra_replacement_policy(self):
         task = self.tasks["current_owner"]
@@ -530,23 +544,32 @@ class CoreEvidenceTests(unittest.TestCase):
         resumed = run_missing_with_bounded_infra([task], trials, lane,
                                                   lambda batch, count: resumed_calls.append(count), ledger)
         self.assertEqual(resumed_calls, [])
-        self.assertEqual(resumed[task["id"]], {"initial_scheduled": True, "replacement_attempts": 2})
+        self.assertTrue(resumed[task["id"]]["initial_scheduled"])
+        self.assertEqual(resumed[task["id"]]["replacement_attempts"], 2)
         partial = [envelope(task) for _ in range(5)]
         for index, data in enumerate(partial):
             data["trial_id"] = f"partial-{index}"
             data["grader"] = {"status": "PASS" if index < 4 else "INFRA_ERROR", "assertions": []}
+        prior_replacement = envelope(task)
+        prior_replacement["trial_id"] = "replacement-prior"
+        prior_replacement["grader"] = {"status": "INFRA_ERROR", "assertions": []}
+        partial.append(prior_replacement)
         one_left_calls, one_left_statuses = [], ["PASS"]
         one_left = run_missing_with_bounded_infra([task], partial, lane,
             lambda batch, count: [one_left_calls.append(count), partial.append(dict(envelope(task),
                 trial_id="replacement", grader={"status": one_left_statuses.pop(0), "assertions": []}))],
-            {task["id"]: {"initial_scheduled": True, "replacement_attempts": 1}})
+            {task["id"]: {"initial_scheduled": True, "replacement_attempts": 1,
+                            "initial_trial_ids": [f"partial-{i}" for i in range(5)],
+                            "replacement_trial_ids": ["replacement-prior"]}})
         self.assertEqual(one_left_calls, [1]); self.assertEqual(one_left[task["id"]]["replacement_attempts"], 2)
         two_left_calls, two_left_statuses = [], ["INFRA_ERROR", "INFRA_ERROR"]
         partial_two = copy.deepcopy(partial[:5])
         two_left = run_missing_with_bounded_infra([task], partial_two, lane,
             lambda batch, count: [two_left_calls.append(count), partial_two.append(dict(envelope(task),
                 trial_id=f"replacement-{len(partial_two)}", grader={"status": two_left_statuses.pop(0), "assertions": []}))],
-            {task["id"]: {"initial_scheduled": True, "replacement_attempts": 0}})
+            {task["id"]: {"initial_scheduled": True, "replacement_attempts": 0,
+                            "initial_trial_ids": [f"partial-{i}" for i in range(5)],
+                            "replacement_trial_ids": []}})
         self.assertEqual(two_left_calls, [1, 1]); self.assertEqual(two_left[task["id"]]["replacement_attempts"], 2)
         for bad in [{task["id"]: {"initial_scheduled": True, "replacement_attempts": -1}},
                     {task["id"]: {"initial_scheduled": True, "replacement_attempts": 3}},

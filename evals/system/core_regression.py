@@ -51,6 +51,15 @@ def write_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def required_manifest_paths() -> list[Path]:
+    return [ROOT / "core_regression.py", ROOT / "core_fixture.py", ROOT / "schema.py", ROOT / "scorers.py",
+            ROOT / "core_requirements.txt", *sorted((ROOT / "tasks/core").glob("*.json"))]
+
+
+def current_manifest() -> dict[str, str]:
+    return {str(path.relative_to(ROOT)): digest(path) for path in required_manifest_paths()}
+
+
 def target_lane_id(model: str, reasoning_effort: str) -> str:
     """Return the stable lane key used for critical aggregation."""
     if not model or not reasoning_effort:
@@ -707,7 +716,8 @@ def initial_scheduling_ledger(tasks: list[dict], trials: list[dict], release_lan
     """Create the release-workload ledger; completed seed tasks need no initial batch."""
     state = lane_state(tasks, trials, release_lane)
     return {task["id"]: {"initial_scheduled": state["task_state"][task["id"]]["remaining_trials"] == 0,
-                         "replacement_attempts": 0} for task in tasks}
+                         "replacement_attempts": 0, "initial_trial_ids": [],
+                         "replacement_trial_ids": []} for task in tasks}
 
 
 def validate_scheduling_ledger(ledger: dict, tasks: list[dict], trials: list[dict],
@@ -719,15 +729,31 @@ def validate_scheduling_ledger(ledger: dict, tasks: list[dict], trials: list[dic
     rows = {row["id"]: row for row in progress_snapshot(tasks, trials, release_lane)["tasks"]}
     normalized = {}
     for task_id, entry in ledger.items():
-        if not isinstance(entry, dict) or set(entry) != {"initial_scheduled", "replacement_attempts"}:
+        if not isinstance(entry, dict) or set(entry) != {
+                "initial_scheduled", "replacement_attempts", "initial_trial_ids", "replacement_trial_ids"}:
             raise RuntimeError("continuation scheduling ledger shape differs")
         initial, attempts = entry["initial_scheduled"], entry["replacement_attempts"]
+        initial_ids, replacement_ids = entry["initial_trial_ids"], entry["replacement_trial_ids"]
         if type(initial) is not bool or type(attempts) is not int or not 0 <= attempts <= 2:
             raise RuntimeError("continuation scheduling ledger value differs")
-        row = rows[task_id]
-        if attempts and (not initial or row["INFRA_ERROR"] < attempts):
+        if (not isinstance(initial_ids, list) or not isinstance(replacement_ids, list)
+                or not all(type(value) is str for value in initial_ids + replacement_ids)
+                or len(set(initial_ids + replacement_ids)) != len(initial_ids + replacement_ids)
+                or len(replacement_ids) != attempts):
+            raise RuntimeError("continuation scheduling ledger provenance differs")
+        records = {trial["trial_id"]: trial for trial in trials}
+        if any(value not in records or records[value]["task_id"] != task_id
+               for value in initial_ids + replacement_ids):
+            raise RuntimeError("continuation scheduling ledger provenance differs")
+        if not initial and (initial_ids or replacement_ids or attempts):
             raise RuntimeError("continuation scheduling ledger contradicts evidence")
-        normalized[task_id] = {"initial_scheduled": initial, "replacement_attempts": attempts}
+        row = rows[task_id]
+        if initial and row["valid_trials"] < row["trials_requested"] and not initial_ids:
+            raise RuntimeError("continuation scheduling ledger contradicts evidence")
+        if attempts and not initial:
+            raise RuntimeError("continuation scheduling ledger contradicts evidence")
+        normalized[task_id] = {"initial_scheduled": initial, "replacement_attempts": attempts,
+                               "initial_trial_ids": initial_ids, "replacement_trial_ids": replacement_ids}
     return normalized
 
 
@@ -743,8 +769,11 @@ def run_missing_with_bounded_infra(tasks: list[dict], trials: list[dict], releas
         entry = ledger[task["id"]]
         needed = state["task_state"][task["id"]]["remaining_trials"]
         if needed and not entry["initial_scheduled"]:
+            before = {trial["trial_id"] for trial in trials}
             entry["initial_scheduled"] = True
             run_batch([task], needed)
+            entry["initial_trial_ids"] = [trial["trial_id"] for trial in trials
+                                          if trial["trial_id"] not in before and trial["task_id"] == task["id"]]
         while entry["replacement_attempts"] < 2:
             row = next(row for row in progress_snapshot(tasks, trials, release_lane)["tasks"]
                        if row["id"] == task["id"])
@@ -752,8 +781,14 @@ def run_missing_with_bounded_infra(tasks: list[dict], trials: list[dict], releas
                 break
             if not row["INFRA_ERROR"]:
                 break
+            before = {trial["trial_id"] for trial in trials}
             entry["replacement_attempts"] += 1
             run_batch([task], 1)
+            added = [trial["trial_id"] for trial in trials
+                     if trial["trial_id"] not in before and trial["task_id"] == task["id"]]
+            if len(added) != 1:
+                raise RuntimeError("continuation replacement did not produce one trial")
+            entry["replacement_trial_ids"].extend(added)
     return ledger
 
 
@@ -802,6 +837,8 @@ def load_resume_checkpoint(archive: Path, tasks: list[dict], snapshot: str, rele
         if config.get("target_lane") != release_lane:
             raise RuntimeError("resume checkpoint lane differs")
         manifest = saved.get("implementation_manifest", {})
+        if set(manifest) != set(current_manifest()):
+            raise RuntimeError("resume checkpoint manifest entry set differs")
         for relative, recorded in manifest.items():
             # The runner itself may change only in continuation/control/reporting paths.
             # Prompts below prove the baseline target contract separately.
@@ -939,8 +976,11 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
         if saved.get("snapshot") != snapshot or saved.get("target_configuration", {}).get("target_lane") != release_lane:
             raise RuntimeError("release continuation checkpoint snapshot or lane differs")
         manifest = saved.get("implementation_manifest", {})
+        expected_manifest = current_manifest()
+        if set(manifest) != set(expected_manifest):
+            raise RuntimeError("release continuation checkpoint manifest entry set differs")
         for relative, recorded in manifest.items():
-            if digest(ROOT / relative) != recorded:
+            if expected_manifest[relative] != recorded:
                 raise RuntimeError(f"release continuation checkpoint manifest differs: {relative}")
         trials = [trial for trial in saved.get("trials", []) if not trial.get("control")]
         if len({trial.get("trial_id") for trial in trials}) != len(trials):
@@ -954,12 +994,29 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
             if checkpoint_by_id[trial_id] != seed_trial:
                 raise RuntimeError("release continuation checkpoint altered historical seed")
         new_trials = [trial for trial in trials if trial["trial_id"] not in seed_by_id]
+        inherited_logs = saved.get("inspect_logs", [])
+        if not isinstance(inherited_logs, list):
+            raise RuntimeError("release continuation checkpoint logs differ")
+        for record in inherited_logs:
+            if not isinstance(record, dict) or not isinstance(record.get("path"), str) or not isinstance(record.get("sha256"), str):
+                raise RuntimeError("release continuation checkpoint logs differ")
+            log_path = prefix + record["path"].replace("\\", "/")
+            if log_path not in bundle.namelist() or hashlib.sha256(bundle.read(log_path)).hexdigest() != record["sha256"]:
+                raise RuntimeError("release continuation checkpoint log hash differs")
         for trial in new_trials:
             if trial.get("task_id") not in task_by_id or trial.get("snapshot") != snapshot:
                 raise RuntimeError("release continuation checkpoint has foreign trial evidence")
             if trial_lane(trial) != release_lane:
                 raise RuntimeError("release continuation checkpoint trial lane differs")
-            artifacts = [item for item in trial.get("artifacts", []) if item["path"].endswith("prompt.txt")]
+            all_artifacts = trial.get("artifacts", [])
+            if not all_artifacts or any(not isinstance(item, dict) or set(item) != {"path", "sha256"}
+                                        for item in all_artifacts):
+                raise RuntimeError("release continuation checkpoint artifact manifest differs")
+            for artifact in all_artifacts:
+                artifact_path = prefix + artifact["path"].replace("\\", "/")
+                if artifact_path not in bundle.namelist() or hashlib.sha256(bundle.read(artifact_path)).hexdigest() != artifact["sha256"]:
+                    raise RuntimeError("release continuation checkpoint artifact hash differs")
+            artifacts = [item for item in all_artifacts if item["path"].endswith("prompt.txt")]
             if len(artifacts) != 1:
                 raise RuntimeError("release continuation checkpoint missing current prompt artifact")
             prompt_path = prefix + artifacts[0]["path"].replace("\\", "/")
@@ -982,7 +1039,46 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
         "new_current_prompt_trial_ids": sorted(trial["trial_id"] for trial in new_trials),
         "scheduling_ledger": validate_scheduling_ledger(
             lineage.get("scheduling_ledger"), tasks, combined, release_lane),
+        "_artifact_source_archive": str(archive),
+        "_artifact_source_prefix": prefix,
+        "_inherited_logs": inherited_logs,
     }
+
+
+def materialize_inherited_current_artifacts(trials: list[dict], provenance: dict, output: Path) -> list[dict]:
+    """Flat-copy validated current evidence into the next production checkpoint output."""
+    archive_name = provenance.pop("_artifact_source_archive", None)
+    prefix = provenance.pop("_artifact_source_prefix", None)
+    inherited_logs = provenance.pop("_inherited_logs", [])
+    if not archive_name or prefix is None:
+        return []
+    seed_ids = set(provenance["historical_seed_trial_ids"])
+    with zipfile.ZipFile(Path(archive_name)) as bundle:
+        for trial in trials:
+            if trial["trial_id"] in seed_ids:
+                continue
+            rewritten = []
+            for artifact in trial["artifacts"]:
+                source = prefix + artifact["path"].replace("\\", "/")
+                if source not in bundle.namelist():
+                    raise RuntimeError("inherited continuation artifact is missing")
+                data = bundle.read(source)
+                if hashlib.sha256(data).hexdigest() != artifact["sha256"]:
+                    raise RuntimeError("inherited continuation artifact hash differs")
+                target = output / "inherited_artifacts" / trial["trial_id"] / artifact["path"]
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.write_bytes(data)
+                rewritten.append({"path": str(target.relative_to(output)), "sha256": artifact["sha256"]})
+            trial["artifacts"] = rewritten
+        rewritten_logs = []
+        for record in inherited_logs:
+            source = prefix + record["path"].replace("\\", "/")
+            data = bundle.read(source)
+            target = output / "inherited_inspect_logs" / record["path"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+            rewritten_logs.append({**record, "path": str(target.relative_to(output))})
+    return rewritten_logs
 
 
 def findings_for(tasks: list[dict], trials: list[dict]) -> list[dict]:
@@ -1036,6 +1132,8 @@ def run_suite(args) -> dict:
             trials, log_records = load_resume_checkpoint(
                 args.resume_archive, tasks, args.snapshot, release_lane, args.tool_python)
         inherited_baseline_trials = len(trials)
+        if resume_provenance:
+            log_records = materialize_inherited_current_artifacts(trials, resume_provenance, output)
     start = time.perf_counter()
 
     def evaluate_batch(selected, epochs):
@@ -1111,9 +1209,7 @@ def run_suite(args) -> dict:
         claim="Initial executable Core Regression MVP baseline; not System RED TEAM completion",
         target=TARGET, project_instruction={"provenance": "NOT_APPLICABLE"},
         inspect_version=importlib.metadata.version("inspect-ai"),
-        implementation_manifest={str(p.relative_to(ROOT)): digest(p) for p in
-            [ROOT / "core_regression.py", ROOT / "core_fixture.py", ROOT / "schema.py", ROOT / "scorers.py",
-             ROOT / "core_requirements.txt", *sorted((ROOT / "tasks/core").glob("*.json"))]},
+        implementation_manifest=current_manifest(),
         protected_owner_blobs={p: _git_text(repo, "rev-parse", f"{args.snapshot}:{p}") for p in PROTECTED},
         codex_version=codex_version,
         target_identity_schema={
