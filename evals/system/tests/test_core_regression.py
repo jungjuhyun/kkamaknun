@@ -15,9 +15,9 @@ from evals.system.core_fixture import dispatch
 from evals.system.core_regression import (
     TARGET, aggregate_lane, capture_events, codex_command, evidence_for,
     deterministic_calibration_envelope, fixture_interpreter_launch_failed, grade_envelope, lane_state,
-    load_core_tasks, load_resume_checkpoint, load_surrogate_contract_release_seed,
+    export_result, load_core_tasks, load_resume_checkpoint, load_surrogate_contract_release_seed,
     findings_for, phase_status, progress_snapshot, prompt_for,
-    resume_missing_tasks, summarize,
+    resume_missing_tasks, run_missing_with_bounded_infra, summarize,
     target_identity, target_lane_id,
 )
 
@@ -401,7 +401,7 @@ class CoreEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             wrong_archive = Path(temporary) / archive.name
             shutil.copyfile(archive, wrong_archive)
-            with self.assertRaisesRegex(RuntimeError, "not the impact verdict source"):
+            with self.assertRaisesRegex(RuntimeError, "lineage is missing"):
                 load_surrogate_contract_release_seed(
                     wrong_archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
                     CHECKPOINT_TOOL_PYTHON)
@@ -430,6 +430,104 @@ class CoreEvidenceTests(unittest.TestCase):
                 load_surrogate_contract_release_seed(
                     archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
                     CHECKPOINT_TOOL_PYTHON)
+
+    def test_release_continuation_partial_chain_preserves_seed_without_nesting(self):
+        root = Path(__file__).resolve().parents[1]
+        archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        seed, provenance = load_surrogate_contract_release_seed(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            CHECKPOINT_TOOL_PYTHON)
+
+        def new_trials(records, start, count):
+            result = []
+            slots = [task for task, needed in resume_missing_tasks(tasks, records, lane)
+                     for _ in range(needed)]
+            for index in range(start, start + count):
+                task = slots[index - start]
+                data = envelope(task)
+                data.update(trial_id=f"current-{index:02d}", snapshot="476bc226433efc95c0b546948c2c7160ff97616c",
+                            grader={"status": "PASS", "assertions": []}, trace_identity_observation={},
+                            target_identity=target_identity(model="gpt-5.6-sol", reasoning_effort="medium",
+                                codex_version="test", snapshot="476bc226433efc95c0b546948c2c7160ff97616c", trace={}),
+                            artifacts=[])
+                result.append(data)
+            return result
+
+        def checkpoint(directory, records):
+            output, destination = directory / "output", directory / "export"
+            directory.mkdir(); output.mkdir(); destination.mkdir()
+            for trial in records:
+                if trial["trial_id"] in provenance["release_seed_trial_ids"]:
+                    continue
+                prompt = prompt_for(next(t for t in tasks if t["id"] == trial["task_id"]),
+                                    "476bc226433efc95c0b546948c2c7160ff97616c", str(CHECKPOINT_TOOL_PYTHON))
+                path = output / "artifacts" / trial["trial_id"] / "prompt.txt"
+                path.parent.mkdir(parents=True); path.write_text(prompt, encoding="utf-8")
+                trial["artifacts"] = [{"path": str(path.relative_to(output)),
+                                       "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}]
+            manifest_paths = [root / name for name in ["core_regression.py", "core_fixture.py", "schema.py",
+                "scorers.py", "core_requirements.txt"]] + sorted((root / "tasks/core").glob("*.json"))
+            ids = sorted(trial["trial_id"] for trial in records)
+            lineage = {**provenance, "historical_seed_trial_ids": provenance["release_seed_trial_ids"],
+                       "checkpoint_trial_ids": ids,
+                       "new_current_prompt_trial_ids": sorted(set(ids) - set(provenance["release_seed_trial_ids"])),
+                       "infra_replacement_attempts": {}}
+            summary = {"snapshot": "476bc226433efc95c0b546948c2c7160ff97616c",
+                       "target_configuration": {"target_lane": lane}, "trials": records,
+                       "implementation_manifest": {str(path.relative_to(root)): hashlib.sha256(path.read_bytes()).hexdigest()
+                                                   for path in manifest_paths},
+                       "release_continuation": lineage}
+            (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+            (output / "findings.json").write_text("[]", encoding="utf-8")
+            export_result(output, destination)
+            return destination / "core_evidence.zip"
+
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            first = checkpoint(base / "first", copy.deepcopy(seed) + new_trials(seed, 0, 9))
+            first_records, first_lineage = load_surrogate_contract_release_seed(
+                first, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane, CHECKPOINT_TOOL_PYTHON)
+            self.assertEqual(len(first_records), 73)
+            self.assertEqual(sum(n for _, n in resume_missing_tasks(tasks, first_records, lane)), 39)
+            second = checkpoint(base / "second", copy.deepcopy(first_records) + new_trials(first_records, 9, 16))
+            second_records, _ = load_surrogate_contract_release_seed(
+                second, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane, CHECKPOINT_TOOL_PYTHON)
+            self.assertEqual(len(second_records), 89)
+            self.assertEqual(sum(n for _, n in resume_missing_tasks(tasks, second_records, lane)), 23)
+            self.assertEqual(len({trial["trial_id"] for trial in second_records}), 89)
+            self.assertEqual(first_lineage["historical_seed_trial_ids"], provenance["release_seed_trial_ids"])
+
+    def test_unified_bounded_infra_replacement_policy(self):
+        task = self.tasks["current_owner"]
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+
+        def execute(statuses):
+            trials, calls = [], []
+            queue = list(statuses)
+            def run(batch, count):
+                calls.append(count)
+                for _ in range(count):
+                    data = envelope(task); data["trial_id"] = f"t-{len(trials)}"
+                    data["grader"] = {"status": queue.pop(0), "assertions": []}; trials.append(data)
+            attempts = run_missing_with_bounded_infra([task], trials, lane, run)
+            return trials, calls, attempts
+
+        trials, calls, attempts = execute(["PASS"] * 4 + ["INFRA_ERROR", "PASS"])
+        self.assertEqual(calls, [5, 1]); self.assertEqual(attempts, {task["id"]: 1})
+        self.assertEqual(summarize([task], trials, lane)["tasks"][0]["valid_trials"], 5)
+        for status in ["FAIL", "UNKNOWN", "INVALID_FIXTURE"]:
+            trials, calls, attempts = execute(["PASS"] * 4 + [status])
+            self.assertEqual(calls, [5]); self.assertEqual(attempts, {})
+        trials, calls, attempts = execute(["PASS"] * 4 + ["INFRA_ERROR", "INFRA_ERROR", "INFRA_ERROR"])
+        self.assertEqual(calls, [5, 1, 1]); self.assertEqual(attempts, {task["id"]: 2})
+        complete = [envelope(task) for _ in range(5)]
+        for data in complete: data["grader"] = {"status": "PASS", "assertions": []}
+        calls = []
+        self.assertEqual(run_missing_with_bounded_infra([task], complete, lane,
+                         lambda batch, count: calls.append(count)), {})
+        self.assertEqual(calls, [])
 
     def test_critical_fail_and_unknown_cannot_be_averaged_or_retried_away(self):
         task = self.tasks["current_owner"]

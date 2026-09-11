@@ -703,6 +703,24 @@ def resume_missing_tasks(tasks: list[dict], trials: list[dict], release_lane: st
             for task in tasks if state["task_state"][task["id"]]["remaining_trials"]]
 
 
+def run_missing_with_bounded_infra(tasks: list[dict], trials: list[dict], release_lane: str,
+                                   run_batch, replacement_attempts: dict[str, int] | None = None) -> dict[str, int]:
+    """Run missing valid work once, then only bounded INFRA replacements per task."""
+    attempts = dict(replacement_attempts or {})
+    for task, needed in resume_missing_tasks(tasks, trials, release_lane):
+        run_batch([task], needed)
+        while attempts.get(task["id"], 0) < 2:
+            row = next(row for row in progress_snapshot(tasks, trials, release_lane)["tasks"]
+                       if row["id"] == task["id"])
+            if row["valid_trials"] >= row["trials_requested"] or row["INVALID_FIXTURE"]:
+                break
+            if not row["INFRA_ERROR"]:
+                break
+            attempts[task["id"]] = attempts.get(task["id"], 0) + 1
+            run_batch([task], 1)
+    return attempts
+
+
 def phase_status(summary: dict, *, integrity: bool, logs_ok: bool, controls_ok: bool,
                  diagnostic: bool) -> str:
     """Apply the documented Phase 3 status precedence to one aggregate summary."""
@@ -802,7 +820,8 @@ def load_surrogate_contract_release_seed(archive: Path, tasks: list[dict], snaps
     repository_root = ROOT.parents[1]
     expected_archive = (repository_root / source.get("path", "")).resolve()
     if archive.resolve() != expected_archive:
-        raise RuntimeError("surrogate continuation archive is not the impact verdict source")
+        return load_release_continuation_checkpoint(
+            archive, tasks, snapshot, release_lane, tool_python, impact, expected_archive)
     if digest(archive) != source.get("sha256") or source.get("raw_evidence_rewritten") is not False:
         raise RuntimeError("surrogate continuation archive identity differs")
     if (impact.get("kind") != "phase3_recovered_evidence_surrogate_contract_impact"
@@ -860,6 +879,74 @@ def load_surrogate_contract_release_seed(archive: Path, tasks: list[dict], snaps
     }
 
 
+def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snapshot: str,
+                                         release_lane: str, tool_python: Path, impact: dict,
+                                         historical_archive: Path) -> tuple[list[dict], dict]:
+    """Import a corrected-current-prompt partial checkpoint without archive nesting."""
+    initial_seed, initial = load_surrogate_contract_release_seed(
+        historical_archive, tasks, snapshot, release_lane, tool_python)
+    with zipfile.ZipFile(archive) as bundle:
+        summaries = [name for name in bundle.namelist() if name == "summary.json" or name.endswith("/summary.json")]
+        if len(summaries) != 1:
+            raise RuntimeError("release continuation checkpoint has no unique summary")
+        summary_name = summaries[0]
+        prefix = summary_name.removesuffix("summary.json")
+        saved = json.loads(bundle.read(summary_name))
+        lineage = saved.get("release_continuation")
+        if not isinstance(lineage, dict) or lineage.get("mode") != "surrogate_contract_release_seed":
+            raise RuntimeError("release continuation checkpoint lineage is missing")
+        if (lineage.get("source_archive_sha256") != impact["source_recovered_archive"]["sha256"]
+                or lineage.get("historical_seed_trial_ids") != initial["release_seed_trial_ids"]
+                or lineage.get("excluded_valid_trial_ids") != initial["excluded_valid_trial_ids"]):
+            raise RuntimeError("release continuation checkpoint lineage differs")
+        if saved.get("snapshot") != snapshot or saved.get("target_configuration", {}).get("target_lane") != release_lane:
+            raise RuntimeError("release continuation checkpoint snapshot or lane differs")
+        manifest = saved.get("implementation_manifest", {})
+        for relative, recorded in manifest.items():
+            if digest(ROOT / relative) != recorded:
+                raise RuntimeError(f"release continuation checkpoint manifest differs: {relative}")
+        trials = [trial for trial in saved.get("trials", []) if not trial.get("control")]
+        if len({trial.get("trial_id") for trial in trials}) != len(trials):
+            raise RuntimeError("release continuation checkpoint has duplicate trial ids")
+        task_by_id = {task["id"]: task for task in tasks}
+        seed_by_id = {trial["trial_id"]: trial for trial in initial_seed}
+        checkpoint_by_id = {trial["trial_id"]: trial for trial in trials}
+        if not set(seed_by_id) <= set(checkpoint_by_id):
+            raise RuntimeError("release continuation checkpoint lost historical seed")
+        for trial_id, seed_trial in seed_by_id.items():
+            if checkpoint_by_id[trial_id] != seed_trial:
+                raise RuntimeError("release continuation checkpoint altered historical seed")
+        new_trials = [trial for trial in trials if trial["trial_id"] not in seed_by_id]
+        for trial in new_trials:
+            if trial.get("task_id") not in task_by_id or trial.get("snapshot") != snapshot:
+                raise RuntimeError("release continuation checkpoint has foreign trial evidence")
+            if trial_lane(trial) != release_lane:
+                raise RuntimeError("release continuation checkpoint trial lane differs")
+            artifacts = [item for item in trial.get("artifacts", []) if item["path"].endswith("prompt.txt")]
+            if len(artifacts) != 1:
+                raise RuntimeError("release continuation checkpoint missing current prompt artifact")
+            prompt_path = prefix + artifacts[0]["path"].replace("\\", "/")
+            if prompt_path not in bundle.namelist():
+                raise RuntimeError("release continuation checkpoint missing current prompt")
+            prompt = bundle.read(prompt_path)
+            if hashlib.sha256(prompt).hexdigest() != artifacts[0].get("sha256"):
+                raise RuntimeError("release continuation checkpoint prompt hash differs")
+            if prompt.decode("utf-8").replace("\r\n", "\n") != prompt_for(
+                    task_by_id[trial["task_id"]], snapshot, str(tool_python)):
+                raise RuntimeError("release continuation checkpoint prompt differs")
+    combined = initial_seed + new_trials
+    expected_ids = sorted(trial["trial_id"] for trial in combined)
+    if lineage.get("checkpoint_trial_ids") != expected_ids:
+        raise RuntimeError("release continuation checkpoint trial lineage differs")
+    return combined, {
+        **initial,
+        "checkpoint_trial_ids": expected_ids,
+        "historical_seed_trial_ids": initial["release_seed_trial_ids"],
+        "new_current_prompt_trial_ids": sorted(trial["trial_id"] for trial in new_trials),
+        "infra_replacement_attempts": lineage.get("infra_replacement_attempts", {}),
+    }
+
+
 def findings_for(tasks: list[dict], trials: list[dict]) -> list[dict]:
     findings = []
     for task in tasks:
@@ -902,6 +989,7 @@ def run_suite(args) -> dict:
     trials, log_records = [], []
     inherited_baseline_trials = 0
     resume_provenance = None
+    infra_replacement_attempts = {}
     if args.resume_archive:
         if args.resume_surrogate_impact:
             trials, resume_provenance = load_surrogate_contract_release_seed(
@@ -945,21 +1033,18 @@ def run_suite(args) -> dict:
 
     # Writer runs in the non-critical batch before the critical residue-reader.
     if args.resume_archive:
-        for task, needed in resume_missing_tasks(tasks, trials, release_lane):
-            evaluate_batch([task], needed)
+        infra_replacement_attempts = run_missing_with_bounded_infra(
+            tasks, trials, release_lane, evaluate_batch,
+            (resume_provenance or {}).get("infra_replacement_attempts"))
     else:
         for criticality, epochs in [("non_critical", 3), ("critical", 5)]:
             selected = [t for t in tasks if t["criticality"] == criticality]
             if selected:
-                evaluate_batch(selected, args.diagnostic_trials or epochs)
-            # Two bounded infra replacements maximum; never replace a valid non-PASS.
-            for task in ([] if args.diagnostic_trials else selected):
-                for _ in range(2):
-                    row = next(t for t in progress_snapshot(tasks, trials, release_lane=release_lane)["tasks"]
-                               if t["id"] == task["id"])
-                    if row["valid_trials"] >= epochs or row["INVALID_FIXTURE"]:
-                        break
-                    evaluate_batch([task], 1)
+                if args.diagnostic_trials:
+                    evaluate_batch(selected, args.diagnostic_trials)
+                else:
+                    infra_replacement_attempts.update(run_missing_with_bounded_infra(
+                        selected, trials, release_lane, evaluate_batch, infra_replacement_attempts))
     if not args.only:
         for scenario, control in [("fallback", "fallback_seed"), ("current_history", "history_seed")]:
             task = next(t for t in tasks if t["scenario"] == scenario)
@@ -1024,6 +1109,17 @@ def run_suite(args) -> dict:
             "Final JSON assertions measure declared behavior only unless backed by state or captured command evidence",
             "Active Work instruction, hidden messages, unobserved tools and monetary cost UNKNOWN",
             "Inspect mock model performs no generation; actual target telemetry comes from Codex JSONL"])
+    if resume_provenance and resume_provenance.get("mode") == "surrogate_contract_release_seed":
+        seed_ids = resume_provenance.get("historical_seed_trial_ids",
+                                        resume_provenance["release_seed_trial_ids"])
+        summary["release_continuation"] = {
+            **resume_provenance,
+            "historical_seed_trial_ids": seed_ids,
+            "checkpoint_trial_ids": sorted(t["trial_id"] for t in trials if not t.get("control")),
+            "new_current_prompt_trial_ids": sorted(
+                t["trial_id"] for t in trials if not t.get("control") and t["trial_id"] not in seed_ids),
+            "infra_replacement_attempts": infra_replacement_attempts,
+        }
     for row in summary["tasks"]:
         row["logs"] = [{"path": l["path"], "sha256": l["sha256"]} for l in log_records
                        if row["id"] in l["task_ids"] and not l["control"]]
