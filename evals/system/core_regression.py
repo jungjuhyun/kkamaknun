@@ -42,6 +42,14 @@ PROTECTED = ["AGENTS.md", "CLAUDE.md", "PLAYBOOK.md", "FIRST_VIDEO.md",
              "tools/harness/PIPELINE.yaml", "tools/harness/COMMON_RULES.json",
              "tools/harness/STATE.json", "tools/harness/EP1_LOCK.json"]
 SURROGATE_CONTRACT_IMPACT = ROOT / "core_final_full_baseline_resume_94_surrogate_contract_impact.json"
+# The already-published reviewer bundle uses interpretation schema v1.  Its only
+# implementation difference from the reporting refactor is this module's exact
+# prior digest; every evaluator, fixture, scorer, task, and requirements digest
+# remains strict.  Keep this narrow compatibility receipt rather than accepting
+# arbitrary historical runner manifests.
+LEGACY_V1_REPORTING_RUNNER_SHA256S = frozenset({
+    "cd4983d9f0e44eef13a7cbb758349b9264042591d506f832ff2bff76828bc392",
+})
 
 
 def digest(path: Path) -> str:
@@ -76,6 +84,20 @@ def required_manifest_paths() -> list[Path]:
 
 def current_manifest() -> dict[str, str]:
     return {str(path.relative_to(ROOT)): digest(path) for path in required_manifest_paths()}
+
+
+def release_manifest_matches(recorded: dict, interpretation: dict | None) -> bool:
+    """Allow one authenticated v1 reporting-only predecessor, otherwise stay exact."""
+    expected = current_manifest()
+    if recorded == expected:
+        return True
+    if (not isinstance(recorded, dict) or not isinstance(interpretation, dict)
+            or interpretation.get("schema_version") != 1
+            or set(recorded) != set(expected)):
+        return False
+    return (recorded.get("core_regression.py") in LEGACY_V1_REPORTING_RUNNER_SHA256S
+            and all(recorded[path] == expected[path]
+                    for path in expected if path != "core_regression.py"))
 
 
 def historical_seed_ids_from_provenance(provenance: dict, *, require_canonical: bool = False) -> list[str]:
@@ -1114,11 +1136,9 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
         interpretation = saved.get("measurement_interpretation")
         provenance_interpretation = saved.get("resume_checkpoint_provenance_interpretation")
         if interpretation is not None:
-            if (not isinstance(interpretation, dict) or set(interpretation) != {
-                    "schema_version", "raw_summary", "reclassified_trials"}
-                    or interpretation["schema_version"] != 1):
+            if not isinstance(interpretation, dict):
                 raise RuntimeError("release continuation measurement interpretation differs")
-            raw_record = interpretation["raw_summary"]
+            raw_record = interpretation.get("raw_summary")
             if (not isinstance(raw_record, dict) or set(raw_record) != {"path", "sha256"}
                     or raw_record["path"] != "raw_summary.json" or raw_record["path"] not in bundle.namelist()):
                 raise RuntimeError("release continuation raw measurement summary differs")
@@ -1126,14 +1146,21 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
             if hashlib.sha256(raw_bytes).hexdigest() != raw_record["sha256"]:
                 raise RuntimeError("release continuation raw measurement summary hash differs")
             raw_summary = json.loads(raw_bytes)
-            expected, changes = audited_measurement_summary(raw_summary, tasks, release_lane)
-            expected["implementation_manifest"] = current_manifest()
+            expected = validated_audited_measurement_summary(
+                raw_summary, raw_bytes, tasks, release_lane, interpretation)
+            recorded_manifest = saved.get("implementation_manifest", {})
+            if not release_manifest_matches(recorded_manifest, interpretation):
+                raise RuntimeError("release continuation checkpoint manifest differs")
+            # A v1 reviewer derivative is authenticated against its exact known
+            # reporting predecessor.  Preserve that receipt while all execution
+            # components remain current-manifest exact.
+            expected["implementation_manifest"] = copy.deepcopy(recorded_manifest)
             expected["measurement_interpretation"] = interpretation
             if provenance_interpretation is not None:
                 expected["resume_checkpoint"] = reconstructed_input_checkpoint_provenance(
                     raw_summary, provenance_interpretation)
                 expected["resume_checkpoint_provenance_interpretation"] = provenance_interpretation
-            if not changes or changes != interpretation["reclassified_trials"] or saved != expected:
+            if saved != expected:
                 raise RuntimeError("release continuation measurement interpretation differs")
         lineage = saved.get("release_continuation")
         if not isinstance(lineage, dict) or lineage.get("mode") != "surrogate_contract_release_seed":
@@ -1149,9 +1176,8 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
         expected_manifest = current_manifest()
         if set(manifest) != set(expected_manifest):
             raise RuntimeError("release continuation checkpoint manifest entry set differs")
-        for relative, recorded in manifest.items():
-            if expected_manifest[relative] != recorded:
-                raise RuntimeError(f"release continuation checkpoint manifest differs: {relative}")
+        if not release_manifest_matches(manifest, interpretation):
+            raise RuntimeError("release continuation checkpoint manifest differs")
         trials = [trial for trial in saved.get("trials", []) if not trial.get("control")]
         if len({trial.get("trial_id") for trial in trials}) != len(trials):
             raise RuntimeError("release continuation checkpoint has duplicate trial ids")
@@ -1252,7 +1278,26 @@ def materialize_inherited_current_artifacts(trials: list[dict], provenance: dict
     return rewritten_logs
 
 
-def findings_for(tasks: list[dict], trials: list[dict]) -> list[dict]:
+def findings_for(tasks: list[dict], trials: list[dict], scheduling_ledger: dict | None = None,
+                 *, release_lane: str | None = None,
+                 historical_seed_trial_ids: set[str] | None = None) -> list[dict]:
+    """Report observed non-valid trials and only authenticated replacement history.
+
+    A finding never rewrites the observed trial.  When a final scheduling ledger is
+    supplied, validate it against the raw receipts before reporting a replacement;
+    untrusted, foreign, or duplicate IDs therefore cannot manufacture remediation.
+    """
+    replacement_ids_by_task = {}
+    if scheduling_ledger is not None:
+        if not isinstance(release_lane, str) or not release_lane:
+            raise RuntimeError("finding remediation scheduling lane differs")
+        authenticated_ledger = validate_scheduling_ledger(
+            scheduling_ledger, tasks, trials, release_lane,
+            historical_seed_trial_ids=set(historical_seed_trial_ids or []))
+        replacement_ids_by_task = {
+            task_id: list(entry["replacement_trial_ids"])
+            for task_id, entry in authenticated_ledger.items()
+        }
     findings = []
     for task in tasks:
         selected = [t for t in trials if t["task_id"] == task["id"] and not t.get("control")]
@@ -1260,6 +1305,7 @@ def findings_for(tasks: list[dict], trials: list[dict]) -> list[dict]:
             bad = [t for t in selected if t["grader"]["status"] == status]
             if not bad:
                 continue
+            replacement_ids = replacement_ids_by_task.get(task["id"], []) if status == "INFRA_ERROR" else []
             findings.append({"id": f"F_{task['id']}_{status}", "task_id": task["id"], "status": status,
                 "kind": "surrogate_contract_failure" if status == "FAIL" else "measurement_or_infrastructure_gap",
                 "bounded_statement": sorted({a["assertion_id"] + ": " + a["reason"] for t in bad
@@ -1267,13 +1313,37 @@ def findings_for(tasks: list[dict], trials: list[dict]) -> list[dict]:
                 "owner_candidates": [b["source"] for b in task["basis"]],
                 "severity": "high" if task["criticality"] == "critical" else "medium",
                 "reproducibility": {"observed": len(bad), "attempted": len(selected)},
-                "trial_ids": [t["trial_id"] for t in bad], "remediation": "NOT_PERFORMED",
+                "trial_ids": [t["trial_id"] for t in bad],
+                "remediation": {"status": "REPLACEMENT_PERFORMED" if replacement_ids else "NOT_PERFORMED",
+                                "replacement_trial_ids": replacement_ids},
                 "scope": "controlled Codex surrogate only; not a Work product finding"})
     return findings
 
 
+def findings_from_summary(tasks: list[dict], summary: dict) -> list[dict]:
+    """Use the one final scheduling owner for both run and portable findings."""
+    trials = summary.get("trials")
+    release_lane = summary.get("target_configuration", {}).get("target_lane")
+    if not isinstance(trials, list):
+        raise RuntimeError("finding summary trials differ")
+    lineage = summary.get("release_continuation")
+    if lineage is not None:
+        if not isinstance(lineage, dict):
+            raise RuntimeError("finding release continuation differs")
+        ledger = lineage.get("scheduling_ledger")
+        if not isinstance(ledger, dict):
+            raise RuntimeError("finding release continuation scheduling ledger differs")
+        ledger_tasks = [task for task in tasks if task["id"] in ledger]
+        return findings_for(
+            ledger_tasks, trials, ledger, release_lane=release_lane,
+            historical_seed_trial_ids=set(historical_seed_ids_from_provenance(lineage, require_canonical=True)))
+    ledger = summary.get("scheduling_ledger")
+    ledger_tasks = [task for task in tasks if isinstance(ledger, dict) and task["id"] in ledger]
+    return findings_for(ledger_tasks if ledger is not None else tasks, trials, ledger, release_lane=release_lane)
+
+
 def audited_measurement_trial(task: dict, trial: dict) -> tuple[dict, dict | None]:
-    """Derive a corrected classification without changing the captured envelope."""
+    """Derive an audited envelope without changing its captured raw counterpart."""
     if not fixture_command_infrastructure_failed(
             trial.get("command_events", []), trial.get("protocol_calls", [])):
         return trial, None
@@ -1282,8 +1352,9 @@ def audited_measurement_trial(task: dict, trial: dict) -> tuple[dict, dict | Non
     audited["trace_complete"] = False
     audited["infrastructure_error"] = "Controlled fixture command could not access its target workspace"
     audited["grader"] = grade_envelope(task, audited)
+    audited_status = audited["grader"]["status"]
     return audited, {"trial_id": trial["trial_id"], "raw_status": raw_status,
-                     "audited_status": audited["grader"]["status"],
+                     "audited_status": audited_status, "status_changed": raw_status != audited_status,
                      "reason": "controlled_fixture_command_access_failure"}
 
 
@@ -1314,6 +1385,39 @@ def audited_measurement_summary(raw_summary: dict, tasks: list[dict], release_la
         aggregate, integrity=derived.get("cross_trial_isolation") is True,
         logs_ok=logs_ok, controls_ok=controls_ok, diagnostic=False)
     return derived, changes
+
+
+def legacy_reclassified_trial_records(interpreted_trials: list[dict]) -> list[dict]:
+    """Project v2 interpretation facts into the authenticated v1 wire shape."""
+    return [{key: record[key] for key in ("trial_id", "raw_status", "audited_status", "reason")}
+            for record in interpreted_trials]
+
+
+def validated_audited_measurement_summary(raw_summary: dict, raw_summary_bytes: bytes,
+                                          tasks: list[dict], release_lane: str,
+                                          interpretation: dict) -> dict:
+    """Validate v1/v2 interpretation receipts and return their audited derivative."""
+    if not isinstance(interpretation, dict):
+        raise RuntimeError("release continuation measurement interpretation differs")
+    raw_record = interpretation.get("raw_summary")
+    if (not isinstance(raw_record, dict) or set(raw_record) != {"path", "sha256"}
+            or raw_record["path"] != "raw_summary.json"
+            or raw_record["sha256"] != hashlib.sha256(raw_summary_bytes).hexdigest()):
+        raise RuntimeError("release continuation raw measurement summary differs")
+    derived, interpreted_trials = audited_measurement_summary(raw_summary, tasks, release_lane)
+    version = interpretation.get("schema_version")
+    if version == 1:
+        expected_keys, record_key = {"schema_version", "raw_summary", "reclassified_trials"}, "reclassified_trials"
+        expected_records = legacy_reclassified_trial_records(interpreted_trials)
+    elif version == 2:
+        expected_keys, record_key = {"schema_version", "raw_summary", "interpreted_trials"}, "interpreted_trials"
+        expected_records = interpreted_trials
+    else:
+        raise RuntimeError("release continuation measurement interpretation differs")
+    if (set(interpretation) != expected_keys or not interpreted_trials
+            or interpretation.get(record_key) != expected_records):
+        raise RuntimeError("release continuation measurement interpretation differs")
+    return derived
 
 
 def run_suite(args) -> dict:
@@ -1414,7 +1518,6 @@ def run_suite(args) -> dict:
     after = fingerprint(repo)
     write_json(output / "production_after.json", after)
     summary = progress_snapshot(tasks, trials, release_lane=release_lane)
-    findings = findings_for(tasks, trials)
     controls = [{"trial_id": t["trial_id"], "control": t["control"],
                  "kind": t.get("control_kind", "legacy_target_prompt_control"),
                  "expected": "FAIL", "observed": t["grader"]["status"],
@@ -1468,18 +1571,23 @@ def run_suite(args) -> dict:
             "Active Work instruction, hidden messages, unobserved tools and monetary cost UNKNOWN",
             "Inspect mock model performs no generation; actual target telemetry comes from Codex JSONL"])
     if resume_provenance and resume_provenance.get("mode") == "surrogate_contract_release_seed":
-        seed_ids = historical_seed_ids_from_provenance(resume_provenance)
+        seed_ids = list(historical_seed_ids_from_provenance(resume_provenance))
         summary["release_continuation"] = {
-            **resume_provenance,
-            "historical_seed_trial_ids": seed_ids,
+            **copy.deepcopy(resume_provenance),
+            "historical_seed_trial_ids": list(seed_ids),
             "checkpoint_trial_ids": sorted(t["trial_id"] for t in trials if not t.get("control")),
             "new_current_prompt_trial_ids": sorted(
                 t["trial_id"] for t in trials if not t.get("control") and t["trial_id"] not in seed_ids),
-            "scheduling_ledger": scheduling_ledger,
+            "scheduling_ledger": copy.deepcopy(scheduling_ledger),
         }
+    elif scheduling_ledger:
+        # Fresh-run remediation reporting needs the same authenticated final ledger
+        # as the runtime finding, without pretending it is continuation lineage.
+        summary["scheduling_ledger"] = copy.deepcopy(scheduling_ledger)
     for row in summary["tasks"]:
         row["logs"] = [{"path": l["path"], "sha256": l["sha256"]} for l in log_records
                        if row["id"] in l["task_ids"] and not l["control"]]
+    findings = findings_from_summary(tasks, summary)
     write_json(output / "summary.json", summary)
     write_json(output / "findings.json", findings)
     return summary
@@ -1684,9 +1792,9 @@ def export_result(output: Path, destination: Path) -> None:
     if audit_changes:
         summary["implementation_manifest"] = current_manifest()
         summary["measurement_interpretation"] = {
-            "schema_version": 1,
+            "schema_version": 2,
             "raw_summary": {"path": "raw_summary.json", "sha256": hashlib.sha256(raw_summary_bytes).hexdigest()},
-            "reclassified_trials": audit_changes,
+            "interpreted_trials": audit_changes,
         }
     input_snapshot = input_checkpoint_provenance_snapshot(summary)
     if input_snapshot:
@@ -1714,6 +1822,7 @@ def export_result(output: Path, destination: Path) -> None:
             bundle.writestr("raw_summary.json", raw_summary_bytes)
         bundle.writestr("summary.json", json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
     verify_portable_evidence(archive)
+    findings = findings_from_summary(load_core_tasks(), summary)
     trials = summary.pop("trials")
     receipt_fields = ["trial_id", "task_id", "control", "epoch", "actual_target_calls",
                       "runtime_seconds", "usage", "state_evidence", "infrastructure_error",
@@ -1725,7 +1834,7 @@ def export_result(output: Path, destination: Path) -> None:
     summary["evidence_bundle"] = {"path": archive.name, "sha256": digest(archive),
                                   "format": "zip", "raw_source_directory": str(output)}
     write_json(destination / "core_result.json", summary)
-    write_json(destination / "core_findings.json", findings_for(load_core_tasks(), trials))
+    write_json(destination / "core_findings.json", findings)
 
 
 def rescore_log(log_path: Path, destination: Path) -> dict:

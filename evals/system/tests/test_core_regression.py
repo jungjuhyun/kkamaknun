@@ -313,6 +313,155 @@ class CoreEvidenceTests(unittest.TestCase):
             self.assertTrue((destination / "core_findings.json").is_file())
             self.assertTrue((destination / "core_evidence.zip").is_file())
 
+    def test_interpretation_receipts_distinguish_status_change_and_keep_v1_importable(self):
+        task = self.tasks["stable"]
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+
+        def access_failure(raw_status):
+            trial = envelope(task)
+            trial["grader"] = {"status": raw_status, "assertions": []}
+            trial["command_events"] = [{
+                "command": "python .core_trial/tool.py primary", "exit_code": 1,
+                "aggregated_output": "PermissionError: [Errno 13] Permission denied",
+            }]
+            trial["protocol_calls"] = []
+            return trial
+
+        raw_fail = {"trials": [access_failure("FAIL")]}
+        raw_fail_bytes = json.dumps(raw_fail).encode("utf-8")
+        _, changed = core_regression.audited_measurement_summary(raw_fail, [task], lane)
+        self.assertEqual(changed[0]["raw_status"], "FAIL")
+        self.assertEqual(changed[0]["audited_status"], "INFRA_ERROR")
+        self.assertTrue(changed[0]["status_changed"])
+        v2 = {"schema_version": 2,
+              "raw_summary": {"path": "raw_summary.json",
+                              "sha256": hashlib.sha256(raw_fail_bytes).hexdigest()},
+              "interpreted_trials": changed}
+        self.assertEqual(core_regression.validated_audited_measurement_summary(
+            raw_fail, raw_fail_bytes, [task], lane, v2)["trials"][0]["grader"]["status"], "INFRA_ERROR")
+
+        raw_infra = {"trials": [access_failure("INFRA_ERROR")]}
+        raw_infra_bytes = json.dumps(raw_infra).encode("utf-8")
+        _, unchanged = core_regression.audited_measurement_summary(raw_infra, [task], lane)
+        self.assertFalse(unchanged[0]["status_changed"])
+        v1 = {"schema_version": 1,
+              "raw_summary": {"path": "raw_summary.json",
+                              "sha256": hashlib.sha256(raw_infra_bytes).hexdigest()},
+              "reclassified_trials": core_regression.legacy_reclassified_trial_records(unchanged)}
+        self.assertEqual(core_regression.validated_audited_measurement_summary(
+            raw_infra, raw_infra_bytes, [task], lane, v1)["trials"][0]["grader"]["status"], "INFRA_ERROR")
+        unknown_v1_manifest = core_regression.current_manifest()
+        unknown_v1_manifest["core_regression.py"] = "0" * 64
+        self.assertFalse(core_regression.release_manifest_matches(unknown_v1_manifest, v1))
+        malformed_v1 = copy.deepcopy(v1)
+        malformed_v1["reclassified_trials"] = []
+        with self.assertRaisesRegex(RuntimeError, "measurement interpretation"):
+            core_regression.validated_audited_measurement_summary(
+                raw_infra, raw_infra_bytes, [task], lane, malformed_v1)
+
+        normal = envelope(task)
+        normal["grader"] = grade_envelope(task, normal)
+        _, no_interpretation = core_regression.audited_measurement_summary(
+            {"trials": [normal]}, [task], lane)
+        self.assertEqual(no_interpretation, [])
+        malformed = copy.deepcopy(v2)
+        malformed["schema_version"] = 99
+        with self.assertRaisesRegex(RuntimeError, "measurement interpretation"):
+            core_regression.validated_audited_measurement_summary(
+                raw_fail, raw_fail_bytes, [task], lane, malformed)
+        malformed = copy.deepcopy(v2)
+        malformed["interpreted_trials"][0].pop("status_changed")
+        with self.assertRaisesRegex(RuntimeError, "measurement interpretation"):
+            core_regression.validated_audited_measurement_summary(
+                raw_fail, raw_fail_bytes, [task], lane, malformed)
+
+        root = Path(__file__).resolve().parents[1]
+        imported, provenance = load_surrogate_contract_release_seed(
+            root / "core_evidence.zip", load_core_tasks(),
+            "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            Path(r"C:\Users\home\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"))
+        self.assertEqual(len(imported), 113)
+        self.assertEqual(len(provenance["historical_seed_trial_ids"]), 64)
+        with tempfile.TemporaryDirectory() as temporary:
+            v2_archive = Path(temporary) / "v2.zip"
+            with zipfile.ZipFile(root / "core_evidence.zip") as source, zipfile.ZipFile(v2_archive, "w") as output:
+                for name in source.namelist():
+                    data = source.read(name)
+                    if name == "summary.json":
+                        saved = json.loads(data)
+                        legacy = saved["measurement_interpretation"]
+                        saved["measurement_interpretation"] = {
+                            "schema_version": 2,
+                            "raw_summary": legacy["raw_summary"],
+                            "interpreted_trials": [{**record,
+                                "status_changed": record["raw_status"] != record["audited_status"]}
+                                for record in legacy["reclassified_trials"]],
+                        }
+                        saved["implementation_manifest"] = core_regression.current_manifest()
+                        data = json.dumps(saved).encode("utf-8")
+                    output.writestr(name, data)
+            imported_v2, _ = load_surrogate_contract_release_seed(
+                v2_archive, load_core_tasks(), "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+                Path(r"C:\Users\home\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"))
+            self.assertEqual(len(imported_v2), 113)
+
+    def test_findings_report_authenticated_replacement_without_reclassifying_observed_failure(self):
+        task = self.tasks["stable"]
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        initial_statuses = ["PASS", "PASS", "FAIL", "UNKNOWN", "INFRA_ERROR"]
+        initial = []
+        for ordinal, status in enumerate(initial_statuses):
+            trial = envelope(task)
+            trial.update(trial_id=f"initial-{ordinal}", artifacts=[])
+            trial["grader"] = {"status": status, "assertions": []}
+            initial.append(trial)
+        replacement = envelope(task)
+        replacement.update(trial_id="replacement-1", artifacts=[])
+        replacement["grader"] = {"status": "PASS", "assertions": []}
+        trials = initial + [replacement]
+        ledger = {task["id"]: {
+            "initial_scheduled": True, "initial_requested_count": 5,
+            "replacement_attempts": 1,
+            "initial_trial_ids": [trial["trial_id"] for trial in initial],
+            "replacement_trial_ids": [replacement["trial_id"]],
+        }}
+        ledger_before = copy.deepcopy(ledger)
+        findings = findings_for([task], trials, ledger, release_lane=lane)
+        by_status = {finding["status"]: finding for finding in findings}
+        self.assertEqual(by_status["INFRA_ERROR"]["trial_ids"], ["initial-4"])
+        self.assertEqual(by_status["INFRA_ERROR"]["remediation"], {
+            "status": "REPLACEMENT_PERFORMED", "replacement_trial_ids": ["replacement-1"]})
+        self.assertEqual(by_status["FAIL"]["remediation"], {
+            "status": "NOT_PERFORMED", "replacement_trial_ids": []})
+        self.assertEqual(by_status["UNKNOWN"]["remediation"], {
+            "status": "NOT_PERFORMED", "replacement_trial_ids": []})
+        self.assertEqual(ledger, ledger_before)
+
+        summary = progress_snapshot([task], trials, release_lane=lane)
+        summary.update(snapshot="a" * 40, target_configuration={"target_lane": lane},
+                       trials=trials, scheduling_ledger=copy.deepcopy(ledger))
+        self.assertEqual(core_regression.findings_from_summary([task], summary), findings)
+        with tempfile.TemporaryDirectory() as temporary:
+            output, destination = Path(temporary) / "output", Path(temporary) / "export"
+            output.mkdir(); destination.mkdir()
+            (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+            (output / "findings.json").write_text("[]", encoding="utf-8")
+            export_result(output, destination)
+            self.assertEqual(json.loads((destination / "core_findings.json").read_text(encoding="utf-8")), findings)
+
+        no_replacement = {task["id"]: {**ledger[task["id"]], "replacement_attempts": 0,
+                                         "replacement_trial_ids": []}}
+        pending = findings_for([task], initial, no_replacement, release_lane=lane)
+        self.assertEqual(next(finding for finding in pending if finding["status"] == "INFRA_ERROR")["remediation"], {
+            "status": "NOT_PERFORMED", "replacement_trial_ids": []})
+        for malformed in [
+            {task["id"]: {**ledger[task["id"]], "replacement_trial_ids": ["foreign"]}},
+            {task["id"]: {**ledger[task["id"]], "replacement_attempts": 2,
+                            "replacement_trial_ids": ["replacement-1", "replacement-1"]}},
+        ]:
+            with self.assertRaisesRegex(RuntimeError, "scheduling ledger provenance"):
+                findings_for([task], trials, malformed, release_lane=lane)
+
     def test_special_export_materializes_authenticated_historical_seed_artifacts(self):
         root = Path(__file__).resolve().parents[1]
         archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
