@@ -52,6 +52,23 @@ def write_json(path: Path, data) -> None:
     path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def status_value(value) -> str:
+    """Serialize ResultStatus consistently at aggregation and export boundaries."""
+    return value.value if isinstance(value, ResultStatus) else str(value)
+
+
+def portable_artifact_path(value: str) -> str:
+    """Return the one safe, canonical ZIP name for a receipt artifact path."""
+    if not isinstance(value, str) or not value or "\x00" in value:
+        raise RuntimeError("portable evidence artifact path differs")
+    normalized = value.replace("\\", "/")
+    parts = normalized.split("/")
+    if (normalized.startswith("/") or re.match(r"^[A-Za-z]:", normalized)
+            or any(part in {"", ".", ".."} for part in parts)):
+        raise RuntimeError("portable evidence artifact path differs")
+    return normalized
+
+
 def required_manifest_paths() -> list[Path]:
     return [ROOT / "core_regression.py", ROOT / "core_fixture.py", ROOT / "schema.py", ROOT / "scorers.py",
             ROOT / "core_requirements.txt", *sorted((ROOT / "tasks/core").glob("*.json"))]
@@ -718,7 +735,7 @@ def summarize(tasks: list[dict], trials: list[dict], release_lane: str | None = 
             selected_for_gate, task_lane_status = aggregate_lane(selected, release_lane or "")
         else:
             selected_for_gate, task_lane_status = selected, "NO_PINNED_EVIDENCE"
-        counts = Counter(str(t["grader"]["status"]) for t in selected_for_gate)
+        counts = Counter(status_value(t["grader"]["status"]) for t in selected_for_gate)
         valid = sum(counts[s] for s in ["PASS", "FAIL", "UNKNOWN"])
         if task["criticality"] == "critical":
             gate = evaluate_critical_gate([ResultStatus(t["grader"]["status"]) for t in selected_for_gate]).status.value
@@ -767,11 +784,23 @@ def progress_snapshot(tasks: list[dict], trials: list[dict], release_lane: str |
     if valid_trials != sum(row["valid_trials"] for row in summary["tasks"]):
         raise RuntimeError("progress aggregation valid-count mismatch")
     control_records = [trial for trial in trials if trial.get("control")]
+    valid_counts = {status: counts[status] for status in ("PASS", "FAIL", "UNKNOWN")}
+    excluded_counts = {status: counts[status] for status in ("INFRA_ERROR", "INVALID_FIXTURE")}
+    summary["release_result_counts"] = {
+        "valid_status_counts": valid_counts,
+        "excluded_non_valid_attempt_counts": excluded_counts,
+        "valid_release_trials": valid_trials,
+        "total_represented_trial_attempts": record_count,
+    }
     summary["progress_receipt"] = {
-        "schema_version": 1,
+        "schema_version": 2,
         "aggregation_source": "summarize",
+        "status_counts_scope": "all_represented_non_control_release_attempts",
         "baseline_record_count": record_count,
         "baseline_status_counts": counts,
+        "valid_release_status_counts": valid_counts,
+        "excluded_non_valid_attempt_counts": excluded_counts,
+        "total_represented_trial_attempts": record_count,
         "valid_trials": valid_trials,
         "required_valid_trials": required_valid_trials,
         "remaining_valid_trials": max(required_valid_trials - valid_trials, 0),
@@ -857,7 +886,11 @@ def validate_scheduling_ledger(ledger: dict, tasks: list[dict], trials: list[dic
             raise RuntimeError("continuation scheduling ledger current trial coverage differs")
         normalized[task_id] = {"initial_scheduled": initial, "initial_requested_count": requested,
                                "replacement_attempts": attempts,
-                               "initial_trial_ids": initial_ids, "replacement_trial_ids": replacement_ids}
+                               # These lists are mutable scheduling state.  Never retain aliases into
+                               # an imported checkpoint provenance object: a later replacement must not
+                               # rewrite the receipt for the input checkpoint.
+                               "initial_trial_ids": list(initial_ids),
+                               "replacement_trial_ids": list(replacement_ids)}
     return normalized
 
 
@@ -1079,6 +1112,7 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
         prefix = summary_name.removesuffix("summary.json")
         saved = json.loads(bundle.read(summary_name))
         interpretation = saved.get("measurement_interpretation")
+        provenance_interpretation = saved.get("resume_checkpoint_provenance_interpretation")
         if interpretation is not None:
             if (not isinstance(interpretation, dict) or set(interpretation) != {
                     "schema_version", "raw_summary", "reclassified_trials"}
@@ -1095,6 +1129,10 @@ def load_release_continuation_checkpoint(archive: Path, tasks: list[dict], snaps
             expected, changes = audited_measurement_summary(raw_summary, tasks, release_lane)
             expected["implementation_manifest"] = current_manifest()
             expected["measurement_interpretation"] = interpretation
+            if provenance_interpretation is not None:
+                expected["resume_checkpoint"] = reconstructed_input_checkpoint_provenance(
+                    raw_summary, provenance_interpretation)
+                expected["resume_checkpoint_provenance_interpretation"] = provenance_interpretation
             if not changes or changes != interpretation["reclassified_trials"] or saved != expected:
                 raise RuntimeError("release continuation measurement interpretation differs")
         lineage = saved.get("release_continuation")
@@ -1302,6 +1340,7 @@ def run_suite(args) -> dict:
     resume_provenance = None
     scheduling_ledger = {}
     historical_seed_ids = None
+    resume_checkpoint_provenance = None
     if args.resume_archive:
         if args.resume_surrogate_impact:
             trials, resume_provenance = load_surrogate_contract_release_seed(
@@ -1313,6 +1352,9 @@ def run_suite(args) -> dict:
         if resume_provenance:
             historical_seed_ids = historical_seed_ids_from_provenance(resume_provenance)
             log_records = materialize_inherited_current_artifacts(trials, resume_provenance, output)
+            # materialization removes only private source handles; the resulting object is the
+            # immutable provenance receipt for this exact input checkpoint.
+            resume_checkpoint_provenance = copy.deepcopy(resume_provenance)
     start = time.perf_counter()
 
     def evaluate_batch(selected, epochs):
@@ -1412,7 +1454,7 @@ def run_suite(args) -> dict:
         cross_trial_isolation=integrity, worktree_registry_restored=registry_restored,
         workers=args.workers, wall_runtime_seconds=round(time.perf_counter() - start, 3),
         resume_checkpoint={"archive": str(args.resume_archive), "inherited_baseline_trials": inherited_baseline_trials,
-                           "provenance": resume_provenance}
+                           "provenance": resume_checkpoint_provenance}
         if args.resume_archive else None,
         phase4_entry_possible=phase == "PHASE3_PASSED", actual_monetary_cost="UNKNOWN",
         dependencies={"inspect-ai": "0.3.263", "inspect-swe": "NOT_USED", "Docker": "NOT_USED",
@@ -1443,8 +1485,198 @@ def run_suite(args) -> dict:
     return summary
 
 
+def historical_seed_artifact_bytes(summary: dict) -> dict[str, bytes]:
+    """Load authenticated historical seed artifacts for a self-contained reviewer ZIP.
+
+    Current-prompt continuation artifacts are already materialized into the external
+    output directory.  Historical seed artifacts deliberately are not.  The release
+    lineage names the immutable recovered source archive, whose nested original
+    checkpoint is the only allowed byte source for those receipts.
+    """
+    lineage = summary.get("release_continuation")
+    if not isinstance(lineage, dict) or lineage.get("mode") != "surrogate_contract_release_seed":
+        return {}
+    seed_ids = set(historical_seed_ids_from_provenance(lineage, require_canonical=True))
+    source_name, source_hash = lineage.get("source_archive"), lineage.get("source_archive_sha256")
+    repository_root = ROOT.parents[1]
+    source = (repository_root / str(source_name or "")).resolve()
+    if (not source.is_relative_to(repository_root) or not source.is_file()
+            or not isinstance(source_hash, str) or digest(source) != source_hash):
+        raise RuntimeError("portable evidence historical source archive differs")
+    receipts = {trial.get("trial_id"): trial for trial in summary.get("trials", [])
+                if not trial.get("control")}
+    if not seed_ids <= set(receipts):
+        raise RuntimeError("portable evidence historical seed receipt differs")
+    with zipfile.ZipFile(source) as outer:
+        outer_summaries = [name for name in outer.namelist() if name.endswith("/summary.json")]
+        if len(outer_summaries) != 1:
+            raise RuntimeError("portable evidence historical source summary differs")
+        outer_summary_name = outer_summaries[0]
+        outer_prefix = outer_summary_name.removesuffix("summary.json")
+        outer_summary = json.loads(outer.read(outer_summary_name))
+        inherited_name = Path(outer_summary.get("resume_checkpoint", {}).get("archive", "")).name
+        candidates = [name for name in outer.namelist() if inherited_name and Path(name).name == inherited_name]
+        if len(candidates) != 1:
+            raise RuntimeError("portable evidence historical source checkpoint differs")
+        with zipfile.ZipFile(BytesIO(outer.read(candidates[0]))) as source_bundle:
+            source_summaries = [name for name in source_bundle.namelist() if name.endswith("/summary.json")]
+            if len(source_summaries) != 1:
+                raise RuntimeError("portable evidence historical source checkpoint summary differs")
+            prefix = source_summaries[0].removesuffix("summary.json")
+            source_summary = json.loads(source_bundle.read(source_summaries[0]))
+            source_trials = {}
+            for trial in source_summary.get("trials", []):
+                source_trials.setdefault(trial.get("trial_id"), []).append((trial, source_bundle, prefix))
+            for trial in outer_summary.get("trials", []):
+                source_trials.setdefault(trial.get("trial_id"), []).append((trial, outer, outer_prefix))
+            if not seed_ids <= set(source_trials):
+                raise RuntimeError("portable evidence historical source seed differs")
+            result = {}
+            for trial_id in sorted(seed_ids):
+                receipt = receipts[trial_id]
+                sources = [candidate for candidate in source_trials[trial_id]
+                           if receipt.get("artifacts") == candidate[0].get("artifacts")]
+                if not sources:
+                    raise RuntimeError("portable evidence historical receipt artifact differs")
+                for artifact in receipt.get("artifacts", []):
+                    if not isinstance(artifact, dict) or set(artifact) != {"path", "sha256"}:
+                        raise RuntimeError("portable evidence historical artifact manifest differs")
+                    path = portable_artifact_path(artifact["path"])
+                    matches = [(candidate_bundle, candidate_prefix + path) for _, candidate_bundle, candidate_prefix in sources
+                               if candidate_prefix + path in candidate_bundle.namelist()]
+                    if not matches:
+                        raise RuntimeError("portable evidence historical artifact is missing")
+                    candidate_bytes = [candidate_bundle.read(candidate_path)
+                                       for candidate_bundle, candidate_path in matches]
+                    if any(data != candidate_bytes[0] for data in candidate_bytes[1:]):
+                        raise RuntimeError("portable evidence historical artifact is ambiguous")
+                    data = candidate_bytes[0]
+                    if hashlib.sha256(data).hexdigest() != artifact["sha256"]:
+                        raise RuntimeError("portable evidence historical artifact hash differs")
+                    if path in result and result[path] != data:
+                        raise RuntimeError("portable evidence historical artifact path differs")
+                    result[path] = data
+    return result
+
+
+def verify_portable_evidence(archive: Path) -> dict:
+    """Target-free verifier for reviewer ZIP path, receipt, and byte integrity."""
+    with zipfile.ZipFile(archive) as bundle:
+        names = bundle.namelist()
+        if len(names) != len(set(names)):
+            raise RuntimeError("portable evidence has duplicate ZIP entries")
+        if any(not name or name.endswith("/") or portable_artifact_path(name) != name for name in names):
+            raise RuntimeError("portable evidence has unsafe ZIP path")
+        if "summary.json" not in names:
+            raise RuntimeError("portable evidence summary is missing")
+        summary = json.loads(bundle.read("summary.json"))
+        trials = [trial for trial in summary.get("trials", []) if not trial.get("control")]
+        trial_ids = [trial.get("trial_id") for trial in trials]
+        if not all(isinstance(value, str) for value in trial_ids) or len(set(trial_ids)) != len(trial_ids):
+            raise RuntimeError("portable evidence has duplicate trial ids")
+        artifact_paths = []
+        for trial in trials:
+            for artifact in trial.get("artifacts", []):
+                if not isinstance(artifact, dict) or set(artifact) != {"path", "sha256"}:
+                    raise RuntimeError("portable evidence artifact manifest differs")
+                path = portable_artifact_path(artifact["path"])
+                if path not in names or hashlib.sha256(bundle.read(path)).hexdigest() != artifact["sha256"]:
+                    raise RuntimeError("portable evidence artifact hash differs")
+                artifact_paths.append(path)
+        if len(artifact_paths) != len(set(artifact_paths)):
+            raise RuntimeError("portable evidence has duplicate artifact references")
+        return {"trial_count": len(trials), "artifact_reference_count": len(artifact_paths),
+                "zip_entry_count": len(names), "duplicate_zip_entries": 0,
+                "dangling_local_artifact_references": 0}
+
+
+def input_checkpoint_provenance_snapshot(summary: dict) -> tuple[dict, dict] | None:
+    """Authenticate the immutable pre-run provenance used by an old raw summary.
+
+    A pre-fix runtime could serialize a mutable ledger list after a replacement had
+    extended it.  Its input archive is still the authoritative pre-run receipt, so
+    use that exact summary rather than inferring a past state from the final ledger.
+    """
+    checkpoint = summary.get("resume_checkpoint")
+    lineage = summary.get("release_continuation")
+    if not isinstance(checkpoint, dict) or not isinstance(lineage, dict):
+        return None
+    archive_name, raw_provenance = checkpoint.get("archive"), checkpoint.get("provenance")
+    if not isinstance(archive_name, str) or not isinstance(raw_provenance, dict):
+        raise RuntimeError("portable evidence input checkpoint provenance differs")
+    archive = Path(archive_name)
+    if not archive.is_file():
+        raise RuntimeError("portable evidence input checkpoint is unavailable")
+    with zipfile.ZipFile(archive) as bundle:
+        summaries = [name for name in bundle.namelist() if name == "summary.json" or name.endswith("/summary.json")]
+        if len(summaries) != 1:
+            raise RuntimeError("portable evidence input checkpoint summary differs")
+        source_summary_bytes = bundle.read(summaries[0])
+        source_lineage = json.loads(source_summary_bytes).get("release_continuation")
+    if not isinstance(source_lineage, dict):
+        raise RuntimeError("portable evidence input checkpoint lineage differs")
+    if {key: value for key, value in raw_provenance.items() if key != "scheduling_ledger"} != {
+            key: value for key, value in source_lineage.items() if key != "scheduling_ledger"}:
+        raise RuntimeError("portable evidence input checkpoint provenance differs")
+    if source_lineage.get("scheduling_ledger") is None:
+        raise RuntimeError("portable evidence input checkpoint scheduling ledger differs")
+    snapshot = {**checkpoint, "provenance": copy.deepcopy(source_lineage)}
+    interpretation = {
+        "schema_version": 1,
+        "raw_provenance_sha256": hashlib.sha256(
+            json.dumps(raw_provenance, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest(),
+        "input_archive_sha256": digest(archive),
+        "input_summary_sha256": hashlib.sha256(source_summary_bytes).hexdigest(),
+        "authenticated_provenance_sha256": hashlib.sha256(
+            json.dumps(source_lineage, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest(),
+    }
+    return snapshot, interpretation
+
+
+def reconstructed_input_checkpoint_provenance(raw_summary: dict, interpretation: dict) -> dict:
+    """Reconstruct an immutable input receipt without requiring its external ZIP.
+
+    The export-time snapshot above authenticates the original archive.  A reviewer
+    later verifies this compact reconstruction against raw provenance and final
+    scheduling lineage, keeping the reviewer ZIP self-contained.
+    """
+    required = {"schema_version", "raw_provenance_sha256", "input_archive_sha256",
+                "input_summary_sha256", "authenticated_provenance_sha256"}
+    checkpoint = raw_summary.get("resume_checkpoint")
+    lineage = raw_summary.get("release_continuation")
+    if (not isinstance(interpretation, dict) or set(interpretation) != required
+            or interpretation.get("schema_version") != 1 or not isinstance(checkpoint, dict)
+            or not isinstance(lineage, dict) or not isinstance(checkpoint.get("provenance"), dict)):
+        raise RuntimeError("portable evidence input checkpoint interpretation differs")
+    raw_provenance = checkpoint["provenance"]
+    raw_hash = hashlib.sha256(json.dumps(raw_provenance, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    if raw_hash != interpretation["raw_provenance_sha256"]:
+        raise RuntimeError("portable evidence input checkpoint provenance hash differs")
+    raw_ledger, final_ledger = raw_provenance.get("scheduling_ledger"), lineage.get("scheduling_ledger")
+    if not isinstance(raw_ledger, dict) or not isinstance(final_ledger, dict) or set(raw_ledger) != set(final_ledger):
+        raise RuntimeError("portable evidence input checkpoint scheduling ledger differs")
+    corrected = copy.deepcopy(raw_provenance)
+    for task_id, raw_entry in raw_ledger.items():
+        final_entry = final_ledger[task_id]
+        if (not isinstance(raw_entry, dict) or not isinstance(final_entry, dict)
+                or raw_entry.get("initial_scheduled") != final_entry.get("initial_scheduled")
+                or raw_entry.get("initial_requested_count") != final_entry.get("initial_requested_count")
+                or raw_entry.get("initial_trial_ids") != final_entry.get("initial_trial_ids")
+                or type(raw_entry.get("replacement_attempts")) is not int
+                or raw_entry["replacement_attempts"] < 0
+                or raw_entry["replacement_attempts"] > final_entry.get("replacement_attempts", -1)
+                or not isinstance(final_entry.get("replacement_trial_ids"), list)):
+            raise RuntimeError("portable evidence input checkpoint scheduling lineage differs")
+        corrected["scheduling_ledger"][task_id]["replacement_trial_ids"] = list(
+            final_entry["replacement_trial_ids"][:raw_entry["replacement_attempts"]])
+    corrected_hash = hashlib.sha256(json.dumps(corrected, ensure_ascii=False, sort_keys=True).encode("utf-8")).hexdigest()
+    if corrected_hash != interpretation["authenticated_provenance_sha256"]:
+        raise RuntimeError("portable evidence input checkpoint provenance differs")
+    return {**checkpoint, "provenance": corrected}
+
+
 def export_result(output: Path, destination: Path) -> None:
-    """Preserve portable raw evidence + logs and a compact reviewer-facing result."""
+    """Preserve a self-contained, continuation-compatible reviewer evidence package."""
     raw_summary_bytes = (output / "summary.json").read_bytes()
     raw_summary = json.loads(raw_summary_bytes)
     release_lane = raw_summary.get("target_configuration", {}).get("target_lane", "")
@@ -1456,15 +1688,32 @@ def export_result(output: Path, destination: Path) -> None:
             "raw_summary": {"path": "raw_summary.json", "sha256": hashlib.sha256(raw_summary_bytes).hexdigest()},
             "reclassified_trials": audit_changes,
         }
+    input_snapshot = input_checkpoint_provenance_snapshot(summary)
+    if input_snapshot:
+        summary["resume_checkpoint"], summary["resume_checkpoint_provenance_interpretation"] = input_snapshot
     archive = destination / "core_evidence.zip"
     with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as bundle:
+        written = set()
         for path in sorted(output.rglob("*")):
             if (path.is_file() and path.name != "summary.json"
                     and "worktrees" not in path.relative_to(output).parts):
-                bundle.write(path, path.relative_to(output).as_posix())
+                name = path.relative_to(output).as_posix()
+                if name in written:
+                    raise RuntimeError("portable evidence has duplicate ZIP entries")
+                bundle.write(path, name)
+                written.add(name)
+        for name, data in historical_seed_artifact_bytes(summary).items():
+            if name in written:
+                existing = bundle.read(name)
+                if existing != data:
+                    raise RuntimeError("portable evidence historical artifact path differs")
+                continue
+            bundle.writestr(name, data)
+            written.add(name)
         if audit_changes:
             bundle.writestr("raw_summary.json", raw_summary_bytes)
         bundle.writestr("summary.json", json.dumps(summary, ensure_ascii=False, indent=2) + "\n")
+    verify_portable_evidence(archive)
     trials = summary.pop("trials")
     receipt_fields = ["trial_id", "task_id", "control", "epoch", "actual_target_calls",
                       "runtime_seconds", "usage", "state_evidence", "infrastructure_error",

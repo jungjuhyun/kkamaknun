@@ -21,7 +21,7 @@ from evals.system.core_regression import (
     historical_seed_ids_from_provenance, materialize_inherited_current_artifacts,
     findings_for, phase_status, progress_snapshot, prompt_for,
     resume_missing_tasks, run_missing_with_bounded_infra, run_suite, summarize, validate_scheduling_ledger,
-    target_identity, target_lane_id,
+    target_identity, target_lane_id, verify_portable_evidence,
 )
 
 CHECKPOINT_TOOL_PYTHON = Path(
@@ -285,6 +285,72 @@ class CoreEvidenceTests(unittest.TestCase):
             self.assertTrue((destination / "core_findings.json").is_file())
             self.assertTrue((destination / "core_evidence.zip").is_file())
 
+    def test_special_export_materializes_authenticated_historical_seed_artifacts(self):
+        root = Path(__file__).resolve().parents[1]
+        archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        seed, provenance = load_surrogate_contract_release_seed(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            CHECKPOINT_TOOL_PYTHON)
+        summary = progress_snapshot(tasks, seed, release_lane=lane)
+        summary.update(snapshot="476bc226433efc95c0b546948c2c7160ff97616c",
+                       target_configuration={"target_lane": lane}, trials=seed,
+                       release_continuation={**provenance,
+                           "checkpoint_trial_ids": sorted(t["trial_id"] for t in seed),
+                           "new_current_prompt_trial_ids": []})
+        with tempfile.TemporaryDirectory() as temporary:
+            output, destination = Path(temporary) / "output", Path(temporary) / "export"
+            output.mkdir(); destination.mkdir()
+            (output / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+            (output / "findings.json").write_text("[]", encoding="utf-8")
+            export_result(output, destination)
+            report = verify_portable_evidence(destination / "core_evidence.zip")
+            self.assertEqual(report["trial_count"], 64)
+            self.assertEqual(report["artifact_reference_count"], 256)
+            self.assertEqual(report["dangling_local_artifact_references"], 0)
+            with zipfile.ZipFile(destination / "core_evidence.zip") as bundle:
+                names = bundle.namelist()
+                self.assertEqual(len(names), len(set(names)))
+                for trial in seed:
+                    for artifact in trial["artifacts"]:
+                        name = artifact["path"].replace("\\", "/")
+                        self.assertIn(name, names)
+                        self.assertEqual(hashlib.sha256(bundle.read(name)).hexdigest(), artifact["sha256"])
+
+    def test_resume_checkpoint_receipt_is_reconstructed_from_authenticated_pre_run_snapshot(self):
+        root = Path(__file__).resolve().parents[1]
+        archive = root / "evidence" / "phase3_resume_94_of_112_recovered.zip"
+        tasks = load_core_tasks()
+        lane = target_lane_id("gpt-5.6-sol", "medium")
+        _, provenance = load_surrogate_contract_release_seed(
+            archive, tasks, "476bc226433efc95c0b546948c2c7160ff97616c", lane,
+            CHECKPOINT_TOOL_PYTHON)
+        task_id = "CORE_A_01"
+        pre_run = copy.deepcopy(provenance)
+        pre_run["scheduling_ledger"][task_id].update(initial_scheduled=True,
+            initial_trial_ids=[f"initial-{index}" for index in range(5)])
+        final = copy.deepcopy(provenance)
+        replacement_id = "replacement-after-input"
+        final["scheduling_ledger"][task_id].update(initial_scheduled=True,
+            initial_trial_ids=[f"initial-{index}" for index in range(5)],
+            replacement_attempts=1, replacement_trial_ids=[replacement_id])
+        raw = copy.deepcopy(pre_run)
+        # This reproduces the old alias defect: a post-run ID leaks into the
+        # input receipt while its counter remains pre-run zero.
+        raw["scheduling_ledger"][task_id].update(initial_scheduled=True,
+            initial_trial_ids=[f"initial-{index}" for index in range(5)], replacement_trial_ids=[replacement_id])
+        with tempfile.TemporaryDirectory() as temporary:
+            source = Path(temporary) / "input.zip"
+            with zipfile.ZipFile(source, "w") as bundle:
+                bundle.writestr("summary.json", json.dumps({"release_continuation": pre_run}))
+            summary = {"resume_checkpoint": {"archive": str(source), "provenance": raw},
+                       "release_continuation": final}
+            snapshot, interpretation = core_regression.input_checkpoint_provenance_snapshot(summary)
+            self.assertEqual(snapshot["provenance"], pre_run)
+            self.assertEqual(core_regression.reconstructed_input_checkpoint_provenance(
+                summary, interpretation), snapshot)
+
     def test_pass_wrong_answer_missing_infra_cross_target_remain_distinct(self):
         task = self.tasks["tool_semantics"]
         good = envelope(task)
@@ -351,6 +417,11 @@ class CoreEvidenceTests(unittest.TestCase):
         self.assertEqual(receipt["baseline_record_count"], 2)
         self.assertEqual(receipt["valid_trials"], 1)
         self.assertEqual(receipt["required_valid_trials"], 5)
+        self.assertEqual(receipt["valid_release_status_counts"], {"PASS": 1, "FAIL": 0, "UNKNOWN": 0})
+        self.assertEqual(receipt["excluded_non_valid_attempt_counts"],
+                         {"INFRA_ERROR": 1, "INVALID_FIXTURE": 0})
+        self.assertEqual(receipt["total_represented_trial_attempts"], 2)
+        self.assertEqual(receipt["status_counts_scope"], "all_represented_non_control_release_attempts")
         self.assertEqual(receipt["remaining_valid_trials"], 4)
         self.assertEqual(receipt["control_record_count"], 1)
         self.assertEqual(receipt["control_target_calls"], 0)
@@ -844,14 +915,19 @@ class CoreEvidenceTests(unittest.TestCase):
         prior_replacement["grader"] = {"status": "INFRA_ERROR", "assertions": []}
         partial.append(prior_replacement)
         one_left_calls, one_left_statuses = [], ["PASS"]
+        imported_ledger = {task["id"]: {"initial_scheduled": True, "replacement_attempts": 1,
+                            "initial_requested_count": 5,
+                            "initial_trial_ids": [f"partial-{i}" for i in range(5)],
+                            "replacement_trial_ids": ["replacement-prior"]}}
+        imported_ledger_snapshot = copy.deepcopy(imported_ledger)
         one_left = run_missing_with_bounded_infra([task], partial, lane,
             lambda batch, count: [one_left_calls.append(count), partial.append(dict(envelope(task),
                 trial_id="replacement", grader={"status": one_left_statuses.pop(0), "assertions": []}))],
-            {task["id"]: {"initial_scheduled": True, "replacement_attempts": 1,
-                            "initial_requested_count": 5,
-                            "initial_trial_ids": [f"partial-{i}" for i in range(5)],
-                            "replacement_trial_ids": ["replacement-prior"]}})
+            imported_ledger)
         self.assertEqual(one_left_calls, [1]); self.assertEqual(one_left[task["id"]]["replacement_attempts"], 2)
+        self.assertEqual(imported_ledger, imported_ledger_snapshot)
+        self.assertEqual(one_left[task["id"]]["replacement_trial_ids"],
+                         ["replacement-prior", "replacement"])
         two_left_calls, two_left_statuses = [], ["INFRA_ERROR", "INFRA_ERROR"]
         partial_two = copy.deepcopy(partial[:5])
         two_left = run_missing_with_bounded_infra([task], partial_two, lane,
