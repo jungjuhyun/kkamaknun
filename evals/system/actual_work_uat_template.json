@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "scenario_id": null,
   "target": "actual_work",
   "execution": {
@@ -9,6 +9,7 @@
   "chat": {
     "fresh_chat": null,
     "same_project": null,
+    "project_scope": null,
     "first_substantive_project_request": null,
     "known_memory_state": "UNKNOWN"
   },
@@ -28,12 +29,16 @@
   "response": {
     "user_input": null,
     "final_response": null,
+    "final_response_sha256": null,
     "user_visible_receipt": null,
+    "bootstrap_receipt_capture": null,
     "user_visible_error": null
   },
   "setup": {
     "validity": "UNKNOWN",
+    "work_capability_receipt": null,
     "dynamic_seed_receipt": null,
+    "marker_verification": null,
     "safe_fixture_identity": null
   },
   "external_evidence": {
@@ -50,7 +55,6 @@
   },
   "classification": {
     "observable_evidence": [],
-    "observable_violations": [],
     "assertion_results": [],
     "final_status": "NOT_RUN",
     "evaluator_notes": null
