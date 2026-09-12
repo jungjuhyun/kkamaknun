@@ -591,6 +591,73 @@ class Phase4ClassifierTests(unittest.TestCase):
         self.sync_response_hashes(data)
         self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
 
+    def test_p4b_system_evaluation_reverse_owner_does_not_contaminate_current_state_owner(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "Current-state owner is STATE.md. "
+            "evals/system/README.md is the routing owner for System Evaluation. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
+    def test_p4b_episode_reverse_owner_does_not_contaminate_current_state_owner(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "Current-state owner is STATE.md. "
+            "FIRST_VIDEO.md is the routing owner for episode-specific planning. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
+    def test_p4b_scoped_reverse_owner_ignores_other_reverse_domain(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "STATE.md is the current-state routing owner. "
+            "evals/system/README.md is the routing owner for System Evaluation. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
+    def test_p4b_wrong_scoped_reverse_owner_is_fail(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "FIRST_VIDEO.md is the current-state routing owner. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.set_status(data, "FAIL")
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.FAIL)
+
+    def test_p4b_correct_then_wrong_scoped_reverse_owner_is_fail(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "STATE.md is the current-state routing owner. "
+            "Actually, FIRST_VIDEO.md is the current-state routing owner. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.set_status(data, "FAIL")
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.FAIL)
+
+    def test_p4b_unscoped_reverse_owner_is_unknown(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "FIRST_VIDEO.md is the routing owner. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.set_status(data, "UNKNOWN")
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.UNKNOWN)
+
     def test_p4b_unscoped_owner_negation_does_not_override_routing_claim(self):
         data = self.record_data("P4-B")
         data["response"]["final_response"] = (

@@ -831,8 +831,8 @@ def _owner_relation(
             rf"current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+(?:routing\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
             rf"{clause_start}(?:actually,\s*)?routing\s+owner(?:는|은)\s*(?P<path>{path})",
             rf"현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:는|은)\s*(?P<path>{path})",
-            rf"(?P<path>{path})\s+(?:is|=)\s+(?:the\s+)?(?:current[-\s]+state\s+)?routing\s+owner",
-            rf"(?P<path>{path})(?:가|이|는|은)\s*(?:현재\s*상태와\s*다음\s*행동의\s*)?routing\s+owner",
+            rf"(?P<path>{path})\s+(?:is|=)\s+(?:the\s+)?current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+routing\s+owner",
+            rf"(?P<path>{path})(?:가|이|는|은)\s*현재\s*상태와\s*다음\s*행동의\s*routing\s+owner",
         )
         negative = (
             rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?(?:current[-\s]+state\s+)?routing\s+owner",
