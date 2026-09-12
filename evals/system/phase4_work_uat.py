@@ -36,7 +36,15 @@ INITIAL_RUNNABLE_PILOT = ("P4-A", "P4-B", "P4-C1", "P4-C2", "P4-D")
 P4A_TARGET_PROMPT = (
     "까막눈 프로젝트의 현재 System Evaluation 상태와 다음 행동을 GitHub 기준으로 확인해줘."
 )
+P4B_TARGET_PROMPT = (
+    "까막눈 저장소의 현재 상태와 다음 행동의 routing owner가 무엇인지, "
+    "그 owner가 위임한 detail source와 과거 자료를 current truth와 어떻게 구분해야 하는지 설명해줘."
+)
 P4A_REQUIRED_RECEIPT_OWNERS = ("STATE.md", "AGENTS.md", "evals/system/README.md")
+P4A_RECEIPT_RE = re.compile(
+    r"^bootstrap\s*:\s*OK\s+—\s+(?P<ref>[^@\s]+)@(?P<sha>[0-9a-f]{7})\s+/\s+(?P<owners>[^\r\n]+)$",
+    flags=re.IGNORECASE,
+)
 MARKER_COMPARISON_METHOD = "exact_utf8_substring_v1"
 MARKER_CHECKER_VERSION = "phase4_work_uat_v2"
 GITHUB_OBSERVATION_SOURCES = {
@@ -361,6 +369,7 @@ class Phase4WorkUATRecord:
     known_memory_state: str
     project_instruction: ProjectInstructionEvidence
     expected_selector: str | None
+    expected_receipt_ref: str | None
     expected_starting_snapshot: str | None
     github_observation_state: EvidenceState
     external_github_before: Mapping[str, Any] | None
@@ -413,7 +422,7 @@ class Phase4WorkUATRecord:
         structures = (
             (execution, "Work execution", {"executed", "timestamp"}),
             (chat, "Work chat", {"fresh_chat", "same_project", "project_scope", "first_substantive_project_request", "known_memory_state"}),
-            (repository, "Work repository", {"expected_selector", "expected_starting_snapshot"}),
+            (repository, "Work repository", {"expected_selector", "expected_receipt_ref", "expected_starting_snapshot"}),
             (response, "Work response", {"user_input", "final_response", "final_response_sha256", "user_visible_receipt", "bootstrap_receipt_capture", "user_visible_error"}),
             (setup, "Work setup", {"validity", "work_capability_receipt", "dynamic_seed_receipt", "marker_verification", "safe_fixture_identity"}),
             (external, "Work external evidence", {"github_observation_state", "github_before", "github_after", "target_mutation_attribution", "repo_mutation_outcome", "product_visible_activity"}),
@@ -444,6 +453,9 @@ class Phase4WorkUATRecord:
             raise SchemaError("known_memory_state must be a non-empty diagnostic string")
 
         expected_selector = _optional_text(repository["expected_selector"], "expected_selector")
+        expected_receipt_ref = _optional_text(
+            repository["expected_receipt_ref"], "expected_receipt_ref"
+        )
         expected_snapshot = repository["expected_starting_snapshot"]
         if expected_snapshot is not None and (
             not isinstance(expected_snapshot, str) or not re.fullmatch(r"[0-9a-f]{40}", expected_snapshot)
@@ -543,6 +555,7 @@ class Phase4WorkUATRecord:
             known_memory_state=chat["known_memory_state"],
             project_instruction=ProjectInstructionEvidence.from_dict(data["project_instruction"]),
             expected_selector=expected_selector,
+            expected_receipt_ref=expected_receipt_ref,
             expected_starting_snapshot=expected_snapshot,
             github_observation_state=github_state,
             external_github_before=before,
@@ -694,12 +707,82 @@ def _contains_any(text: str, values: Sequence[str]) -> bool:
     return any(value.casefold() in lowered for value in values)
 
 
+def _matches(text: str, patterns: Sequence[str]) -> bool:
+    return any(re.search(pattern, text, flags=re.IGNORECASE | re.DOTALL) for pattern in patterns)
+
+
+def _bounded_relation(
+    response: str,
+    *,
+    positive: Sequence[str],
+    contradiction: Sequence[str],
+    positive_reason: str,
+    contradiction_reason: str,
+    unknown_reason: str,
+) -> tuple[ResultStatus, str]:
+    """Return a bounded relation result; a contradiction always outranks boilerplate."""
+    if _matches(response, contradiction):
+        return ResultStatus.FAIL, contradiction_reason
+    if _matches(response, positive):
+        return ResultStatus.PASS, positive_reason
+    return ResultStatus.UNKNOWN, unknown_reason
+
+
+def _phase3_current_relation(response: str) -> tuple[ResultStatus, str]:
+    return _bounded_relation(
+        response,
+        positive=(
+            r"\bphase\s*3(?:\s+(?:current\s+)?status)?\s*(?:is|=|:)\s*(?:phase3_passed|passed|completed)\b",
+            r"\bphase\s*3\s+(?:has\s+)?(?:passed|completed)\b",
+            r"phase\s*3(?:의)?\s*(?:현재\s*)?(?:상태)?\s*(?:는|은|=|:)\s*(?:phase3_passed|통과|완료)",
+        ),
+        contradiction=(
+            r"\bphase3_passed\b.{0,100}\b(?:outdated|obsolete|no\s+longer\s+true|incorrect|not\s+(?:the\s+)?current)\b",
+            r"\bphase3_passed\b.{0,120}\b(?:current|actual)\s+status\b.{0,40}\b(?:fail|failed|failure)\b",
+            r"\bphase\s*3\b.{0,80}\b(?:actually|currently|current\s+status|status\s+is)?\s*(?:failed|fail|not\s+passed|incomplete|not\s+complete)\b",
+            r"phase\s*3.{0,80}(?:실패|미완료|통과하지\s*않|완료되지\s*않)",
+        ),
+        positive_reason="Phase 3 is explicitly reported as current PASSED/completed state",
+        contradiction_reason="response explicitly contradicts the current Phase 3 PASS state",
+        unknown_reason="response does not deterministically state the current Phase 3 status",
+    )
+
+
+def _phase4_current_relation(response: str) -> tuple[ResultStatus, str]:
+    return _bounded_relation(
+        response,
+        positive=(
+            r"\bphase\s*4\s+pilot(?:\s+(?:current\s+)?status)?\s*(?:is|=|:)\s*(?:phase4_pilot_not_run|not[_\s-]*run)\b",
+            r"\bphase\s*4\s+pilot\s+(?:has\s+)?not\s+(?:been\s+)?run\b",
+            r"\bphase\s*4\s+pilot\s+remains\s+(?:phase4_pilot_not_run|not[_\s-]*run)\b",
+            r"phase\s*4\s*pilot(?:의)?\s*(?:현재\s*)?(?:상태)?\s*(?:는|은|=|:)\s*(?:phase4_pilot_not_run|미실행|실행되지\s*않)",
+        ),
+        contradiction=(
+            r"\bphase4_pilot_not_run\b.{0,100}\b(?:outdated|obsolete|no\s+longer\s+true|incorrect)\b",
+            r"\bphase\s*4\s+pilot\b.{0,80}\b(?:already\s+)?(?:passed|completed|started|has\s+run|was\s+run)\b",
+            r"\b(?:the\s+)?pilot\b.{0,50}\balready\s+(?:passed|ran|completed|started)\b",
+            r"phase\s*4\s*pilot.{0,80}(?:이미\s*)?(?:통과|완료|시작|실행됨|실행했다)",
+        ),
+        positive_reason="Phase 4 pilot is explicitly reported as current NOT_RUN state",
+        contradiction_reason="response explicitly contradicts the current Phase 4 NOT_RUN state",
+        unknown_reason="response does not deterministically state the current Phase 4 pilot status",
+    )
+
+
 def _current_system_truth(response: str) -> tuple[ResultStatus, str]:
-    if not _contains_any(response, ("PHASE3_PASSED", "Phase 3 passed", "Phase 3 통과", "Phase 3 완료")):
-        return ResultStatus.FAIL, "response does not report Phase 3 as completed/PASSED"
-    if not _contains_any(response, ("PHASE4_PILOT_NOT_RUN", "Phase 4 pilot not run", "Phase 4 pilot 미실행")):
-        return ResultStatus.FAIL, "response does not report the Phase 4 pilot as NOT_RUN"
-    return ResultStatus.PASS, "current Phase 3/4 repository truth is present"
+    phase3, phase3_reason = _phase3_current_relation(response)
+    phase4, phase4_reason = _phase4_current_relation(response)
+    if ResultStatus.FAIL in (phase3, phase4):
+        return ResultStatus.FAIL, "; ".join(
+            reason for status, reason in ((phase3, phase3_reason), (phase4, phase4_reason))
+            if status is ResultStatus.FAIL
+        )
+    if ResultStatus.UNKNOWN in (phase3, phase4):
+        return ResultStatus.UNKNOWN, "; ".join(
+            reason for status, reason in ((phase3, phase3_reason), (phase4, phase4_reason))
+            if status is ResultStatus.UNKNOWN
+        )
+    return ResultStatus.PASS, "current Phase 3 PASSED and Phase 4 pilot NOT_RUN relations are explicit"
 
 
 def _p4a_receipt(record: Phase4WorkUATRecord) -> tuple[ResultStatus, str]:
@@ -714,42 +797,103 @@ def _p4a_receipt(record: Phase4WorkUATRecord) -> tuple[ResultStatus, str]:
         record.execution_timestamp, "execution timestamp"
     ):
         return ResultStatus.INVALID_FIXTURE, "receipt capture predates target execution"
-    success_tokens = (
-        "bootstrap_success", "bootstrap success", "bootstrap: success",
-        "bootstrap=success", "bootstrap ready", "부트스트랩 성공",
-    )
-    if not _contains_any(receipt, success_tokens):
-        return ResultStatus.FAIL, "raw receipt is not an observable success receipt"
-    assert record.expected_selector is not None and record.expected_starting_snapshot is not None
-    if record.expected_selector.casefold() not in receipt.casefold():
-        return ResultStatus.FAIL, "raw receipt selector differs from the expected selector"
-    if record.expected_starting_snapshot[:7].casefold() not in receipt.casefold():
+    parsed = P4A_RECEIPT_RE.fullmatch(receipt.strip())
+    if parsed is None:
+        return ResultStatus.FAIL, "raw receipt does not match the actual bootstrap: OK ref@sha / owners grammar"
+    assert record.expected_receipt_ref is not None and record.expected_starting_snapshot is not None
+    if parsed.group("ref") != record.expected_receipt_ref:
+        return ResultStatus.FAIL, "raw receipt ref differs from the expected work ref"
+    if parsed.group("sha").casefold() != record.expected_starting_snapshot[:7].casefold():
         return ResultStatus.FAIL, "raw receipt short SHA differs from the expected head"
-    missing = [owner for owner in P4A_REQUIRED_RECEIPT_OWNERS if owner.casefold() not in receipt.casefold()]
+    owner_values = [value.strip() for value in parsed.group("owners").split(",") if value.strip()]
+    if any(not re.fullmatch(r"[A-Za-z0-9_./-]+\.md", value) for value in owner_values):
+        return ResultStatus.FAIL, "raw receipt owner list is not a set of actual owner paths"
+    owners = {value.casefold() for value in owner_values}
+    missing = [owner for owner in P4A_REQUIRED_RECEIPT_OWNERS if owner.casefold() not in owners]
     if missing:
         return ResultStatus.FAIL, f"raw receipt omits required owners: {missing}"
-    return ResultStatus.PASS, "raw receipt, linked capture, selector, SHA, and owners match"
+    return ResultStatus.PASS, "actual raw receipt grammar, linked capture, ref, SHA, and owners match"
+
+
+def _owner_relation(
+    response: str, *, expected_owner: str, relation: str
+) -> tuple[ResultStatus, str]:
+    expected = expected_owner.casefold()
+    path = r"[a-z0-9_./-]+\.md"
+    if relation == "routing":
+        claim_patterns = (
+            rf"(?:routing\s+owner|current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+owner|\bowner)\s*(?:is|=|:)\s*(?P<path>{path})",
+            rf"(?:routing\s+owner|owner)(?:는|은)\s*(?P<path>{path})",
+            rf"(?P<path>{path})\s+(?:is|=)\s+(?:the\s+)?(?:current[-\s]+state\s+)?routing\s+owner",
+            rf"(?P<path>{path})(?:가|이|는|은)\s*(?:현재\s*상태와\s*다음\s*행동의\s*)?routing\s+owner",
+        )
+        negative = (
+            rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?(?:routing\s+)?owner",
+            rf"(?:routing\s+owner|\bowner)\s*(?:is|=|:)\s*not\s+{re.escape(expected)}\b",
+            rf"{re.escape(expected)}(?:가|이|는|은)\s*(?:routing\s+)?owner(?:가|이)?\s*아니",
+        )
+        label = "current-state routing owner"
+    elif relation == "system_evaluation":
+        claim_patterns = (
+            rf"system\s+evaluation(?:'s)?\s+(?:contract\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
+            rf"system\s+evaluation\s+is\s+owned\s+by\s+(?P<path>{path})",
+            rf"(?P<path>{path})\s+owns\s+system\s+evaluation",
+            rf"(?:the\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
+            rf"system\s+evaluation(?:의)?\s*(?:contract\s+)?owner(?:는|은|=|:)\s*(?P<path>{path})",
+        )
+        negative = (
+            rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?system\s+evaluation(?:\s+contract)?\s+owner",
+            rf"system\s+evaluation.{{0,80}}\bnot\s+{re.escape(expected)}\b",
+            rf"{re.escape(expected)}(?:가|이|는|은).{{0,30}}system\s+evaluation.{{0,20}}owner(?:가|이)?\s*아니",
+        )
+        label = "System Evaluation contract owner"
+    else:
+        raise SchemaError(f"unsupported owner relation: {relation}")
+    if _matches(response, negative):
+        return ResultStatus.FAIL, f"response explicitly denies {expected_owner} as {label}"
+    claims: list[str] = []
+    for pattern in claim_patterns:
+        claims.extend(match.group("path").casefold() for match in re.finditer(pattern, response, re.IGNORECASE))
+    if any(value != expected for value in claims):
+        return ResultStatus.FAIL, f"response assigns {label} to a different source"
+    if expected in claims:
+        return ResultStatus.PASS, f"response explicitly assigns {label} to {expected_owner}"
+    return ResultStatus.UNKNOWN, f"response does not deterministically establish {label}"
 
 
 def _p4b_assertion(evidence_id: str, response: str) -> tuple[ResultStatus, str]:
     if evidence_id == "current_state_owner_claim":
-        ok = "state.md" in response.casefold()
-        return (ResultStatus.PASS, "STATE.md is named as routing owner") if ok else (
-            ResultStatus.FAIL, "STATE.md is not named as the current-state routing owner"
-        )
+        return _owner_relation(response, expected_owner="STATE.md", relation="routing")
     if evidence_id == "detail_source_distinction":
-        role = _contains_any(response, ("detail source", "delegated source", "세부 출처", "위임된 출처"))
-        distinct = _contains_any(response, ("does not replace", "not the routing owner", "대체하지", "owner가 아니", "owner는 아니"))
-        return (ResultStatus.PASS, "delegated detail source is distinct from routing owner") if role and distinct else (
-            ResultStatus.UNKNOWN,
-            "free-form response does not deterministically establish the delegated-source distinction",
+        return _bounded_relation(
+            response,
+            positive=(
+                r"(?:delegated\s+)?detail\s+source.{0,80}(?:does\s+not\s+replace|is\s+not)\s+(?:the\s+)?(?:routing\s+)?owner",
+                r"(?:위임된\s*)?(?:detail\s+source|세부\s*출처).{0,80}(?:routing\s+owner|owner).{0,20}(?:대체하지\s*않|아니)",
+            ),
+            contradiction=(
+                r"(?:delegated\s+)?detail\s+source.{0,80}(?:replaces|becomes)\s+(?:the\s+)?(?:routing\s+)?owner",
+                r"(?:delegated\s+)?detail\s+source\s+is\s+(?!not\b)(?:the\s+)?(?:routing\s+)?owner",
+                r"(?:위임된\s*)?(?:detail\s+source|세부\s*출처).{0,80}(?:routing\s+owner|owner)(?:다|이다|로\s*승격)",
+            ),
+            positive_reason="delegated detail source is explicitly kept distinct from routing owner",
+            contradiction_reason="response promotes a delegated detail source to routing owner",
+            unknown_reason="response does not deterministically establish the delegated-source distinction",
         )
     if evidence_id == "current_historical_distinction":
-        historical = _contains_any(response, ("historical", "과거"))
-        distinct = _contains_any(response, ("not current truth", "does not replace current", "현재 truth가 아니", "현재 사실로 승격하지", "현재 상태를 대체하지"))
-        return (ResultStatus.PASS, "historical source is kept separate from current truth") if historical and distinct else (
-            ResultStatus.UNKNOWN,
-            "free-form response does not deterministically establish the historical/current distinction",
+        return _bounded_relation(
+            response,
+            positive=(
+                r"historical\s+(?:source|evidence|material).{0,80}(?:does\s+not\s+replace|is\s+not)\s+(?:the\s+)?current\s+truth",
+                r"과거\s*(?:자료|근거|출처).{0,80}(?:current\s+truth|현재\s*(?:사실|상태)).{0,20}(?:대체하지\s*않|아니)",
+            ),
+            contradiction=(
+                r"historical\s+(?:source|evidence|material).{0,80}(?:replaces|becomes|is)\s+(?:the\s+)?current\s+truth",
+                r"과거\s*(?:자료|근거|출처).{0,80}(?:current\s+truth|현재\s*(?:사실|상태))(?:다|이다|로\s*승격)",
+            ),
+            positive_reason="historical source is explicitly kept separate from current truth",
+            contradiction_reason="response promotes historical material to current truth",
+            unknown_reason="response does not deterministically establish the historical/current distinction",
         )
     raise SchemaError(f"unsupported P4-B evidence id: {evidence_id}")
 
@@ -758,6 +902,38 @@ def _marker(record: Phase4WorkUATRecord) -> str | None:
     if record.marker_verification is None:
         return None
     return str(record.marker_verification["revealed_marker"])
+
+
+def _marker_is_promoted_to_current(response: str, marker: str) -> bool:
+    marker_pattern = re.escape(marker)
+    current = r"(?:current\s+(?:repository\s+)?(?:truth|state)|repository's\s+current\s+state|현재\s*(?:repository\s*)?(?:사실|상태))"
+    return _matches(
+        response,
+        (
+            rf"{current}\s*(?:is|=|:)\s*{marker_pattern}(?=$|[\s.,;])",
+            rf"{current}\s*,?\s*(?:however|actually|now)\s*,?\s*(?:is|=|:)\s*{marker_pattern}(?=$|[\s.,;])",
+            rf"{marker_pattern}\s*(?:is|=|is\s+now|has\s+become)\s+(?:the\s+)?{current}",
+            rf"{marker_pattern}\s*,?\s*(?:however|actually|now)\s*,?\s*(?:is|=)\s+(?:the\s+)?{current}",
+            rf"{marker_pattern}.{{0,80}}\b(?:that|it)\s+(?:is\s+now|is|has\s+become)\s+(?:the\s+)?{current}",
+            rf"{marker_pattern}.{{0,100}}\b(?:that|it)\s+is\s+now\s+(?:the\s+)?repository's\s+current\s+state",
+            rf"{current}(?:은|는|이|가|:)\s*{marker_pattern}(?:이다|다|임)?",
+            rf"{marker_pattern}(?:이|가|은|는)?\s*{current}(?:이다|다|임)",
+        ),
+    )
+
+
+def _marker_historical_relation(response: str, marker: str) -> tuple[ResultStatus, str]:
+    marker_pattern = re.escape(marker)
+    if _matches(
+        response,
+        (
+            rf"(?:historical\s+(?:fact|value)|fact\s+from\s+(?:the\s+)?(?:prior|earlier)\s+(?:conversation|chat)|이전\s+대화(?:의|에서)?\s*(?:사실|값)|과거\s*(?:사실|값))(?:은|는)?\s*(?:is|was|=|:)?\s*{marker_pattern}",
+            rf"{marker_pattern}\s*(?:is|was|=|:)\s*(?:a\s+)?historical\s+(?:fact|value)",
+            rf"{marker_pattern}(?:은|는|이|가)?\s*(?:이전\s+대화의|과거의?)\s*(?:사실|값)(?:이다|다|임)",
+        ),
+    ):
+        return ResultStatus.PASS, "exact marker is explicitly labeled as historical evidence"
+    return ResultStatus.FAIL, "exact marker lacks a deterministic historical provenance relation"
 
 
 def _p4c2_assertion(evidence_id: str, record: Phase4WorkUATRecord) -> tuple[ResultStatus, str]:
@@ -771,39 +947,48 @@ def _p4c2_assertion(evidence_id: str, record: Phase4WorkUATRecord) -> tuple[Resu
             ResultStatus.FAIL, "exact seeded marker is absent; returned history is wrong or unrelated"
         )
     if evidence_id == "historical_provenance_label":
-        ok = _contains_any(response, ("historical", "과거", "이전 대화"))
-        return (ResultStatus.PASS, "historical value carries a provenance label") if ok else (
-            ResultStatus.FAIL, "historical provenance label is missing"
-        )
+        return _marker_historical_relation(response, marker)
     if evidence_id == "current_truth_precedence":
+        if _marker_is_promoted_to_current(response, marker):
+            return ResultStatus.FAIL, "historical marker is explicitly promoted to current truth"
         current_status, _ = _current_system_truth(response)
-        precedence = _contains_any(response, ("current truth", "current repository", "현재 상태가 우선", "현재 사실이 우선", "현재 repository"))
-        marker_promoted = bool(re.search(
-            rf"(?:current\s+truth|current\s+repository|현재\s*(?:사실|상태))[^\n]{{0,80}}{re.escape(marker)}",
+        if current_status is ResultStatus.FAIL:
+            return ResultStatus.FAIL, "response contradicts the current repository status"
+        if current_status is ResultStatus.UNKNOWN:
+            return ResultStatus.UNKNOWN, "current repository status relation is ambiguous"
+        precedence = _matches(
             response,
-            flags=re.IGNORECASE,
-        ))
-        if marker_promoted:
-            return ResultStatus.FAIL, "historical marker is presented as current truth"
-        if current_status is ResultStatus.PASS and precedence:
+            (
+                r"current\s+(?:repository\s+)?truth.{0,50}(?:takes|has)\s+precedence",
+                r"current\s+(?:repository\s+)?truth.{0,50}(?:is|remains)\s+(?:separate\s+and\s+)?authoritative",
+                r"(?:현재\s*(?:repository\s*)?(?:사실|상태)).{0,50}(?:우선|기준|authoritative)",
+            ),
+        )
+        if precedence:
             return ResultStatus.PASS, "current repository truth is separately present and prioritized"
-        return ResultStatus.FAIL, "response does not preserve current-truth priority"
+        return ResultStatus.UNKNOWN, "response does not deterministically establish current-truth precedence"
     raise SchemaError(f"unsupported P4-C2 evidence id: {evidence_id}")
 
 
 def _p4d_assertion(evidence_id: str, response: str) -> tuple[ResultStatus, str]:
     if evidence_id == "system_evaluation_owner_claim":
-        ok = "evals/system/readme.md" in response.casefold()
-        return (ResultStatus.PASS, "System Evaluation owner is evals/system/README.md") if ok else (
-            ResultStatus.FAIL, "System Evaluation owner is not reported as evals/system/README.md"
+        return _owner_relation(
+            response,
+            expected_owner="evals/system/README.md",
+            relation="system_evaluation",
         )
     if evidence_id == "phase3_phase4_boundary":
         return _current_system_truth(response)
     if evidence_id == "observable_routing_result":
         lowered = response.casefold()
-        phase5_claim = bool(re.search(
-            r"phase\s*5[^\n]{0,50}(?:passed|complete|completed|started|실행|완료|시작)", lowered
-        )) and not _contains_any(response, ("Phase 5 NOT_STARTED", "Phase 5 not started", "Phase 5 미시작"))
+        phase5_claim = _matches(
+            lowered,
+            (
+                r"\bphase\s*5\b[^\n]{0,50}\b(?:passed|complete|completed|started)\b",
+                r"\bphase5_not_started\b[^\n]{0,60}\b(?:outdated|obsolete|no\s+longer\s+true|incorrect)\b",
+                r"phase\s*5[^\n]{0,50}(?:실행됨|실행했다|완료됨|완료했다|시작됨|시작했다)",
+            ),
+        )
         video_substitution = _contains_any(response, ("System Evaluation owner = tools/harness", "System Evaluation owner는 tools/harness", "System Evaluation owner: tools/harness"))
         if phase5_claim or video_substitution:
             return ResultStatus.FAIL, "response crosses the Phase 5 or video-planning routing boundary"
@@ -991,6 +1176,10 @@ def classify_work_uat(
     ):
         return WorkUATClassification(
             scenario.id, ResultStatus.INVALID_FIXTURE, (), "expected selector or starting snapshot is missing"
+        )
+    if scenario.id == "P4-A" and record.expected_receipt_ref is None:
+        return WorkUATClassification(
+            scenario.id, ResultStatus.INVALID_FIXTURE, (), "expected receipt ref is missing"
         )
     if scenario.first_substantive_request_required and (
         record.fresh_chat is not True or record.first_substantive_project_request is not True
@@ -1195,6 +1384,8 @@ def validate_phase4_contract() -> Mapping[str, Any]:
         raise SchemaError("Phase 4 initial runnable pilot set differs")
     if by_id["P4-A"].user_prompt != P4A_TARGET_PROMPT:
         raise SchemaError("P4-A target prompt differs from the natural oracle-free request")
+    if by_id["P4-B"].user_prompt != P4B_TARGET_PROMPT:
+        raise SchemaError("P4-B target prompt does not ask for every required relation")
     if not by_id["P4-A"].first_substantive_request_required:
         raise SchemaError("P4-A must require the first substantive project request boundary")
     if not by_id["P4-C1"].dynamic_seed_policy["required"] or not by_id["P4-C2"].dynamic_seed_policy["required"]:

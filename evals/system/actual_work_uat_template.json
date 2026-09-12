@@ -24,6 +24,7 @@
   },
   "repository": {
     "expected_selector": null,
+    "expected_receipt_ref": null,
     "expected_starting_snapshot": null
   },
   "response": {

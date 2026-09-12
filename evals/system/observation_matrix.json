@@ -67,8 +67,8 @@
       "state_outcome_grader": "YES_WHEN_EXTERNAL_STATE_IS_OBSERVABLE",
       "trace_dependency": "Only product-visible activity is evidence; hidden reads, retrieval, reasoning, and tool paths are never inferred",
       "missing_evidence": "UNKNOWN",
-      "pass_condition": "Every required same-trial assertion is recomputed from raw or cryptographically linked evidence; stored annotations have no PASS authority",
-      "unknown_condition": "Required observable evidence is missing or cannot be checked deterministically; response wording and human annotations do not fill the gap",
+      "pass_condition": "Every required same-trial assertion, including owner/status/precedence relations, is recomputed from raw or cryptographically linked evidence; positive tokens and stored annotations have no PASS authority",
+      "unknown_condition": "Required observable evidence is missing or a natural-language relation cannot be checked deterministically; explicit contradictions remain FAIL while incidental wording and human annotations do not fill the gap",
       "infra_error_condition": "Work, connector, authentication, GitHub, or external-state observation infrastructure prevents observation"
     }
   ]
