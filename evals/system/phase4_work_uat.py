@@ -835,9 +835,10 @@ def _owner_relation(
             rf"(?P<path>{path})(?:가|이|는|은)\s*현재\s*상태와\s*다음\s*행동의\s*routing\s+owner",
         )
         negative = (
-            rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?(?:current[-\s]+state\s+)?routing\s+owner",
+            rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+routing\s+owner",
             rf"(?:{clause_start}(?:actually,\s*)?routing\s+owner|current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+(?:routing\s+)?owner)\s*(?:is|=|:)\s*not\s+{re.escape(expected)}\b",
-            rf"{re.escape(expected)}(?:가|이|는|은)\s*(?:현재\s*상태와\s*다음\s*행동의\s*)?routing\s+owner(?:가|이)?\s*아니",
+            rf"{re.escape(expected)}(?:가|이|는|은)\s*현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:가|이)?\s*아니",
+            rf"현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:는|은)\s*{re.escape(expected)}(?:가|이)?\s*아니",
         )
         label = "current-state routing owner"
     elif relation == "system_evaluation":

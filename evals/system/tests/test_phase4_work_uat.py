@@ -668,6 +668,28 @@ class Phase4ClassifierTests(unittest.TestCase):
         self.sync_response_hashes(data)
         self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
 
+    def test_p4b_cross_domain_negative_system_owner_does_not_override_current_owner(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "Current-state owner is STATE.md. "
+            "STATE.md is not the routing owner for System Evaluation. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
+    def test_p4b_cross_domain_negative_episode_owner_does_not_override_current_owner(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "Current-state owner is STATE.md. "
+            "STATE.md is not the routing owner for episode planning. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
     def test_p4b_system_evaluation_owner_alone_does_not_establish_routing_owner(self):
         data = self.record_data("P4-B")
         data["response"]["final_response"] = (
@@ -690,12 +712,67 @@ class Phase4ClassifierTests(unittest.TestCase):
         self.set_status(data, "FAIL")
         self.assertEqual(self.classify("P4-B", data).status, ResultStatus.FAIL)
 
-    def test_p4b_explicit_state_owner_negation_is_fail(self):
+    def test_p4b_scoped_path_first_owner_negation_is_fail(self):
+        for claim in (
+            "STATE.md is not the current-state routing owner.",
+            "STATE.md is not the current-state and next-action routing owner.",
+        ):
+            with self.subTest(claim=claim):
+                data = self.record_data("P4-B")
+                data["response"]["final_response"] = (
+                    f"{claim} "
+                    "A delegated detail source does not replace the routing owner. "
+                    "Historical evidence is not current truth."
+                )
+                self.sync_response_hashes(data)
+                self.set_status(data, "FAIL")
+                self.assertEqual(self.classify("P4-B", data).status, ResultStatus.FAIL)
+
+    def test_p4b_scoped_subject_first_owner_negation_is_fail(self):
+        for claim in (
+            "Current-state routing owner is not STATE.md.",
+            "Current-state and next-action routing owner is not STATE.md.",
+        ):
+            with self.subTest(claim=claim):
+                data = self.record_data("P4-B")
+                data["response"]["final_response"] = (
+                    f"{claim} "
+                    "A delegated detail source does not replace the routing owner. "
+                    "Historical evidence is not current truth."
+                )
+                self.sync_response_hashes(data)
+                self.set_status(data, "FAIL")
+                self.assertEqual(self.classify("P4-B", data).status, ResultStatus.FAIL)
+
+    def test_p4b_unscoped_path_first_owner_negation_is_unknown(self):
         data = self.record_data("P4-B")
         data["response"]["final_response"] = (
-            "STATE.md is not the routing owner. Owner is AGENTS.md. "
+            "STATE.md is not the routing owner. "
             "A delegated detail source does not replace the routing owner. "
             "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.set_status(data, "UNKNOWN")
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.UNKNOWN)
+
+    def test_p4b_correct_owner_then_scoped_path_first_negation_is_fail(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "Current-state owner is STATE.md. "
+            "Actually, STATE.md is not the current-state routing owner. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.set_status(data, "FAIL")
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.FAIL)
+
+    def test_p4b_korean_scoped_subject_first_owner_negation_is_fail(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "현재 상태와 다음 행동의 routing owner는 STATE.md가 아니다. "
+            "위임된 detail source는 routing owner를 대체하지 않는다. "
+            "과거 자료는 current truth를 대체하지 않는다."
         )
         self.sync_response_hashes(data)
         self.set_status(data, "FAIL")
