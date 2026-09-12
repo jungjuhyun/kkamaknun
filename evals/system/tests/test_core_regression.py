@@ -128,35 +128,63 @@ class CoreSchemaTests(unittest.TestCase):
         source = (Path(__file__).resolve().parents[1] / "core_regression.py").read_text(encoding="utf-8")
         self.assertIn('!= args.snapshot and not args.resume_archive', source)
 
-    def test_current_result_records_completed_primary_baseline_and_preserves_legacy_audit(self):
+    def test_current_result_records_final_phase3_pass_and_preserves_infra_audit(self):
         result_path = Path(__file__).resolve().parents[1] / "core_result.json"
         findings_path = Path(__file__).resolve().parents[1] / "core_findings.json"
         result = json.loads(result_path.read_text(encoding="utf-8"))
         findings = json.loads(findings_path.read_text(encoding="utf-8"))
-        self.assertEqual(result["phase_status"], "PHASE3_FAILED")
-        self.assertEqual(result["legacy_identity_audit"]["legacy_unpinned_trial_count"], 32)
-        self.assertEqual(result["legacy_identity_audit"]["identity_restorable_exactly"], 0)
-        self.assertEqual(result["target_lane_selection"]["primary_lane_finalized"], True)
-        self.assertEqual(result["primary_lane_state"]["primary_lane"], "model=gpt-5.6-sol;reasoning_effort=medium")
-        self.assertEqual(result["primary_lane_state"]["valid_trials"], 112)
-        self.assertEqual(result["primary_lane_state"]["valid_pass"], 95)
-        self.assertEqual(result["primary_lane_state"]["valid_fail"], 8)
-        self.assertEqual(result["primary_lane_state"]["valid_unknown"], 9)
-        self.assertEqual(result["primary_lane_state"]["total_remaining_trials"], 0)
-        self.assertEqual(result["primary_lane_state"]["critical_gate"],
-                         {"PASS": 14, "FAIL": 6, "BLOCKED": 0})
-        self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["gate_status"], "FAIL")
-        self.assertEqual(result["primary_lane_state"]["CORE_B_01"]["reproduction"], "2/5")
-        self.assertEqual(result["task_summary"][3]["id"], "CORE_B_01")
-        self.assertEqual(result["task_summary"][3]["gate_status"], "FAIL")
-        self.assertEqual(result["legacy_evidence"]["gate_eligible"], False)
-        self.assertEqual({item["id"] for item in findings}, {
-            "F_CORE_B_01_FAIL", "F_PRIMARY_CORE_B_01_FAIL", "F_PRIMARY_CORE_B_02_UNKNOWN",
-            "F_PRIMARY_CORE_C_02_FAIL", "F_PRIMARY_CORE_E_01_INFRA_ERROR",
-            "F_PRIMARY_CORE_F_02_INFRA_ERROR", "F_PRIMARY_CORE_G_01_UNKNOWN",
-            "F_PRIMARY_CORE_G_02_UNKNOWN", "F_PRIMARY_CORE_G_02_INFRA_ERROR",
-            "F_PRIMARY_CORE_I_01_INFRA_ERROR", "F_PRIMARY_CORE_I_03_FAIL",
-            "F_TARGET_IDENTITY_LEGACY_UNPINNED"})
+        self.assertEqual(result["phase"], 3)
+        self.assertEqual(result["phase_status"], "PHASE3_PASSED")
+        self.assertEqual(result["snapshot"], "476bc226433efc95c0b546948c2c7160ff97616c")
+        configuration = result["target_configuration"]
+        self.assertEqual(configuration["target_lane"], "model=gpt-5.6-sol;reasoning_effort=medium")
+        self.assertEqual(configuration["effective_model"], "UNKNOWN")
+        self.assertEqual(configuration["effective_reasoning_effort"], "UNKNOWN")
+
+        counts = result["release_result_counts"]
+        self.assertEqual(counts["valid_status_counts"], {"PASS": 112, "FAIL": 0, "UNKNOWN": 0})
+        self.assertEqual(counts["excluded_non_valid_attempt_counts"],
+                         {"INFRA_ERROR": 1, "INVALID_FIXTURE": 0})
+        self.assertEqual(counts["valid_release_trials"], 112)
+        self.assertEqual(counts["total_represented_trial_attempts"], 113)
+        self.assertEqual(result["actual_codex_target_calls"], 113)
+        receipt = result["progress_receipt"]
+        self.assertEqual(receipt["required_valid_trials"], 112)
+        self.assertEqual(receipt["valid_trials"], 112)
+        self.assertEqual(receipt["remaining_valid_trials"], 0)
+        self.assertEqual(result["critical_tasks"], 20)
+        self.assertEqual(result["critical_gate"], {"PASS": 20})
+
+        a01 = next(task for task in result["tasks"] if task["id"] == "CORE_A_01")
+        self.assertEqual({field: a01[field] for field in (
+            "valid_trials", "PASS", "FAIL", "UNKNOWN", "INFRA_ERROR", "INVALID_FIXTURE", "gate_status")}, {
+            "valid_trials": 5, "PASS": 5, "FAIL": 0, "UNKNOWN": 0,
+            "INFRA_ERROR": 1, "INVALID_FIXTURE": 0, "gate_status": "PASS"})
+        self.assertIn("CORE_A_01_baseline_1_8be1291f", a01["trial_ids"])
+        self.assertIn("CORE_A_01_baseline_1_855a5e53", a01["trial_ids"])
+
+        resume_ledger = result["resume_checkpoint"]["provenance"]["scheduling_ledger"]["CORE_A_01"]
+        final_ledger = result["release_continuation"]["scheduling_ledger"]["CORE_A_01"]
+        self.assertEqual(resume_ledger["replacement_attempts"], 0)
+        self.assertEqual(resume_ledger["replacement_trial_ids"], [])
+        self.assertEqual(final_ledger["replacement_attempts"], 1)
+        self.assertEqual(final_ledger["replacement_trial_ids"], ["CORE_A_01_baseline_1_855a5e53"])
+
+        self.assertEqual(result["evidence_bundle"]["path"], "core_evidence.zip")
+        self.assertEqual(result["evidence_bundle"]["sha256"],
+                         "769d83acfb39d5a78b1b22492929e416e323a62d860f0faf3e18cc2340519b2c")
+        self.assertEqual(len(result["seed_controls"]), 2)
+        self.assertTrue(all(control["expected"] == control["observed"] == "FAIL"
+                            and control["actual_target_calls"] == 0
+                            for control in result["seed_controls"]))
+
+        self.assertEqual({item["id"] for item in findings}, {"F_CORE_A_01_INFRA_ERROR"})
+        finding = findings[0]
+        self.assertEqual(finding["task_id"], "CORE_A_01")
+        self.assertEqual(finding["status"], "INFRA_ERROR")
+        self.assertEqual(finding["trial_ids"], ["CORE_A_01_baseline_1_8be1291f"])
+        self.assertEqual(finding["remediation"], "NOT_PERFORMED")
+        self.assertEqual(finding["scope"], "controlled Codex surrogate only; not a Work product finding")
 
 
 class CoreEvidenceTests(unittest.TestCase):

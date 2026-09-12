@@ -16,7 +16,7 @@ This phase does not change the ChatGPT Project instruction, video-planning pipel
 - Minimal executable reference plumbing proof: implemented for one direct-component bootstrap task.
 - Docker-free Inspect/Codex CLI Phase 2 pilot: implemented and run at `d341896756bd075b8d2f8f7983d951e927407c4d`.
 - Actual ChatGPT Work target: semi-manual UAT protocol only.
-- Phase 3: executable Core Regression MVP in `core_regression.py`; 24 task definitions in `tasks/core/`. The baseline verdict is owned by `core_result.json` when present, with findings in `core_findings.json`.
+- Phase 3: executable Core Regression MVP in `core_regression.py`; 24 task definitions in `tasks/core/`. Its final release gate is completed as `PHASE3_PASSED`; the authoritative result, findings, and portable reviewer evidence are `core_result.json`, `core_findings.json`, and `core_evidence.zip`.
 - Inspect AI 0.3.263: `ADOPT` for Phase 3 after `PILOT_PASSED`.
 - Inspect SWE 0.2.70: `REJECT` for the current Windows Docker-free runner; its `local` probe failed before target execution.
 - Model graders and planning-quality graders: out of scope.
@@ -29,7 +29,7 @@ The additional Phase 2 completion claim is limited to:
 
 > Docker-free automated System Evaluation runner feasibility verified
 
-Phase 3's completion claim is limited to initial executable Core Regression MVP construction and baseline execution. It is not completed System RED TEAM, final harness reliability, or Actual Work acceptance. Phase 4 and Phase 5 are not implemented here.
+Phase 3's completion claim is limited to the implemented controlled Codex surrogate Core Regression suite passing its current Phase 3 release gate. It is not completed System RED TEAM, final harness reliability, or Actual Work acceptance; effective target model and reasoning remain `UNKNOWN` unless independently observed. Phase 4 and Phase 5 are not implemented here.
 
 The original three production-failure fixtures still contain pre-authored oracle evidence. Their Phase 3 counterparts execute Codex against controlled access/history services, capture actual operations, and grade outcomes. They are automated surrogate regressions, not end-to-end Work production regressions. The executable reference pair remains a direct-component plumbing proof.
 
