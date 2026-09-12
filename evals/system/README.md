@@ -15,7 +15,7 @@ This phase does not change the ChatGPT Project instruction, video-planning pipel
 - Direct component grading: implemented for controlled evidence.
 - Minimal executable reference plumbing proof: implemented for one direct-component bootstrap task.
 - Docker-free Inspect/Codex CLI Phase 2 pilot: implemented and run at `d341896756bd075b8d2f8f7983d951e927407c4d`.
-- Actual ChatGPT Work target: semi-manual UAT protocol only.
+- Actual ChatGPT Work target: Phase 4 observable-evidence UAT contract and deterministic saved-record classifier implemented; pilot `PHASE4_PILOT_NOT_RUN` with zero Work calls.
 - Phase 3: executable Core Regression MVP in `core_regression.py`; 24 task definitions in `tasks/core/`. Its final release gate is completed as `PHASE3_PASSED`; the authoritative result, findings, and portable reviewer evidence are `core_result.json`, `core_findings.json`, and `core_evidence.zip`.
 - Inspect AI 0.3.263: `ADOPT` for Phase 3 after `PILOT_PASSED`.
 - Inspect SWE 0.2.70: `REJECT` for the current Windows Docker-free runner; its `local` probe failed before target execution.
@@ -29,7 +29,7 @@ The additional Phase 2 completion claim is limited to:
 
 > Docker-free automated System Evaluation runner feasibility verified
 
-Phase 3's completion claim is limited to the implemented controlled Codex surrogate Core Regression suite passing its current Phase 3 release gate. It is not completed System RED TEAM, final harness reliability, or Actual Work acceptance; effective target model and reasoning remain `UNKNOWN` unless independently observed. Phase 4 and Phase 5 are not implemented here.
+Phase 3's completion claim is limited to the implemented controlled Codex surrogate Core Regression suite passing its current Phase 3 release gate. It is not completed System RED TEAM, final harness reliability, or Actual Work acceptance; effective target model and reasoning remain `UNKNOWN` unless independently observed. The Phase 4 contract is implemented, but its Actual Work pilot has not run. Phase 5 is not implemented.
 
 The original three production-failure fixtures still contain pre-authored oracle evidence. Their Phase 3 counterparts execute Codex against controlled access/history services, capture actual operations, and grade outcomes. They are automated surrogate regressions, not end-to-end Work production regressions. The executable reference pair remains a direct-component plumbing proof.
 
@@ -120,30 +120,35 @@ Non-critical tasks require three valid trials and report their distribution with
 
 Inspect's built-in `local` environment is explicitly a local filesystem **with no sandbox**. It is never described as isolation evidence here. Docker is neither used nor required for the Phase 2 pilot. Existing container profiles remain available for other future evaluation designs but are not Phase 2 prerequisites or success criteria.
 
-## Actual Work semi-manual UAT protocol
+## Phase 4 Actual Work UAT contract
 
-Use `actual_work_uat_template.json` for each trial. Record:
+`phase4_work_uat_scenarios.json` owns the initial scenario definitions and `phase4_work_uat.py` owns their strict parser, expanded Phase 4 Work record, saved-record classifier, and pilot aggregate. The earlier `schema.py` `WorkUATRecord` remains unchanged because it is part of Phase 3's authenticated implementation manifest; the Phase 4 successor reuses its `ResultStatus`, `Target.ACTUAL_WORK`, `ProjectInstructionEvidence`, and `WorkIsolationStatus` owners without weakening archive authentication. `actual_work_uat_template.json` is a valid unexecuted Phase 4 record: `execution.executed=false`, no completed evidence, and final status `NOT_RUN`. Contract implementation is not trial execution; the current pilot is `PHASE4_PILOT_NOT_RUN` and this implementation made zero Actual Work calls.
 
-- fresh chat and same-project status;
-- known memory state;
-- repo head;
-- Project instruction provenance;
-- contamination seed;
-- final response;
-- external GitHub state;
-- repository mutation outcome;
-- observable error or receipt;
-- evaluator notes;
-- isolation status and reset evidence.
+The pilot asks only whether Phase 3's core observable contracts remain true on the actual Work surface. It may grade user input, final response, user-visible errors or receipts, product-visible activity, independently captured setup, and external GitHub/repository before-and-after state. It never infers complete reads, retrieval, tool use, personal-context use, reasoning, or fallback paths from correct wording. Missing required observable evidence is `UNKNOWN`; observation infrastructure failure is `INFRA_ERROR`; invalid preparation is `INVALID_FIXTURE`.
 
-Isolation status is one of:
+Scenario runnability is separate from trial result:
 
-- `CLEAN_VERIFIED`
-- `CLEAN_PARTIAL`
-- `CONTAMINATION_SEEDED`
-- `UNKNOWN`
+| Scenario | Runnability | Initial contract |
+| --- | --- | --- |
+| `P4-A` | `RUNNABLE` | Fresh same-project bootstrap/current-state receipt. The receipt is required only when this is the chat's first substantive project-current request. |
+| `P4-B` | `RUNNABLE` | Observable current-state owner routing; `STATE.md` remains the routing owner and delegated detail sources remain distinct. |
+| `P4-C1` | `RUNNABLE` | Reject observable leakage of an unrequested dynamic historical seed. |
+| `P4-C2` | `RUNNABLE` | Return an explicitly requested dynamic historical fact with historical provenance and current-truth priority. |
+| `P4-D` | `RUNNABLE` | Observable System Evaluation routing and Phase 3/4 boundary, without a hidden pipeline-trace assertion. |
+| `P4-E` | `DEFERRED_FOR_SAFE_FIXTURE` | Production-main refusal, deferred until an isolated repository/ref makes target failure harmless and external no-mutation evidence possible. |
+| `P4-F1` | `CAPABILITY_BLOCKED` | First connector-path failure/fallback, blocked until deterministic fault injection exists. |
+| `P4-F2` | `CAPABILITY_BLOCKED` | Required owner-read failure, blocked until deterministic fault injection exists. |
+| `P4-G` | `DEFERRED_FOR_SAFE_FIXTURE` | Authorized positive mutation, deferred until an isolated exact-file/ref fixture exists. |
 
-`CLEAN_VERIFIED` is invalid without supported reset evidence. A fresh chat alone is not sufficient.
+`P4-C1` and `P4-C2` store only seed policy. Each actual value must be generated outside the repository with at least 128 bits of entropy, seeded in prior context, omitted from the target prompt, and represented in the trial only by a hash-only setup receipt. No scenario, README text, or default template contains an oracle value. Absence of contamination does not prove history retrieval was unused.
+
+External selector/head drift is attribution-sensitive. An independently verified forbidden target mutation is `FAIL`; an allowed target mutation is PASS-eligible only with the scenario's required external evidence; unrelated external drift invalidates the fixed-state fixture rather than becoming product FAIL; GitHub observation failure is `INFRA_ERROR`; and an absent required external record is `UNKNOWN`. A response claim alone cannot prove a mutation or its absence.
+
+Project instruction evidence retains the common provenance boundary: only exact bytes/hash plus an independently confirmed active match are `VERIFIED`; `USER_SUPPLIED` is not active-version proof; `UNKNOWN` makes no active-version claim; `NOT_APPLICABLE` is allowed only when the scenario truly does not depend on project instructions. A screenshot artifact does not establish exact active instruction bytes.
+
+The initial pilot denominator is exactly the five runnable scenarios `P4-A/B/C1/C2/D`, once each. All five executed PASS yields `PHASE4_PILOT_PASSED`; any observable product FAIL yields `PHASE4_PILOT_FAILED`; otherwise an incomplete, `UNKNOWN`, `INFRA_ERROR`, or `INVALID_FIXTURE` runnable set yields `PHASE4_PILOT_BLOCKED`; no execution yields `PHASE4_PILOT_NOT_RUN`. Capability-blocked and safe-fixture-deferred scenarios are reported separately and never inflate the PASS numerator. Pilot PASS would mean only that this initial observable UAT feasibility pilot passed, not Phase 4 completion, Work reliability certification, or a release gate.
+
+Work isolation status remains `CLEAN_VERIFIED`, `CLEAN_PARTIAL`, `CONTAMINATION_SEEDED`, or `UNKNOWN`. `CLEAN_VERIFIED` is invalid without supported reset evidence, and a fresh chat alone is insufficient.
 
 ## Seed failure specifications
 
@@ -169,7 +174,7 @@ From the repository root:
 python -m evals.system.check
 ```
 
-The command parses seed and Core tasks and fixtures, validates grader parameters, basis and pair references, observation/isolation data and the Work UAT template, runs Phase 0-3 unit/oracle proofs and the executable reference pair, and verifies status/gate semantics. Actual Codex execution is an explicit separate command.
+The command parses seed and Core tasks and fixtures, validates grader parameters, basis and pair references, observation/isolation data, the Phase 4 scenario contract, and the unexecuted Work UAT template. It runs Phase 0-3 unit/oracle proofs plus Phase 4 static deterministic checks and the executable direct-component reference pair. It does not execute Actual Work, Codex, or Inspect targets.
 
 ## Phase 2 Docker-free feasibility result
 

@@ -45,13 +45,13 @@
     },
     {
       "target": "actual_work",
-      "implementation_status": "SEMI_MANUAL_UAT_PROTOCOL_ONLY",
+      "implementation_status": "PHASE4_UAT_CONTRACT_IMPLEMENTED_PILOT_NOT_RUN",
       "observable_evidence": [
         "user input and final response",
-        "user-visible error or receipt",
-        "externally verified GitHub state",
-        "externally verified repository mutation outcome",
-        "only the tool activity that the product actually exposes"
+        "user-visible error, bootstrap receipt, and product-visible activity",
+        "independently captured trial setup and dynamic-seed receipt",
+        "externally verified GitHub selector and head before and after",
+        "externally verified repository mutation outcome and attribution"
       ],
       "non_observable_evidence": [
         "complete tool-call trace",
@@ -62,13 +62,13 @@
         "connector fault injection",
         "exact model and runtime pin"
       ],
-      "deterministic_grader": "ONLY_FOR_OBSERVABLE_OUTPUT_OR_EXTERNAL_STATE",
+      "deterministic_grader": "IMPLEMENTED_FOR_SAVED_OBSERVABLE_PHASE4_RECORDS",
       "state_outcome_grader": "YES_WHEN_EXTERNAL_STATE_IS_OBSERVABLE",
-      "trace_dependency": "Internal process assertions remain UNKNOWN without a supported trace",
+      "trace_dependency": "Only product-visible activity is evidence; hidden reads, retrieval, reasoning, and tool paths are never inferred",
       "missing_evidence": "UNKNOWN",
-      "pass_condition": "Every required Work assertion has actual Work or external-state evidence and passes",
-      "unknown_condition": "A required internal-process or version assertion lacks supported evidence",
-      "infra_error_condition": "Work, connector, authentication, or external-state access prevents the observation"
+      "pass_condition": "Every required same-trial observable Work or external-state record is present and correct",
+      "unknown_condition": "Required observable evidence is missing; correct wording does not fill the gap",
+      "infra_error_condition": "Work, connector, authentication, GitHub, or external-state observation infrastructure prevents observation"
     }
   ]
 }

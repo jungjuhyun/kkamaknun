@@ -147,7 +147,8 @@ Phase 0~1 measurement contract와 deterministic oracle proof, Docker-free Phase 
 - Authoritative publication: `evals/system/core_result.json`, `evals/system/core_findings.json`, and self-contained portable reviewer evidence `evals/system/core_evidence.zip` (SHA-256 `769d83acfb39d5a78b1b22492929e416e323a62d860f0faf3e18cc2340519b2c`). The reviewer package was independently approved twice as `APPROVE_NEXT_STEP`.
 - The PASS scope is the implemented controlled Codex surrogate Core Regression suite only. It is not Actual ChatGPT Work acceptance, video-planning quality certification, full reliability/security proof, or Phase 4/5 completion. Actual ChatGPT Work UAT remains separate.
 - Historical failed/blocked baselines, targeted regressions, surrogate-contract correction, permission investigation, and export remediation remain preserved in their durable result/evidence/history records; they are not the current Phase 3 state.
-- Next System Evaluation action: Phase 3 publication is complete. Phase 4 is `NOT_STARTED` and requires separate scope and execution approval. The video-planning execution position and next action above are unchanged.
+- Phase 4 Actual Work UAT contract implementation is complete, but the pilot is `PHASE4_PILOT_NOT_RUN` with `0` Actual Work calls. Initial runnable scenarios are `P4-A/B/C1/C2/D`; production-main refusal and positive mutation are deferred for safe fixtures, while deterministic fault-injection scenarios are capability-blocked.
+- Next System Evaluation action: independent contract audit → explicit approval → actual ChatGPT Work pilot execution. Phase 5 is `NOT_STARTED`. The video-planning execution position and next action above are unchanged.
 
 ## 운영 원칙
 

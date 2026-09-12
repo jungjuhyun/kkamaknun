@@ -1,4 +1,7 @@
-"""One-shot Phase 0-3 validation command (actual target runs are separate)."""
+"""Phase 0-3 checks plus Phase 4 static UAT contract validation.
+
+Actual Work, Codex, and Inspect target runs are always separate.
+"""
 
 from __future__ import annotations
 
@@ -15,9 +18,9 @@ from .schema import (
     SchemaError,
     Target,
     TaskSpec,
-    WorkUATRecord,
 )
 from .scorers import GRADERS, grade_trial, validate_grader_parameters
+from .phase4_work_uat import Phase4WorkUATRecord, validate_phase4_contract
 
 
 SYSTEM_ROOT = Path(__file__).resolve().parent
@@ -172,7 +175,7 @@ def validate_isolation_profiles() -> None:
 
 
 def validate_uat_template() -> None:
-    WorkUATRecord.from_dict(load_json(SYSTEM_ROOT / "actual_work_uat_template.json"))
+    Phase4WorkUATRecord.from_dict(load_json(SYSTEM_ROOT / "actual_work_uat_template.json"))
 
 
 def validate_all_data() -> None:
@@ -185,6 +188,7 @@ def validate_all_data() -> None:
     validate_observation_matrix()
     validate_isolation_profiles()
     validate_uat_template()
+    validate_phase4_contract()
     from .core_regression import load_core_tasks
     load_core_tasks()
 
@@ -199,7 +203,7 @@ def main() -> int:
     result = unittest.TextTestRunner(verbosity=2).run(suite)
     if not result.wasSuccessful():
         return 1
-    print("Phase 0-3 system evaluation checks: PASS")
+    print("Phase 0-3 and Phase 4 static contract system evaluation checks: PASS")
     return 0
 
 

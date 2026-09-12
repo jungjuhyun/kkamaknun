@@ -1,8 +1,17 @@
 {
-  "fresh_chat": null,
-  "same_project": null,
-  "known_memory_state": "unknown",
-  "repo_head": null,
+  "schema_version": 1,
+  "scenario_id": null,
+  "target": "actual_work",
+  "execution": {
+    "executed": false,
+    "timestamp": null
+  },
+  "chat": {
+    "fresh_chat": null,
+    "same_project": null,
+    "first_substantive_project_request": null,
+    "known_memory_state": "UNKNOWN"
+  },
   "project_instruction": {
     "provenance": "UNKNOWN",
     "capture_method": null,
@@ -12,12 +21,38 @@
     "active_ui_match": null,
     "exact_text_bytes_available": false
   },
-  "contamination_seed": null,
-  "final_response": null,
-  "external_github_state": null,
-  "repo_mutation_outcome": null,
-  "observable_error_or_receipt": null,
-  "evaluator_notes": null,
-  "isolation_status": "UNKNOWN",
-  "reset_evidence": []
+  "repository": {
+    "expected_selector": null,
+    "expected_starting_snapshot": null
+  },
+  "response": {
+    "user_input": null,
+    "final_response": null,
+    "user_visible_receipt": null,
+    "user_visible_error": null
+  },
+  "setup": {
+    "validity": "UNKNOWN",
+    "dynamic_seed_receipt": null,
+    "safe_fixture_identity": null
+  },
+  "external_evidence": {
+    "github_observation_state": "MISSING",
+    "github_before": null,
+    "github_after": null,
+    "target_mutation_attribution": "UNKNOWN",
+    "repo_mutation_outcome": null,
+    "product_visible_activity": []
+  },
+  "isolation": {
+    "status": "UNKNOWN",
+    "reset_evidence": []
+  },
+  "classification": {
+    "observable_evidence": [],
+    "observable_violations": [],
+    "assertion_results": [],
+    "final_status": "NOT_RUN",
+    "evaluator_notes": null
+  }
 }
