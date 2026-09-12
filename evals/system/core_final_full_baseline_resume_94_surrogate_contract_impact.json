@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "kind": "phase3_recovered_evidence_surrogate_contract_impact",
+  "phase": 3,
+  "phase_status": "PHASE3_BLOCKED",
+  "authoritative_branch": "gpt-harness-finish-plan",
+  "evaluation_snapshot": "476bc226433efc95c0b546948c2c7160ff97616c",
+  "lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+  "audit_target_calls": 0,
+  "source_recovered_archive": {
+    "path": "evals/system/evidence/phase3_resume_94_of_112_recovered.zip",
+    "sha256": "38d12583294a12829874602c703d90bd78a0616ef57fb97d14c2ec4fbab28858",
+    "raw_evidence_rewritten": false
+  },
+  "surrogate_contract_mismatch": {
+    "actual_project_sequence": ["snapshot", "read:STATE.md", "read:AGENTS.md", "routed_owner", "head", "freshness", "decision"],
+    "historical_surrogate_sequence": ["snapshot", "read:AGENTS.md", "selected_owner", "head", "freshness", "decision"],
+    "effect": "The historical surrogate did not faithfully reproduce the state-first Project bootstrap contract."
+  },
+  "affected_historical_trials": {
+    "task_ids": ["CORE_A_01", "CORE_A_02", "CORE_A_03", "CORE_B_02", "CORE_E_01", "CORE_E_02"],
+    "raw_record_count": 56,
+    "valid_record_count": 30,
+    "status_counts": {"PASS": 28, "FAIL": 2, "UNKNOWN": 0, "INFRA_ERROR": 26, "INVALID_FIXTURE": 0},
+    "release_evidence_reusable": false,
+    "treatment": "Preserve every raw record and status; exclude all affected valid records from actual-harness release aggregation."
+  },
+  "release_eligible_aggregation": {
+    "required_valid_trials": 112,
+    "eligible_valid_trials": 64,
+    "remaining_valid_trials": 48,
+    "status_counts": {"PASS": 64, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 83, "INVALID_FIXTURE": 0},
+    "critical_gate": {"PASS": 7, "FAIL": 0, "BLOCKED": 13}
+  },
+  "superseded_interpretations": [
+    {
+      "artifact": "evals/system/core_final_full_baseline_resume_94_current_verdict.json",
+      "phase_status": "PHASE3_FAILED",
+      "role": "historical pre-surrogate-synchronization verdict",
+      "reason": "Its sole critical FAIL evidence is inside the affected surrogate-contract scope."
+    }
+  ],
+  "next_release_evidence": {
+    "required_new_valid_trials": 48,
+    "scope": "30 affected bootstrap-contract trials plus the prior 18 valid-trial shortfall",
+    "execution": "NOT_RUN"
+  }
+}

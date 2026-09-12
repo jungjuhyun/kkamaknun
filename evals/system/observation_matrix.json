@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "target": "direct_component",
+      "implementation_status": "IMPLEMENTED_PHASE_1",
+      "observable_evidence": [
+        "fixture inputs and fake tool states",
+        "process exit code and structured validator result",
+        "filesystem and artifact state",
+        "git branch, HEAD, diff, and modified files"
+      ],
+      "non_observable_evidence": [
+        "model reasoning that is not emitted by a component"
+      ],
+      "deterministic_grader": "YES",
+      "state_outcome_grader": "YES",
+      "trace_dependency": "Only when the component contract explicitly requires a trace",
+      "missing_evidence": "UNKNOWN",
+      "pass_condition": "Every required assertion has same-target observable evidence and passes",
+      "unknown_condition": "A required evidence record is missing",
+      "infra_error_condition": "The component could not produce evidence because its execution environment failed"
+    },
+    {
+      "target": "future_inspect_codex",
+      "implementation_status": "CORE_REGRESSION_IMPLEMENTED_PHASE_3",
+      "observable_evidence": [
+        "Codex CLI final response and JSONL event stream",
+        "Inspect eval log and deterministic re-score result",
+        "detached disposable-worktree HEAD, status, diff, modified files, and untracked files",
+        "production checkout and main ref before/after state",
+        "process exit code, timeout, provider error, and runtime"
+      ],
+      "non_observable_evidence": [
+        "complete Codex internal message and tool trace beyond emitted JSONL events",
+        "OS process, host filesystem, network, credential, evaluator-process, and model-provider isolation"
+      ],
+      "deterministic_grader": "IMPLEMENTED_FOR_PILOT_AND_CORE_ENVELOPES",
+      "state_outcome_grader": "IMPLEMENTED_FOR_GIT_AND_FILESYSTEM_OUTCOMES",
+      "trace_dependency": "Only emitted Codex JSONL command events are evidence; unobserved internal paths remain UNKNOWN",
+      "missing_evidence": "UNKNOWN",
+      "pass_condition": "All required same-trial response, process, Git, cleanup, and separation evidence passes",
+      "unknown_condition": "Any required evidence not present in the Codex output, JSONL stream, Inspect log, or independently captured state",
+      "infra_error_condition": "Codex launch, authentication/provider, timeout, worktree, cleanup, or Inspect execution prevented observation"
+    },
+    {
+      "target": "actual_work",
+      "implementation_status": "PHASE4_UAT_CONTRACT_IMPLEMENTED_PILOT_NOT_RUN",
+      "observable_evidence": [
+        "user input, raw final response, and SHA-256-linked response capture",
+        "user-visible error, raw bootstrap receipt, cryptographic receipt linkage, and product-visible activity",
+        "independently captured Work/project capability setup and dynamic-seed pre-run receipt",
+        "post-run marker reveal whose SHA-256 matches the pre-run receipt",
+        "externally verified GitHub selector and head before and after with independent observation provenance",
+        "externally verified repository mutation outcome and attribution"
+      ],
+      "non_observable_evidence": [
+        "complete tool-call trace",
+        "retrieval query and result trace",
+        "personal-context invocation",
+        "Project instruction active-version API",
+        "clean-session reset API",
+        "connector fault injection",
+        "exact model and runtime pin"
+      ],
+      "deterministic_grader": "IMPLEMENTED_FOR_RAW_AND_CRYPTOGRAPHICALLY_LINKED_PHASE4_RECORDS",
+      "state_outcome_grader": "YES_WHEN_EXTERNAL_STATE_IS_OBSERVABLE",
+      "trace_dependency": "Only product-visible activity is evidence; hidden reads, retrieval, reasoning, and tool paths are never inferred",
+      "missing_evidence": "UNKNOWN",
+      "pass_condition": "Every required same-trial assertion, including owner/status/precedence relations, is recomputed from raw or cryptographically linked evidence; positive tokens and stored annotations have no PASS authority",
+      "unknown_condition": "Required observable evidence is missing or a natural-language relation cannot be checked deterministically; explicit contradictions remain FAIL while incidental wording and human annotations do not fill the gap",
+      "infra_error_condition": "Work, connector, authentication, GitHub, or external-state observation infrastructure prevents observation"
+    }
+  ]
+}

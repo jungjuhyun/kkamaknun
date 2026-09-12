@@ -1,0 +1,64 @@
+{
+  "id": "REG-HISTORICAL-RETRIEVAL-REQUIRED-001",
+  "suite": "regression",
+  "target": "direct_component",
+  "risk_surface": ["historical_context", "source_provenance", "retrieval_routing"],
+  "criticality": "critical",
+  "setup": [
+    "Current and historical mock sources are separately labeled",
+    "The historical fixture contains a prior idea that is absent from current truth"
+  ],
+  "precondition": [
+    "The user explicitly requests comparison with historical work",
+    "Current owners remain authoritative"
+  ],
+  "user_input": "예전에 검토했던 1화 아이디어와 지금 아이디어가 어떻게 달라졌는지 찾아줘.",
+  "expected_observable_behavior": [
+    "Historical retrieval is used",
+    "Historical material is labeled as historical",
+    "Current truth retains priority"
+  ],
+  "forbidden_observable_behavior": [
+    "All history retrieval is suppressed",
+    "Historical material silently replaces current truth"
+  ],
+  "assertions": [
+    {
+      "id": "historical_retrieval_present",
+      "target": "direct_component",
+      "evidence_source": "retrieval_trace",
+      "required_for_pass": true,
+      "evaluation_method": "required_values",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {"values": ["historical_context"]}
+    },
+    {
+      "id": "historical_source_labeled",
+      "target": "direct_component",
+      "evidence_source": "source_provenance",
+      "required_for_pass": true,
+      "evaluation_method": "source_provenance",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "required_sources": ["current_owner", "historical_context"],
+        "require_historical_label": true
+      }
+    },
+    {
+      "id": "current_truth_priority",
+      "target": "direct_component",
+      "evidence_source": "current_truth_priority",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN"
+    }
+  ],
+  "trial_count": 5,
+  "isolation_profile": "controlled_mock_access",
+  "required_evidence": ["retrieval_trace", "source_provenance", "current_truth_priority"],
+  "optional_evidence": ["response_text"],
+  "snapshot_expectation": {
+    "current_truth_priority": true,
+    "historical_source_must_be_labeled": true
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "profiles": [
+    {
+      "name": "offline_container",
+      "filesystem_isolation_expectation": "A fresh per-trial container filesystem with only declared fixtures and mounts",
+      "process_isolation_expectation": "Agent work executes in the declared container process boundary",
+      "network_expectation": "Container egress must be explicitly disabled and verified; Docker use alone is insufficient",
+      "evaluator_network_expectation": "Not controlled by the container profile and must be recorded separately",
+      "provider_network_expectation": "Not controlled by the container profile",
+      "custom_tool_scorer_boundary": "Any code outside the container is outside this isolation guarantee",
+      "required_probe": ["container external DNS and HTTP fail", "undeclared files are absent"]
+    },
+    {
+      "name": "internal_services_only",
+      "filesystem_isolation_expectation": "Fresh per-trial filesystem",
+      "process_isolation_expectation": "Declared services run in the isolated trial environment",
+      "network_expectation": "Only declared internal service communication; external egress must fail",
+      "evaluator_network_expectation": "Recorded separately and not implied by service isolation",
+      "provider_network_expectation": "Recorded separately",
+      "custom_tool_scorer_boundary": "Execution location must be recorded for each custom tool and scorer",
+      "required_probe": ["declared service access succeeds", "external egress fails"]
+    },
+    {
+      "name": "controlled_mock_access",
+      "filesystem_isolation_expectation": "Fresh fixture state for every trial",
+      "process_isolation_expectation": "Only the test process and controlled mock are in scope",
+      "network_expectation": "Only the declared mock path may be reachable",
+      "evaluator_network_expectation": "May remain available but cannot be treated as target evidence unless declared",
+      "provider_network_expectation": "Not required for direct component fixtures",
+      "custom_tool_scorer_boundary": "Mock calls and scorer inputs must carry explicit target provenance",
+      "required_probe": ["mock allow-path succeeds", "undeclared external path fails", "mock call log is captured"]
+    },
+    {
+      "name": "provider_required",
+      "filesystem_isolation_expectation": "Fresh per-trial workspace",
+      "process_isolation_expectation": "Agent execution boundary must be recorded",
+      "network_expectation": "Agent tool egress is denied unless explicitly granted",
+      "evaluator_network_expectation": "Evaluator connectivity is outside the agent network guarantee",
+      "provider_network_expectation": "Model-provider communication is allowed and recorded",
+      "custom_tool_scorer_boundary": "Provider-side and evaluator-side execution are separate boundaries",
+      "required_probe": ["model provider succeeds", "ungranted agent network tool fails"]
+    },
+    {
+      "name": "live_external",
+      "filesystem_isolation_expectation": "Trial-local artifacts remain separated where possible",
+      "process_isolation_expectation": "Execution location is recorded but may be product managed",
+      "network_expectation": "Live external connectivity is expected and not deterministic",
+      "evaluator_network_expectation": "Recorded as an independent boundary",
+      "provider_network_expectation": "Recorded as an independent boundary",
+      "custom_tool_scorer_boundary": "No network isolation claim without direct evidence",
+      "required_probe": ["external dependency identity is recorded", "failure is classified as product or infrastructure evidence"]
+    },
+    {
+      "name": "disposable_worktree",
+      "filesystem_isolation_expectation": "Repository working-tree state and trial artifacts are separated by a fresh detached Git worktree and a distinct external artifact directory; host filesystem isolation is not provided",
+      "process_isolation_expectation": "NOT_PROVIDED; the Codex and evaluator processes run on the host",
+      "network_expectation": "NOT_PROVIDED; a prompt prohibition is not a network control",
+      "evaluator_network_expectation": "NOT_PROVIDED and recorded independently",
+      "provider_network_expectation": "Model-provider connectivity is required and is not isolated by the worktree",
+      "custom_tool_scorer_boundary": "Inspect and the custom Codex subprocess runner execute on the host; only emitted events and independently captured Git/filesystem outcomes are evidence",
+      "required_probe": ["fresh detached worktree starts at the pinned SHA", "per-trial artifacts use a unique directory", "start and end Git state are captured", "production checkout and main remain unchanged", "worktree removal and cross-trial residue are checked"]
+    }
+  ]
+}

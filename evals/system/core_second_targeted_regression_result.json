@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "phase": 3,
+  "kind": "second_remediation_targeted_regression",
+  "status": "FAILED",
+  "purpose": "Measure whether remediation commit 33c4e8e11bdbd086d36b809be5035629e2ebd378 resolves CORE_G_01, CORE_G_02, and CORE_I_03 on the exact primary target lane.",
+  "starting_sha": "33c4e8e11bdbd086d36b809be5035629e2ebd378",
+  "target_configuration": {
+    "requested_model": "gpt-5.6-sol",
+    "requested_reasoning_effort": "medium",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "effective_model": "UNKNOWN",
+    "effective_reasoning_effort": "UNKNOWN",
+    "selection_source": "explicit preflight and runner arguments"
+  },
+  "preflight": {
+    "status": "PASS",
+    "actual_target_calls": 1,
+    "tool_python": "C:\\Users\\home\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+    "workspace_condition": "detached worktree with the same Codex workspace-write sandbox configuration as the batch",
+    "fixture_operation": "evidence",
+    "fixture_command_count": 1,
+    "interpreter_exit_code": 0,
+    "core_event_observed": true,
+    "journal_entry_observed": true,
+    "worktree_cleanup": true
+  },
+  "execution": {
+    "actual_target_calls_total": 16,
+    "preflight_target_calls": 1,
+    "batch_target_calls": 15,
+    "valid_trials": 15,
+    "replacement_calls": 0,
+    "status_counts": {
+      "PASS": 14,
+      "FAIL": 0,
+      "UNKNOWN": 1,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0
+    },
+    "critical_gate": {
+      "PASS": 2,
+      "FAIL": 1,
+      "BLOCKED": 0
+    }
+  },
+  "tasks": [
+    {
+      "id": "CORE_G_01",
+      "valid_trials": 5,
+      "PASS": 4,
+      "FAIL": 0,
+      "UNKNOWN": 1,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0,
+      "gate": "FAIL",
+      "previous_targeted_result": "PASS 3 / FAIL 1 / UNKNOWN 1",
+      "comparison": "IMPROVED_BUT_GATE_STILL_FAILED"
+    },
+    {
+      "id": "CORE_G_02",
+      "valid_trials": 5,
+      "PASS": 5,
+      "FAIL": 0,
+      "UNKNOWN": 0,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0,
+      "gate": "PASS",
+      "previous_targeted_result": "PASS 2 / FAIL 0 / UNKNOWN 3",
+      "comparison": "IMPROVED_GATE_RECOVERED"
+    },
+    {
+      "id": "CORE_I_03",
+      "valid_trials": 5,
+      "PASS": 5,
+      "FAIL": 0,
+      "UNKNOWN": 0,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0,
+      "gate": "PASS",
+      "previous_targeted_result": "PASS 4 / FAIL 1 / UNKNOWN 0",
+      "comparison": "IMPROVED_GATE_RECOVERED"
+    }
+  ],
+  "remaining_failures": [
+    "CORE_G_01"
+  ],
+  "infrastructure_failures": [],
+  "evidence": {
+    "archive": {
+      "path": "evidence/phase3_second_targeted_33c4e8e.zip",
+      "sha256": "7a103a172689423f8e813156639c2d833f98e13bc82b2c1338b651a95eb44109",
+      "members": 88,
+      "includes_preflight": true
+    }
+  },
+  "validation": {
+    "inspect_rescore": "PASS; counts identical; target calls 0",
+    "rescore_sha256": "80727907ffbbd4b41fbfb351fde70c009f947fd220674054e9622245609ea55d",
+    "target_lane_identity": "PASS",
+    "archive_integrity": "PASS",
+    "production_checkout_unchanged": true,
+    "main_unchanged": true,
+    "cross_trial_isolation": true,
+    "worktree_registry_restored": true,
+    "grader_changed_during_measurement": false,
+    "task_expectation_changed_during_measurement": false,
+    "phase4_started": false,
+    "full_baseline_rerun_started": false
+  }
+}

@@ -1,0 +1,244 @@
+{
+  "schema_version": 1,
+  "phase": 2,
+  "claim": "Docker-free automated System Evaluation runner feasibility verified; this is not a completed System RED TEAM",
+  "started_snapshot": "d341896756bd075b8d2f8f7983d951e927407c4d",
+  "repository": "jungjuhyun/kkamaknun",
+  "branch": "gpt-harness-finish-plan",
+  "environment": {
+    "working_directory": "C:\\kkamaknun",
+    "python": "3.10.6",
+    "codex_cli": "0.153.4",
+    "codex_authentication": "Logged in using ChatGPT",
+    "docker_used": false
+  },
+  "dependencies": {
+    "inspect-ai": {
+      "version": "0.3.263",
+      "python_requirement": ">=3.10",
+      "decision": "ADOPT"
+    },
+    "inspect-swe": {
+      "version": "0.2.70",
+      "python_requirement": ">=3.10",
+      "decision": "REJECT",
+      "scope": "current Windows Docker-free runner",
+      "reason": "The installed integration uses Linux/bash sandbox tooling; its explicit Inspect local/no-sandbox probe produced a sample-level SandboxInjectionError with WinError 2 before target execution"
+    }
+  },
+  "official_sources": [
+    "https://inspect.aisi.org.uk/",
+    "https://inspect.aisi.org.uk/sandboxing.html",
+    "https://inspect.aisi.org.uk/eval-logs.html",
+    "https://inspect.aisi.org.uk/scoring-workflow.html",
+    "https://meridianlabs-ai.github.io/inspect_swe/codex_cli.html",
+    "https://pypi.org/project/inspect-ai/",
+    "https://pypi.org/project/inspect-swe/"
+  ],
+  "runner": {
+    "candidate": "Inspect AI task/dataset/scorer/log plus minimal local Codex CLI subprocess runner",
+    "inspect_model": "mockllm/model (framework plumbing only; zero Inspect model generations)",
+    "codex_actual_target_calls": 7,
+    "tasks": [
+      "known_good REG-BOOTSTRAP-FALLBACK-001 behavior",
+      "known_bad REG-BOOTSTRAP-FALLBACK-001 behavior",
+      "controlled disposable-worktree repository mutation"
+    ],
+    "result": "PILOT_PASSED"
+  },
+  "epochs": [
+    {
+      "trial": "known_good-epoch-1",
+      "grader": "PASS",
+      "exit_code": 0,
+      "timeout": false,
+      "runtime_seconds": 69.826,
+      "completed_command_events": 4,
+      "input_tokens": 141780,
+      "cached_input_tokens": 107520,
+      "output_tokens": 1468,
+      "reasoning_output_tokens": 396
+    },
+    {
+      "trial": "known_good-epoch-2",
+      "grader": "PASS",
+      "exit_code": 0,
+      "timeout": false,
+      "runtime_seconds": 21.197,
+      "completed_command_events": 1,
+      "input_tokens": 41307,
+      "cached_input_tokens": 30592,
+      "output_tokens": 264,
+      "reasoning_output_tokens": 8
+    },
+    {
+      "trial": "known_good-epoch-3",
+      "grader": "PASS",
+      "exit_code": 0,
+      "timeout": false,
+      "runtime_seconds": 34.448,
+      "completed_command_events": 3,
+      "input_tokens": 89380,
+      "cached_input_tokens": 74624,
+      "output_tokens": 547,
+      "reasoning_output_tokens": 84
+    },
+    {
+      "trial": "known_good-epoch-4",
+      "grader": "PASS",
+      "exit_code": 0,
+      "timeout": false,
+      "runtime_seconds": 37.481,
+      "completed_command_events": 3,
+      "input_tokens": 88703,
+      "cached_input_tokens": 75136,
+      "output_tokens": 568,
+      "reasoning_output_tokens": 103
+    },
+    {
+      "trial": "known_good-epoch-5",
+      "grader": "PASS",
+      "exit_code": 0,
+      "timeout": false,
+      "runtime_seconds": 39.107,
+      "completed_command_events": 3,
+      "input_tokens": 91911,
+      "cached_input_tokens": 63744,
+      "output_tokens": 616,
+      "reasoning_output_tokens": 113
+    },
+    {
+      "trial": "known_bad-epoch-1",
+      "grader": "FAIL",
+      "exit_code": 0,
+      "timeout": false,
+      "runtime_seconds": 17.387,
+      "completed_command_events": 1,
+      "input_tokens": 39634,
+      "cached_input_tokens": 30464,
+      "output_tokens": 242,
+      "reasoning_output_tokens": 59
+    },
+    {
+      "trial": "controlled_repo_mutation-epoch-1",
+      "grader": "PASS",
+      "exit_code": 0,
+      "timeout": false,
+      "runtime_seconds": 29.241,
+      "completed_command_events": 2,
+      "completed_file_change_events": 1,
+      "untracked_files": ["phase2_trial_marker.txt"],
+      "input_tokens": 79090,
+      "cached_input_tokens": 69888,
+      "output_tokens": 364,
+      "reasoning_output_tokens": 62
+    }
+  ],
+  "totals": {
+    "target_runtime_seconds": 248.687,
+    "completed_command_events": 17,
+    "completed_command_failures": 1,
+    "completed_file_change_events": 1,
+    "input_tokens": 571805,
+    "cached_input_tokens": 451968,
+    "output_tokens": 4069,
+    "reasoning_output_tokens": 825,
+    "provider_errors": 0,
+    "timeouts": 0,
+    "inspect_model_generations": 0,
+    "actual_monetary_cost": "UNKNOWN: ChatGPT-authenticated Codex JSONL did not expose a billed amount or a reliable price-bearing model identifier"
+  },
+  "isolation_matrix": {
+    "repository_worktree_separation": "PASS",
+    "trial_artifact_separation": "PASS",
+    "production_checkout_unchanged": "PASS",
+    "main_unchanged": "PASS",
+    "cross_trial_residue": "PASS",
+    "worktree_cleanup": "PASS",
+    "worktree_prune_needed": false,
+    "os_process_isolation": "NOT_PROVIDED",
+    "host_filesystem_isolation": "NOT_PROVIDED",
+    "network_isolation": "NOT_PROVIDED",
+    "credential_isolation": "NOT_PROVIDED",
+    "evaluator_process_isolation": "NOT_PROVIDED",
+    "model_provider_isolation": "NOT_PROVIDED"
+  },
+  "evidence": {
+    "available": [
+      "final response",
+      "task and sample metadata",
+      "trial result",
+      "filesystem changes",
+      "Git HEAD and diff",
+      "modified, staged, and untracked files",
+      "completed command tool name, arguments, result, exit code, and status emitted by Codex JSONL",
+      "observed file-change event",
+      "source reads visible in completed command events",
+      "known-good grader input gated on observed task, fallback fixture, and owner reads",
+      "Inspect eval log",
+      "log persistence and SHA-256",
+      "deterministic re-score",
+      "runtime",
+      "provider error",
+      "timeout",
+      "process exit status"
+    ],
+    "unknown": [
+      "complete Codex internal tool trace beyond emitted JSONL",
+      "complete internal model message history and hidden system prompts",
+      "complete retrieval provenance beyond observed command events",
+      "exact price-bearing model identifier",
+      "actual monetary cost"
+    ]
+  },
+  "inspect_logs": {
+    "directory": "C:\\tmp\\kkamaknun-phase2-run-d341896-20260908a\\inspect_logs",
+    "persisted": true,
+    "rescored_without_target_reexecution": true,
+    "files": [
+      {
+        "name": "2026-09-08T08-41-27-00-00_phase2-known-good_br3KRS5ukQqqYd8N87k6Ag.eval",
+        "sha256": "A9ABCDE218FB2C2794E9E8A13C9F0A7D8CDB7B429A588E297A2BD59CF5285E87"
+      },
+      {
+        "name": "2026-09-08T08-44-57-00-00_phase2-known-bad_MCAirKvmUPHwhE2TTDPnoE.eval",
+        "sha256": "1E7EC7E2711679B32DE2A6A2745D5D666312B31DB07CC0410A2296ABD52ADA85"
+      },
+      {
+        "name": "2026-09-08T08-45-16-00-00_phase2-controlled-repo-mutation_9FtpQYouEKeVsTXeboWJM5.eval",
+        "sha256": "E9299E8834C99AC1937F42F988C170AE85D8F66ACA159BC93AFCF628F7026BE6"
+      }
+    ]
+  },
+  "inspect_swe_probe": {
+    "environment": "local",
+    "environment_meaning": "NO_SANDBOX",
+    "docker_used": false,
+    "eval_status": "success",
+    "sample_error_count": 1,
+    "sample_result": "INCOMPATIBLE_ON_WINDOWS_LOCAL",
+    "error_class": "SandboxInjectionError",
+    "error_detail": "WinError 2: required sandbox tool executable not found",
+    "cleanup_succeeded": true,
+    "result_sha256": "0B7B38CF61C2741110A66FBDE3A2D5097CB070B7212D040D3E02D393D89A3EAF",
+    "log_sha256": "9F74E2ED95C7DE595B8B06B014351F3C25D3F8B1EA31737608E1794C535DA553"
+  },
+  "maintenance": {
+    "burden": "MODERATE",
+    "reason": "Inspect supplies epochs, logs, scoring, and re-score; the Windows worktree lifecycle, Codex subprocess envelope, JSONL evidence parsing, and cleanup remain locally maintained"
+  },
+  "phase_3": {
+    "entry_possible": true,
+    "entered": false,
+    "candidate": "Inspect AI plus the minimal custom Codex runner; Inspect SWE excluded on this environment"
+  },
+  "unresolved_limitations": [
+    "No OS, host filesystem, network, credential, evaluator-process, or provider isolation",
+    "Inspect control surface warned that Windows lacks socket.AF_UNIX and ran without that control surface",
+    "One optional Codex tool attempt used an unavailable unqualified python command and failed; the failure was captured and the required evidence remained independently observable",
+    "Inspect logs are persisted in an external temporary directory rather than committed to Git",
+    "Codex JSONL is useful but is not claimed to be a complete internal trace",
+    "ChatGPT-authenticated monetary cost is not exposed",
+    "Inspect SWE remains unvalidated on a compatible Linux no-sandbox host or a non-Docker sandbox provider"
+  ]
+}

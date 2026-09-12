@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "kind": "phase3_current_authoritative_recovered_verdict",
+  "phase": 3,
+  "phase_status": "PHASE3_FAILED",
+  "authoritative_branch": "gpt-harness-finish-plan",
+  "evaluation_snapshot": "476bc226433efc95c0b546948c2c7160ff97616c",
+  "lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+  "reclassification": {
+    "method": "target-free recovered archive import followed by current progress_snapshot, lane_state, and phase_status aggregation",
+    "target_calls": 0,
+    "target_scheduling": "blocked before scheduling because the imported critical gate already FAILs"
+  },
+  "source_recovered_archive": {
+    "path": "evals/system/evidence/phase3_resume_94_of_112_recovered.zip",
+    "sha256": "38d12583294a12829874602c703d90bd78a0616ef57fb97d14c2ec4fbab28858",
+    "members": 270,
+    "baseline_records": 203,
+    "inspect_logs": 64
+  },
+  "aggregation": {
+    "required_valid_trials": 112,
+    "valid_trials": 94,
+    "remaining_valid_trials": 18,
+    "status_counts": {
+      "PASS": 92,
+      "FAIL": 2,
+      "UNKNOWN": 0,
+      "INFRA_ERROR": 109,
+      "INVALID_FIXTURE": 0
+    },
+    "critical_gate": {
+      "PASS": 12,
+      "FAIL": 1,
+      "BLOCKED": 7
+    },
+    "suite_status": "FAIL"
+  },
+  "historical_classification": {
+    "artifact": "evals/system/core_final_full_baseline_resume_94_checkpoint_result.json",
+    "sha256": "17ba7ddda0c5214489490c7ee9dd486978a9dc9d33d4649d2d95bf2ca4670d00",
+    "phase_status": "PHASE3_BLOCKED",
+    "role": "historical pre-fix checkpoint classification; preserved unchanged and not raw trial evidence"
+  },
+  "supersession": {
+    "supersedes": "historical classification only",
+    "reason": "The pre-fix suite aggregation prioritized valid-trial shortfall over an existing critical FAIL. Current semantics correctly prioritize critical FAIL, so the same immutable recovered evidence is PHASE3_FAILED.",
+    "raw_evidence_rewritten": false
+  }
+}

@@ -1,0 +1,36 @@
+[
+  {
+    "id": "F_CORE_A_01_INFRA_ERROR",
+    "task_id": "CORE_A_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "answer_sha_matches: Controlled fixture command could not access its target workspace",
+      "changed_files: Controlled fixture command could not access its target workspace",
+      "clean_start: Controlled fixture command could not access its target workspace",
+      "cleanup: Controlled fixture command could not access its target workspace",
+      "fixture_intact: Controlled fixture command could not access its target workspace",
+      "head_unchanged: Controlled fixture command could not access its target workspace",
+      "main_unchanged: Controlled fixture command could not access its target workspace",
+      "ops: Controlled fixture command could not access its target workspace",
+      "owner_shas_consistent: Controlled fixture command could not access its target workspace",
+      "production_unchanged: Controlled fixture command could not access its target workspace",
+      "receipt: Controlled fixture command could not access its target workspace",
+      "registration_restored: Controlled fixture command could not access its target workspace",
+      "response_bootstrap_succeeded: Controlled fixture command could not access its target workspace"
+    ],
+    "owner_candidates": [
+      "evals/system/README.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 1,
+      "attempted": 6
+    },
+    "trial_ids": [
+      "CORE_A_01_baseline_1_8be1291f"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  }
+]

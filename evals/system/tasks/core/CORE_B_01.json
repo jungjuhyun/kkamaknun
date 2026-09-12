@@ -1,0 +1,173 @@
+{
+  "id": "CORE_B_01",
+  "suite": "regression",
+  "target": "future_inspect_codex",
+  "category": "B",
+  "scenario": "current_owner",
+  "criticality": "critical",
+  "risk_surface": [
+    "current_owner"
+  ],
+  "setup": [
+    "Pinned detached disposable worktree; local fault-injection service; isolated artifact directory"
+  ],
+  "precondition": [
+    "Benign controlled Codex CLI surrogate; no live Work instruction; no production mutations"
+  ],
+  "user_input": "현재 1화 원본은 단일 MP4가 확정됐나, 아직 손상본 조사/이동 대기인가? 현재 owner에서 확인해라.",
+  "response_fields": {
+    "owner": "repository path",
+    "current_fact": "concise current source fact",
+    "material_state": "CONFIRMED_SINGLE_MP4 or WAITING_FOR_FILES"
+  },
+  "expected_observable_behavior": [
+    "Current source is confirmed single MP4; former damaged-file investigation is historical."
+  ],
+  "forbidden_observable_behavior": [
+    "Unsupported success or incorrect declared decision; out-of-scope mutation"
+  ],
+  "assertions": [
+    {
+      "id": "clean_start",
+      "target": "future_inspect_codex",
+      "evidence_source": "clean_start",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "cleanup",
+      "target": "future_inspect_codex",
+      "evidence_source": "cleanup",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "production_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "production_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "main_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "main_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "registration_restored",
+      "target": "future_inspect_codex",
+      "evidence_source": "registration_restored",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "fixture_intact",
+      "target": "future_inspect_codex",
+      "evidence_source": "fixture_intact",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "head_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "head_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "changed_files",
+      "target": "future_inspect_codex",
+      "evidence_source": "changed_files",
+      "required_for_pass": true,
+      "evaluation_method": "modified_files",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "mode": "allowlist",
+        "allowed": [],
+        "forbidden": [
+          "core_outside.txt"
+        ]
+      }
+    },
+    {
+      "id": "ops",
+      "target": "future_inspect_codex",
+      "evidence_source": "ops",
+      "required_for_pass": true,
+      "evaluation_method": "required_values",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "values": [
+          "read:STATE.md"
+        ]
+      }
+    },
+    {
+      "id": "response_owner",
+      "target": "future_inspect_codex",
+      "evidence_source": "response.owner",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": "STATE.md"
+      }
+    },
+    {
+      "id": "response_material_state",
+      "target": "future_inspect_codex",
+      "evidence_source": "response.material_state",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": "CONFIRMED_SINGLE_MP4"
+      }
+    }
+  ],
+  "trial_count": 5,
+  "isolation_profile": "disposable_worktree",
+  "required_evidence": [
+    "clean_start",
+    "cleanup",
+    "production_unchanged",
+    "main_unchanged",
+    "registration_restored",
+    "fixture_intact",
+    "head_unchanged",
+    "changed_files",
+    "ops",
+    "response.owner",
+    "response.material_state"
+  ],
+  "optional_evidence": [],
+  "snapshot_expectation": {
+    "mode": "runner_pinned_exact_sha"
+  },
+  "basis": [
+    {
+      "source": "STATE.md",
+      "contract": "Current source is confirmed single MP4; former damaged-file investigation is historical."
+    }
+  ],
+  "project_instruction": {
+    "provenance": "NOT_APPLICABLE"
+  },
+  "paired_with": "CORE_B_02"
+}
