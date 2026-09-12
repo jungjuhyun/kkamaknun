@@ -819,29 +819,63 @@ def _p4a_receipt(record: Phase4WorkUATRecord) -> tuple[ResultStatus, str]:
     return ResultStatus.PASS, "actual raw receipt grammar, linked capture, ref, SHA, and owners match"
 
 
+def _relation_clauses(response: str) -> tuple[str, ...]:
+    """Return sentence-sized claims without letting one claim consume the next domain."""
+    clauses = []
+    for value in re.split(r"(?<=[.!?;])\s+|\r?\n+", response):
+        value = value.strip().rstrip(".!?;").strip()
+        if value:
+            clauses.append(value)
+    return tuple(clauses)
+
+
+def _routing_owner_relation(response: str, expected_owner: str) -> tuple[ResultStatus, str]:
+    """Grade only bounded current-state routing claims and canonical prompt shorthand."""
+    expected = expected_owner.casefold()
+    path = r"[a-z0-9_./-]+\.md"
+    transition = r"(?:actually,\s*)?"
+    current_subject = r"(?:the\s+)?current[-\s]+state(?:\s+and\s+next[-\s]+action)?"
+    claim_patterns = (
+        rf"{transition}routing\s+owner\s*(?:is|=|:)\s*(?P<path>{path})",
+        rf"{transition}{current_subject}\s+(?:routing\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
+        rf"{transition}routing\s+owner(?:는|은)\s*(?P<path>{path})(?:이다|다)?",
+        rf"현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:는|은)\s*(?P<path>{path})(?:이다|다)?",
+        rf"{transition}(?P<path>{path})\s+(?:is|=)\s+{current_subject}\s+routing\s+owner",
+        rf"(?P<path>{path})(?:가|이|는|은)\s*현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:이다|다)?",
+    )
+    negative_patterns = (
+        rf"{transition}{re.escape(expected)}\s+(?:is|=)?\s*not\s+{current_subject}\s+routing\s+owner",
+        rf"{transition}routing\s+owner\s*(?:is|=|:)\s*not\s+{re.escape(expected)}",
+        rf"{transition}{current_subject}\s+(?:routing\s+)?owner\s*(?:is|=|:)\s*not\s+{re.escape(expected)}",
+        rf"{re.escape(expected)}(?:가|이|는|은)\s*현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:가|이)?\s*아니(?:다)?",
+        rf"현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:는|은)\s*{re.escape(expected)}(?:가|이)?\s*아니(?:다)?",
+    )
+    claims: list[str] = []
+    denied = False
+    for clause in _relation_clauses(response):
+        if any(re.fullmatch(pattern, clause, re.IGNORECASE) for pattern in negative_patterns):
+            denied = True
+        for pattern in claim_patterns:
+            match = re.fullmatch(pattern, clause, re.IGNORECASE)
+            if match is not None:
+                claims.append(match.group("path").casefold())
+    if denied:
+        return ResultStatus.FAIL, f"response explicitly denies {expected_owner} as current-state routing owner"
+    if any(value != expected for value in claims):
+        return ResultStatus.FAIL, "response assigns current-state routing owner to a different source"
+    if expected in claims:
+        return ResultStatus.PASS, f"response explicitly assigns current-state routing owner to {expected_owner}"
+    return ResultStatus.UNKNOWN, "response does not deterministically establish current-state routing owner"
+
+
 def _owner_relation(
     response: str, *, expected_owner: str, relation: str
 ) -> tuple[ResultStatus, str]:
+    if relation == "routing":
+        return _routing_owner_relation(response, expected_owner)
     expected = expected_owner.casefold()
     path = r"[a-z0-9_./-]+\.md"
-    clause_start = r"(?:^|[.!?;]\s+|\n\s*)"
-    if relation == "routing":
-        claim_patterns = (
-            rf"{clause_start}(?:actually,\s*)?routing\s+owner\s*(?:is|=|:)\s*(?P<path>{path})",
-            rf"current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+(?:routing\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
-            rf"{clause_start}(?:actually,\s*)?routing\s+owner(?:는|은)\s*(?P<path>{path})",
-            rf"현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:는|은)\s*(?P<path>{path})",
-            rf"(?P<path>{path})\s+(?:is|=)\s+(?:the\s+)?current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+routing\s+owner",
-            rf"(?P<path>{path})(?:가|이|는|은)\s*현재\s*상태와\s*다음\s*행동의\s*routing\s+owner",
-        )
-        negative = (
-            rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+routing\s+owner",
-            rf"(?:{clause_start}(?:actually,\s*)?routing\s+owner|current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+(?:routing\s+)?owner)\s*(?:is|=|:)\s*not\s+{re.escape(expected)}\b",
-            rf"{re.escape(expected)}(?:가|이|는|은)\s*현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:가|이)?\s*아니",
-            rf"현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:는|은)\s*{re.escape(expected)}(?:가|이)?\s*아니",
-        )
-        label = "current-state routing owner"
-    elif relation == "system_evaluation":
+    if relation == "system_evaluation":
         claim_patterns = (
             rf"system\s+evaluation(?:'s)?\s+(?:contract\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
             rf"system\s+evaluation\s+is\s+owned\s+by\s+(?P<path>{path})",

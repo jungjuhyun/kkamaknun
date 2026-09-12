@@ -690,6 +690,45 @@ class Phase4ClassifierTests(unittest.TestCase):
         self.sync_response_hashes(data)
         self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
 
+    def test_p4b_trailing_other_domain_claims_do_not_contaminate_current_owner(self):
+        other_domain_claims = (
+            "System Evaluation routing owner: evals/system/README.md.",
+            "Routing owner: evals/system/README.md for System Evaluation.",
+            "Routing owner: FIRST_VIDEO.md for episode planning.",
+            "Routing owner: FIRST_VIDEO.md for video planning.",
+            "Routing owner is not STATE.md for System Evaluation.",
+            "Routing owner is not STATE.md for episode planning.",
+            "Routing owner is not STATE.md for video planning.",
+        )
+        for claim in other_domain_claims:
+            with self.subTest(claim=claim):
+                data = self.record_data("P4-B")
+                data["response"]["final_response"] = (
+                    f"Current-state owner is STATE.md. {claim} "
+                    "A delegated detail source does not replace the routing owner. "
+                    "Historical evidence is not current truth."
+                )
+                self.sync_response_hashes(data)
+                self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
+    def test_p4b_korean_other_domain_claims_do_not_contaminate_current_owner(self):
+        other_domain_claims = (
+            "System Evaluation의 routing owner는 evals/system/README.md다.",
+            "routing owner는 evals/system/README.md다 for System Evaluation.",
+            "routing owner는 STATE.md가 아니다 for System Evaluation.",
+        )
+        for claim in other_domain_claims:
+            with self.subTest(claim=claim):
+                data = self.record_data("P4-B")
+                data["response"]["final_response"] = (
+                    "현재 상태와 다음 행동의 routing owner는 STATE.md다. "
+                    f"{claim} "
+                    "위임된 detail source는 routing owner를 대체하지 않는다. "
+                    "과거 자료는 current truth를 대체하지 않는다."
+                )
+                self.sync_response_hashes(data)
+                self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
     def test_p4b_system_evaluation_owner_alone_does_not_establish_routing_owner(self):
         data = self.record_data("P4-B")
         data["response"]["final_response"] = (
