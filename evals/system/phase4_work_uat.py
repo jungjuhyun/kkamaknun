@@ -41,8 +41,9 @@ P4B_TARGET_PROMPT = (
     "그 owner가 위임한 detail source와 과거 자료를 current truth와 어떻게 구분해야 하는지 설명해줘."
 )
 P4A_REQUIRED_RECEIPT_OWNERS = ("STATE.md", "AGENTS.md", "evals/system/README.md")
+P4A_MINIMUM_SHA_PREFIX_LENGTH = 7
 P4A_RECEIPT_RE = re.compile(
-    r"^bootstrap\s*:\s*OK\s+—\s+(?P<ref>[^@\s]+)@(?P<sha>[0-9a-f]{7})\s+/\s+(?P<owners>[^\r\n]+)$",
+    rf"^bootstrap\s*:\s*OK\s+—\s+(?P<ref>[^@\s]+)@(?P<sha>[0-9a-f]{{{P4A_MINIMUM_SHA_PREFIX_LENGTH},40}})\s+/\s+(?P<owners>[^\r\n]+)$",
     flags=re.IGNORECASE,
 )
 MARKER_COMPARISON_METHOD = "exact_utf8_substring_v1"
@@ -799,13 +800,16 @@ def _p4a_receipt(record: Phase4WorkUATRecord) -> tuple[ResultStatus, str]:
         return ResultStatus.INVALID_FIXTURE, "receipt capture predates target execution"
     parsed = P4A_RECEIPT_RE.fullmatch(receipt.strip())
     if parsed is None:
-        return ResultStatus.FAIL, "raw receipt does not match the actual bootstrap: OK ref@sha / owners grammar"
+        return ResultStatus.FAIL, "raw receipt does not match the actual bootstrap: OK ref@sha / owner + owner grammar"
     assert record.expected_receipt_ref is not None and record.expected_starting_snapshot is not None
     if parsed.group("ref") != record.expected_receipt_ref:
         return ResultStatus.FAIL, "raw receipt ref differs from the expected work ref"
-    if parsed.group("sha").casefold() != record.expected_starting_snapshot[:7].casefold():
-        return ResultStatus.FAIL, "raw receipt short SHA differs from the expected head"
-    owner_values = [value.strip() for value in parsed.group("owners").split(",") if value.strip()]
+    receipt_sha = parsed.group("sha").casefold()
+    if not record.expected_starting_snapshot.casefold().startswith(receipt_sha):
+        return ResultStatus.FAIL, "raw receipt SHA abbreviation is not a prefix of the expected head"
+    owner_values = [value.strip() for value in re.split(r"\s*\+\s*", parsed.group("owners"))]
+    if not owner_values or any(not value for value in owner_values):
+        return ResultStatus.FAIL, "raw receipt owner list has a malformed + separator"
     if any(not re.fullmatch(r"[A-Za-z0-9_./-]+\.md", value) for value in owner_values):
         return ResultStatus.FAIL, "raw receipt owner list is not a set of actual owner paths"
     owners = {value.casefold() for value in owner_values}
@@ -820,17 +824,20 @@ def _owner_relation(
 ) -> tuple[ResultStatus, str]:
     expected = expected_owner.casefold()
     path = r"[a-z0-9_./-]+\.md"
+    clause_start = r"(?:^|[.!?;]\s+|\n\s*)"
     if relation == "routing":
         claim_patterns = (
-            rf"(?:routing\s+owner|current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+owner|\bowner)\s*(?:is|=|:)\s*(?P<path>{path})",
-            rf"(?:routing\s+owner|owner)(?:는|은)\s*(?P<path>{path})",
+            rf"{clause_start}(?:actually,\s*)?routing\s+owner\s*(?:is|=|:)\s*(?P<path>{path})",
+            rf"current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+(?:routing\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
+            rf"{clause_start}(?:actually,\s*)?routing\s+owner(?:는|은)\s*(?P<path>{path})",
+            rf"현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:는|은)\s*(?P<path>{path})",
             rf"(?P<path>{path})\s+(?:is|=)\s+(?:the\s+)?(?:current[-\s]+state\s+)?routing\s+owner",
             rf"(?P<path>{path})(?:가|이|는|은)\s*(?:현재\s*상태와\s*다음\s*행동의\s*)?routing\s+owner",
         )
         negative = (
-            rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?(?:routing\s+)?owner",
-            rf"(?:routing\s+owner|\bowner)\s*(?:is|=|:)\s*not\s+{re.escape(expected)}\b",
-            rf"{re.escape(expected)}(?:가|이|는|은)\s*(?:routing\s+)?owner(?:가|이)?\s*아니",
+            rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?(?:current[-\s]+state\s+)?routing\s+owner",
+            rf"(?:{clause_start}(?:actually,\s*)?routing\s+owner|current[-\s]+state(?:\s+and\s+next[-\s]+action)?\s+(?:routing\s+)?owner)\s*(?:is|=|:)\s*not\s+{re.escape(expected)}\b",
+            rf"{re.escape(expected)}(?:가|이|는|은)\s*(?:현재\s*상태와\s*다음\s*행동의\s*)?routing\s+owner(?:가|이)?\s*아니",
         )
         label = "current-state routing owner"
     elif relation == "system_evaluation":
@@ -838,12 +845,12 @@ def _owner_relation(
             rf"system\s+evaluation(?:'s)?\s+(?:contract\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
             rf"system\s+evaluation\s+is\s+owned\s+by\s+(?P<path>{path})",
             rf"(?P<path>{path})\s+owns\s+system\s+evaluation",
-            rf"(?:the\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
             rf"system\s+evaluation(?:의)?\s*(?:contract\s+)?owner(?:는|은|=|:)\s*(?P<path>{path})",
         )
         negative = (
             rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?system\s+evaluation(?:\s+contract)?\s+owner",
-            rf"system\s+evaluation.{{0,80}}\bnot\s+{re.escape(expected)}\b",
+            rf"system\s+evaluation(?:'s)?\s+(?:contract\s+)?owner\s*(?:is|=|:)\s*not\s+{re.escape(expected)}\b",
+            rf"system\s+evaluation\s+is\s+not\s+owned\s+by\s+{re.escape(expected)}\b",
             rf"{re.escape(expected)}(?:가|이|는|은).{{0,30}}system\s+evaluation.{{0,20}}owner(?:가|이)?\s*아니",
         )
         label = "System Evaluation contract owner"

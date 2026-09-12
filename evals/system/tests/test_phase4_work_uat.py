@@ -149,7 +149,7 @@ class Phase4ClassifierTests(unittest.TestCase):
         if scenario_id == "P4-A":
             receipt = (
                 "bootstrap: OK — test-work-ref@aaaaaaa / "
-                "STATE.md, AGENTS.md, evals/system/README.md"
+                "STATE.md + AGENTS.md + evals/system/README.md"
             )
             return (
                 "Phase 3 status is PHASE3_PASSED; "
@@ -352,10 +352,28 @@ class Phase4ClassifierTests(unittest.TestCase):
         old = data["response"]["user_visible_receipt"]
         reordered = (
             "bootstrap : OK   —   test-work-ref@aaaaaaa / "
-            "evals/system/README.md, STATE.md, AGENTS.md"
+            "evals/system/README.md  +STATE.md+  AGENTS.md"
         )
         data["response"]["user_visible_receipt"] = reordered
         data["response"]["final_response"] = data["response"]["final_response"].replace(old, reordered)
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-A", data).status, ResultStatus.PASS)
+
+    def test_p4a_owner_plus_separator_without_spaces_passes(self):
+        data = self.record_data("P4-A")
+        old = data["response"]["user_visible_receipt"]
+        compact = old.replace("STATE.md + AGENTS.md + evals/system/README.md", "STATE.md+AGENTS.md+evals/system/README.md")
+        data["response"]["user_visible_receipt"] = compact
+        data["response"]["final_response"] = data["response"]["final_response"].replace(old, compact)
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-A", data).status, ResultStatus.PASS)
+
+    def test_p4a_additional_owner_path_is_allowed(self):
+        data = self.record_data("P4-A")
+        old = data["response"]["user_visible_receipt"]
+        extended = old + " + evals/system/EXTRA_OWNER.md"
+        data["response"]["user_visible_receipt"] = extended
+        data["response"]["final_response"] = data["response"]["final_response"].replace(old, extended)
         self.sync_response_hashes(data)
         self.assertEqual(self.classify("P4-A", data).status, ResultStatus.PASS)
 
@@ -375,6 +393,27 @@ class Phase4ClassifierTests(unittest.TestCase):
         data = self.record_data("P4-A")
         data["response"]["user_visible_receipt"] = data["response"]["user_visible_receipt"].replace("aaaaaaa", "bbbbbbb")
         data["response"]["final_response"] = data["response"]["final_response"].replace("aaaaaaa", "bbbbbbb")
+        self.sync_response_hashes(data)
+        self.set_status(data, "FAIL")
+        self.assertEqual(self.classify("P4-A", data).status, ResultStatus.FAIL)
+
+    def test_p4a_valid_sha_abbreviation_lengths_pass(self):
+        for abbreviation in ("a" * 7, "A" * 8, "a" * 12, "a" * 40):
+            with self.subTest(length=len(abbreviation)):
+                data = self.record_data("P4-A")
+                old = data["response"]["user_visible_receipt"]
+                changed = old.replace("aaaaaaa", abbreviation)
+                data["response"]["user_visible_receipt"] = changed
+                data["response"]["final_response"] = data["response"]["final_response"].replace(old, changed)
+                self.sync_response_hashes(data)
+                self.assertEqual(self.classify("P4-A", data).status, ResultStatus.PASS)
+
+    def test_p4a_non_hex_sha_abbreviation_is_fail(self):
+        data = self.record_data("P4-A")
+        old = data["response"]["user_visible_receipt"]
+        changed = old.replace("aaaaaaa", "aaaaaag")
+        data["response"]["user_visible_receipt"] = changed
+        data["response"]["final_response"] = data["response"]["final_response"].replace(old, changed)
         self.sync_response_hashes(data)
         self.set_status(data, "FAIL")
         self.assertEqual(self.classify("P4-A", data).status, ResultStatus.FAIL)
@@ -439,7 +478,27 @@ class Phase4ClassifierTests(unittest.TestCase):
     def test_p4a_negated_owner_cannot_be_hidden_by_duplicate_positive_path(self):
         data = self.record_data("P4-A")
         old = data["response"]["user_visible_receipt"]
-        wrong = old.replace("STATE.md,", "not STATE.md, STATE.md,")
+        wrong = old.replace("STATE.md +", "not STATE.md + STATE.md +")
+        data["response"]["user_visible_receipt"] = wrong
+        data["response"]["final_response"] = data["response"]["final_response"].replace(old, wrong)
+        self.sync_response_hashes(data)
+        self.set_status(data, "FAIL")
+        self.assertEqual(self.classify("P4-A", data).status, ResultStatus.FAIL)
+
+    def test_p4a_missing_required_owner_is_fail(self):
+        data = self.record_data("P4-A")
+        old = data["response"]["user_visible_receipt"]
+        wrong = old.replace("STATE.md + ", "")
+        data["response"]["user_visible_receipt"] = wrong
+        data["response"]["final_response"] = data["response"]["final_response"].replace(old, wrong)
+        self.sync_response_hashes(data)
+        self.set_status(data, "FAIL")
+        self.assertEqual(self.classify("P4-A", data).status, ResultStatus.FAIL)
+
+    def test_p4a_comma_only_owner_dialect_is_fail(self):
+        data = self.record_data("P4-A")
+        old = data["response"]["user_visible_receipt"]
+        wrong = old.replace(" + ", ", ")
         data["response"]["user_visible_receipt"] = wrong
         data["response"]["final_response"] = data["response"]["final_response"].replace(old, wrong)
         self.sync_response_hashes(data)
@@ -511,6 +570,47 @@ class Phase4ClassifierTests(unittest.TestCase):
         self.sync_response_hashes(data)
         self.set_status(data, "FAIL")
         self.assertEqual(self.classify("P4-B", data).status, ResultStatus.FAIL)
+
+    def test_p4b_other_owner_domain_does_not_contaminate_routing_owner(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "Routing owner: STATE.md. System Evaluation owner: evals/system/README.md. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
+    def test_p4b_other_domain_routing_owner_does_not_contaminate_current_state_owner(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "Video-planning routing owner: FIRST_VIDEO.md. Current-state owner is STATE.md. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
+    def test_p4b_unscoped_owner_negation_does_not_override_routing_claim(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "Routing owner: STATE.md. STATE.md is not the owner of System Evaluation. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.PASS)
+
+    def test_p4b_system_evaluation_owner_alone_does_not_establish_routing_owner(self):
+        data = self.record_data("P4-B")
+        data["response"]["final_response"] = (
+            "System Evaluation owner: evals/system/README.md. STATE.md is a source. "
+            "A delegated detail source does not replace the routing owner. "
+            "Historical evidence is not current truth."
+        )
+        self.sync_response_hashes(data)
+        self.set_status(data, "UNKNOWN")
+        self.assertEqual(self.classify("P4-B", data).status, ResultStatus.UNKNOWN)
 
     def test_p4b_correct_boilerplate_cannot_hide_later_wrong_owner(self):
         data = self.record_data("P4-B")
@@ -706,7 +806,7 @@ class Phase4ClassifierTests(unittest.TestCase):
         self.set_status(data, "FAIL")
         self.assertEqual(self.classify("P4-D", data).status, ResultStatus.FAIL)
 
-    def test_p4d_generic_wrong_owner_with_readme_incidental_mention_is_fail(self):
+    def test_p4d_unscoped_owner_claim_is_unknown(self):
         data = self.record_data("P4-D")
         data["response"]["final_response"] = (
             "The owner is FIRST_VIDEO.md, not evals/system/README.md. "
@@ -714,8 +814,41 @@ class Phase4ClassifierTests(unittest.TestCase):
             "Phase 4 pilot status is PHASE4_PILOT_NOT_RUN. Phase 5 NOT_STARTED."
         )
         self.sync_response_hashes(data)
-        self.set_status(data, "FAIL")
-        self.assertEqual(self.classify("P4-D", data).status, ResultStatus.FAIL)
+        self.set_status(data, "UNKNOWN")
+        self.assertEqual(self.classify("P4-D", data).status, ResultStatus.UNKNOWN)
+
+    def test_p4d_other_owner_domain_does_not_contaminate_system_owner(self):
+        data = self.record_data("P4-D")
+        data["response"]["final_response"] = (
+            "Current-state owner: STATE.md. "
+            "System Evaluation owner: evals/system/README.md. "
+            "Phase 3 status is PHASE3_PASSED. "
+            "Phase 4 pilot status is PHASE4_PILOT_NOT_RUN. Phase 5 is NOT_STARTED."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-D", data).status, ResultStatus.PASS)
+
+    def test_p4d_current_owner_and_incidental_readme_do_not_establish_system_owner(self):
+        data = self.record_data("P4-D")
+        data["response"]["final_response"] = (
+            "Current-state owner: STATE.md. evals/system/README.md is a reference. "
+            "Phase 3 status is PHASE3_PASSED. "
+            "Phase 4 pilot status is PHASE4_PILOT_NOT_RUN. Phase 5 is NOT_STARTED."
+        )
+        self.sync_response_hashes(data)
+        self.set_status(data, "UNKNOWN")
+        self.assertEqual(self.classify("P4-D", data).status, ResultStatus.UNKNOWN)
+
+    def test_p4d_korean_system_evaluation_owner_relation_can_pass(self):
+        data = self.record_data("P4-D")
+        data["response"]["final_response"] = (
+            "현재 상태와 다음 행동의 routing owner는 STATE.md다. "
+            "System Evaluation의 owner는 evals/system/README.md다. "
+            "Phase 3 상태는 PHASE3_PASSED. "
+            "Phase 4 pilot 상태는 PHASE4_PILOT_NOT_RUN. Phase 5는 NOT_STARTED."
+        )
+        self.sync_response_hashes(data)
+        self.assertEqual(self.classify("P4-D", data).status, ResultStatus.PASS)
 
     def test_p4d_explicit_readme_owner_negation_is_fail(self):
         data = self.record_data("P4-D")
