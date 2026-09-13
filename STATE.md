@@ -149,7 +149,7 @@ Phase 0~1 measurement contract와 deterministic oracle proof, Docker-free Phase 
 - Historical failed/blocked baselines, targeted regressions, surrogate-contract correction, permission investigation, and export remediation remain preserved in their durable result/evidence/history records; they are not the current Phase 3 state.
 - Phase 4 Actual Work UAT의 보존 evidence를 corrected deterministic classifier로 offline 재분류했다. 결과는 `P4-A UNKNOWN / P4-B PASS / P4-C1 PASS / P4-C2 PASS / P4-D PASS`, corrected aggregate는 `PHASE4_PILOT_BLOCKED` (`4/5 PASS`)다. P4-A는 queued expiry로 final response가 없어 current contract상 `VALID_UNKNOWN / INFRA_OR_UNOBSERVABLE`을 유지한다. Actual Work를 재실행하거나 evidence를 보충하지 않았다.
 - 과거 보존 aggregate `PHASE4_PILOT_FAILED`와 `P4-C2/D FAIL`은 Markdown·한국어 관계 문법, `Phase 4:` status 표현, 문장 간 historical provenance, contract/classifier correction과 pilot completion의 구분을 놓친 measurement/classifier defect의 historical 결과다. confirmed Actual Work semantic product failure 또는 evidence/capture defect로 해석하지 않는다. classifier는 immutable repository snapshot truth와 이후 external pilot measurement state를 별도 clock으로 취급하며, snapshot의 `PHASE4_PILOT_NOT_RUN / Work call 0회`를 실행 중 의미론적 실패로 소급하지 않는다.
-- Next System Evaluation action: P4-A의 보존 `UNKNOWN`을 수용해 Phase 4 pilot을 종료할지, 별도 승인으로 replacement를 실행할지 결정한다. Phase 5는 `NOT_STARTED`다. video-planning 실행 위치와 다음 행동은 위 기존 상태에서 변경하지 않았다.
+- Phase 4 initial Actual Work pilot 종료 판단: 사용자가 P4-A의 보존 `UNKNOWN`을 수용하고 replacement 없이 pilot을 종료하기로 승인했다. corrected aggregate는 `PHASE4_PILOT_BLOCKED` (`4/5 PASS`)로 보존하며, confirmed Actual Work semantic product failure는 없다. Phase 5는 `NOT_STARTED`다. System Evaluation 추가 실행 없이 video-planning의 기존 다음 행동으로 복귀한다.
 
 ## 운영 원칙
 
