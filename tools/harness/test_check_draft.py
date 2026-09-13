@@ -18,8 +18,9 @@ PIPELINE_TEXT = (HERE / "PIPELINE.yaml").read_text(encoding="utf-8")
 
 A = LOCK["잠금_문장"]["A"]
 B = LOCK["잠금_문장"]["B"]
+C = LOCK["잠금_문장"]["C"]
 TIMELINE = LOCK["잠금_문장"]["타임라인"]
-CLEAN = f"A: `{A}`\nB: \"{B}\"\n타임라인: `{TIMELINE}`\n실제 촬영물의 사건과 반응을 바탕으로 기획한다.\n"
+CLEAN = f"A: `{A}`\nB: \"{B}\"\nC: `{C}`\n타임라인: `{TIMELINE}`\n실제 촬영물의 사건과 반응을 바탕으로 기획한다.\n"
 
 
 def run(text):
@@ -37,6 +38,11 @@ def test_clean_material_first_draft_passes():
 def test_locked_b_redesign_is_caught():
     text = CLEAN.replace(B, "B 후보 3개를 비교한다: 레제편 / 귀멸 / 팟캐스트")
     assert any("잠금 B" in fail for fail in run(text))
+
+
+def test_locked_c_redesign_is_caught():
+    text = CLEAN.replace(C, "나는 일본어를 완벽하게 알아듣는다.")
+    assert any("잠금 C" in fail for fail in run(text))
 
 
 def test_unowned_subtitle_body_claim_is_caught():
@@ -78,6 +84,26 @@ def test_step5_keeps_provenance_internal_without_forcing_overlay():
     assert "viewer-facing 영상에 표시를 강제하지 않는다" in PIPELINE_TEXT
     assert "최초 반응이 아닌 장면을 `첫 반응`, `처음 본 순간`, `처음 보는 장면`이라고 명시적으로 주장하지 않는다" in PIPELINE_TEXT
     assert "재확인·재시청 사실을 숨기지 않고 표시" not in PIPELINE_TEXT
+
+
+def test_material_first_reconstructs_independent_source_layers_before_candidates():
+    assert "A source narrative, B desktop dialogue/audio, C user mic raw, D visual/nonverbal reaction" in PIPELINE_TEXT
+    assert "synchronized evidence timeline을 만든 뒤에만 scene candidate 경쟁" in PIPELINE_TEXT
+    assert "MUST_KEEP / BRIDGE / OPTIONAL" in PIPELINE_TEXT
+
+
+def test_body_precedes_cold_open_and_continuity_is_distinct_from_chronology():
+    assert "Cold open보다 본편을 먼저 설계한다" in PIPELINE_TEXT
+    assert "chronology integrity와 narrative continuity를 별도로 검사" in PIPELINE_TEXT
+    assert "Cold open/body의 동일 대사·reaction이 새 의미 없이 단순 반복되지 않는다" in PIPELINE_TEXT
+
+
+def test_pre_render_quality_gate_blocks_known_review_b_failure_modes():
+    assert "render_금지_gate:" in PIPELINE_TEXT
+    assert "MUST_KEEP narrative beat가 누락됐다" in PIPELINE_TEXT
+    assert "청해 사례만 세 개 이상 연속돼 진단표처럼 느껴진다" in PIPELINE_TEXT
+    assert "작품 감상보다 analysis tag 순서가 편집을 지배한다" in PIPELINE_TEXT
+    assert "하나라도 FAIL이면 review rough cut으로 넘기지 않고" in PIPELINE_TEXT
 
 
 if __name__ == "__main__":

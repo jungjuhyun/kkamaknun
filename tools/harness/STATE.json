@@ -1,38 +1,80 @@
 {
-  "상태": "WAITING_FOR_REVIEW_CUT_VIEWER_RESPONSE",
+  "상태": "EVIDENCE_RECONSTRUCTION_COMPLETE_AWAITING_INDEPENDENT_AUDIT",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "Step 5 AI 전문 기획 판정과 REVIEW_B 구성 확정 완료 — provenance overlay 없는 일반 시청 테스트 대기",
-  "다음_실행": "사용자가 C:\\kkamaknun_step5_review\\EP1_STEP5_REVIEW_B.mp4를 일반 시청자처럼 처음부터 끝까지 본다.",
-  "Step4_배치": {
-    "4-A": "실제 재료 복원 — 완료",
-    "4-B": "경쟁 영상 조사·해부 — 완료",
-    "4-C": "콘텐츠 각 후보 생성·경쟁 — 완료",
-    "4-D": "본편 구조·payoff·패키징 — 본 촬영 실제 재료로 갱신 완료",
-    "4-E": "deterministic 검증 + RED TEAM + 타임라인 검증 완료"
+  "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 — source reconstruction과 새 evidence layer 생성 완료",
+  "다음_실행": "새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계한다.",
+  "A_B_C": {
+    "판정": "유지",
+    "A": "20년 이상 취미로 애니를 봐왔지만 일본어를 제대로 공부해본 적은 없는 사람",
+    "B": "체인소 맨: 레제편을 한국어 자막 없이 보고, 자기 귀에 실제로 무엇이 남아 있는지 확인한다.",
+    "C_핵심": "20년 동안 좋아한 시간이 사람한테 이렇게 남을 수도 있구나. 신기하다."
   },
-  "EP1_본촬영_결과": {
+  "EP1_본촬영": {
     "primary_material": "C:\\OBS\\체인소맨_레제편\\2026-09-06 23-54-01-01.mp4",
     "전체_러닝타임_초": 6325.0625,
-    "장면_후보_총수": 34,
-    "유지": 18,
-    "보류": 12,
-    "탈락": 4,
-    "최종_select_수": 15,
+    "desktop_audio_stream": 2,
+    "mic_audio_stream": 3,
     "상세_owner": "materials/ep1_main/PLANNING_RESULTS.md",
-    "러프_구조_예상_길이": "약 10분 45초",
-    "최초성_경계": "기존 take1에서 이미 본 앞부분은 내부 provenance에서 재확인/재시청으로 기록한다. 후반은 owner의 최초 반응 보존 방침과 기존 take1 범위 밖 근거가 함께 있는 경우만 내부 분석에서 최초 반응 후보로 분류하며, primary 파일 안의 정확한 경계 선언 부재를 남긴다. viewer-facing 표시는 강제하지 않고 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않는다."
+    "내부_provenance": "재확인·재시청·재촬영 사실은 내부 기록에 보존한다. viewer-facing 표시는 강제하지 않으며 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않는다."
   },
-  "EP1_재료_체크포인트": {
-    "기존_take1_사용자_확정_사건수": 7,
-    "기존_take1_source": "materials/ep1_take1/후보표.md 사용자 판정",
-    "본촬영_source": "materials/ep1_main/PLANNING_RESULTS.md",
-    "진단_한계": "임의의 애니 청해 점수를 만들지 않는다. 화면·문맥 반응을 청해만의 결과로 과장하지 않는다.",
-    "현재_질적_관찰": "읽기 약점과 함께 정확 이해·소리 자가수정·핵심어 오해·긴 서사 이해·작품 몰입이 교차한다."
+  "REVIEW_B": {
+    "artifact": "C:\\kkamaknun_step5_review\\EP1_STEP5_REVIEW_B.mp4",
+    "공식_판정": "planning_quality_failure",
+    "종료": true,
+    "실패_근거": [
+      "narrative continuity 실패",
+      "작품 핵심 사건 coverage 실패",
+      "listening evidence 과최적화",
+      "listening과 reaction의 분리",
+      "Cold open/body 단순 중복",
+      "transcription evidence 품질 부족"
+    ],
+    "재사용_금지": "REVIEW_B를 수정하거나 REVIEW_B 기반 REVIEW_C를 만들지 않는다.",
+    "과거_분석": "34 candidates / 15 selects는 historical evidence이며 새 authoritative select set이 아니다."
+  },
+  "source_reconstruction": {
+    "상태": "완료",
+    "layers": [
+      "A source narrative",
+      "B desktop dialogue/audio",
+      "C user mic raw",
+      "D visual/nonverbal reaction"
+    ],
+    "원칙": "작품 서사 = 골격, listening = 소재·발견, reaction = 재미·인물성",
+    "narrative_beat_수": 25,
+    "sync_timeline_행수": 633,
+    "새_scene_candidate_수": 30,
+    "final_select": "미확정",
+    "body_structure": "미확정",
+    "cold_open": "미확정",
+    "REVIEW_C": "미렌더"
+  },
+  "transcription": {
+    "OpenAI_API": "호스트에서 credential/API 사용 불가를 확인했다. credential 값을 요구·노출하지 않았고 mini/저정확도 모델로 fallback하지 않았다.",
+    "primary": "Qwen/Qwen3-ASR-1.7B + Qwen/Qwen3-ForcedAligner-0.6B, 40초 core + 양쪽 5초 overlap, 전체 stream 2/3",
+    "secondary": "faster-whisper large-v3, 핵심·불확실 구간 독립 재전사",
+    "historical_large_v3": "historical/reference only; authoritative transcript 아님",
+    "raw_boundary": "ASR raw와 interpretation을 분리하고 오청·오발음을 정답으로 교정하지 않는다."
+  },
+  "외부_artifacts": {
+    "desktop_full": "C:\\kkamaknun_transcription\\EP1_DESKTOP_JA_FULL.jsonl",
+    "mic_full": "C:\\kkamaknun_transcription\\EP1_MIC_RAW_FULL.jsonl",
+    "sync_jsonl": "C:\\kkamaknun_transcription\\EP1_SYNC_TIMELINE.jsonl",
+    "sync_csv": "C:\\kkamaknun_transcription\\EP1_SYNC_TIMELINE.csv",
+    "narrative_map": "C:\\kkamaknun_transcription\\EP1_NARRATIVE_MAP.md",
+    "transcription_QA": "C:\\kkamaknun_transcription\\EP1_TRANSCRIPTION_QA.md",
+    "new_scene_pool": "C:\\kkamaknun_transcription\\EP1_NEW_SCENE_POOL.md",
+    "repository_commit_금지": true
+  },
+  "narrative_recovery": {
+    "chronology_integrity": "남긴 사건의 순서를 뒤집지 않는다.",
+    "narrative_continuity": "상황·관계·질문·감정·인과가 cut boundary에서 이유 없이 사라지지 않는다.",
+    "후반_필수_인과": "전투 재기·climax → 해변 관계 회수 → 레제의 배경 → 레제의 귀환 선택 → 레제 죽음 → 덴지가 모른 채 기다리는 결말"
   },
   "과거_POC": {
     "실행": "ep1_2026-09-02",
@@ -41,33 +83,5 @@
     "근거": "plans/EP1_PLANNING_RELIABILITY_POC.md 10절"
   },
   "다음_할_일_owner": "STATE.md",
-  "A_B_C": {
-    "판정": "유지",
-    "A": "20년 이상 취미로 애니를 봐왔지만 일본어를 제대로 공부해본 적은 없는 사람",
-    "B": "체인소 맨: 레제편을 한국어 자막 없이 보고, 자기 귀에 실제로 무엇이 남아 있는지 확인한다.",
-    "C_핵심": "20년 동안 좋아한 시간이 사람한테 이렇게 남을 수도 있구나. 신기하다."
-  },
-  "EP1_현재_구조": {
-    "promise_proof_1순위": "33:29~33:41 `漢字読めないの？ → 한자 못 읽는다는 말인가 / 나도 못 읽는데`",
-    "payoff_1순위": "53:00~58:10 긴 도망 제안 이해 → 현재 삶의 변화 이해 → `걸렸다` 웃음 → 심장 대사로 관계 해석 수정",
-    "본촬영_대표_오해": "10:20~10:47 `予定 → 여정`",
-    "다음이_최고": "본 촬영에서는 `次が最後 → 다음이 마지막`으로 정확히 이해해 탈락",
-    "cold_open_1순위": "33:29 한자 장면 → 10:20 予定 오해 → 56:00 걸렸다 웃음",
-    "timeline_integrity": "Cold open만 순서 예외. 본편은 primary 원본 chronology를 보존한다. 재확인/재시청과 최초 반응 후보는 내부 provenance에서 구분하되 viewer-facing 표시는 강제하지 않는다."
-  },
-  "패키징": {
-    "판정": "최소 수정",
-    "package_A_제목": "일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다",
-    "package_A_썸네일": "글은 잘 못 읽는데 들림?",
-    "수정": "Cold open의 과거 `다음이 최고` 비트를 본 촬영 실제 `予定→여정` 오해로 교체"
-  },
-  "Step5": {
-    "AI_전문_판정": "완료 — 상세 근거는 materials/ep1_main/PLANNING_RESULTS.md",
-    "review_artifact": "C:\\kkamaknun_step5_review\\EP1_STEP5_REVIEW_B.mp4",
-    "REVIEW_B_선택": "REVIEW_A와 동일: 기존 15 selects 중 C09/S06 제외, C05/S04와 C07/S05 압축, 나머지 기능 보존",
-    "viewer_facing_provenance": "촬영 provenance와 source TC overlay를 노출하지 않는다. 내부 provenance는 보존하고 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않는다.",
-    "사용자_역할": "실제 rough cut을 본 일반 시청자의 체감 관측과 최종 제작 진행 의사결정",
-    "AI_사후_역할": "체감 관측을 구조 문제로 해석하고 evidence와 PASS/FAIL 권고 정리"
-  },
   "AI_최종_PASS": false
 }

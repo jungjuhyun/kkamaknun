@@ -132,7 +132,7 @@ proxy 6개의 실제 합계 길이는 약 **82분 25.6초**로 확인됐다.
 현재 primary material은 다음 **파일 1개**다.
 
 ```text
-C:\OBS\체인소맨\_레제편\2026-09-06 23-54-01-01.mp4
+C:\OBS\체인소맨_레제편\2026-09-06 23-54-01-01.mp4
 ```
 
 | 항목 | 확정 내용 |
@@ -151,55 +151,47 @@ C:\OBS\체인소맨\_레제편\2026-09-06 23-54-01-01.mp4
 
 J: 드라이브의 과거 경로·손상본은 현재 primary material이 아니며, 그 복구나 파일 이동 완료를 현재 작업의 선행 조건으로 두지 않는다. 원본은 수정·이동·이름 변경·재인코딩하지 않는다.
 
-### 본 촬영 이후 실제 편집 준비 순서
+### 본 촬영 recovery 실행 계약
 
-파일 구조와 무결성 확인은 완료됐다. 여러 영상의 시작점을 맞추는 multi-video sync와 별도 동기화 master 생성 전제는 폐기한다. 본 촬영 원본의 시간축을 로깅·셀렉트의 기준으로 사용한다.
+파일 구조와 무결성 확인은 완료됐다. 본 촬영 원본의 절대 시간축을 모든 evidence의 기준으로 사용한다. 편집 시 mixed와 desktop/mic를 함께 중복 재생하지 않으며 원본을 수정하지 않는다.
 
-1. **단일 원본 기준 장면 로깅**
-   - 위 원본의 타임코드로 사용자 발화와 큰 웃음·놀람·몰입 등 실제 반응을 시간순으로 색인한다.
-   - 발화·음성 마커 탐색은 mic, 작품 대사 대조는 desktop, 전체 맥락 재생은 mixed를 사용한다. 실제 장면의 시청각 정보로 후보 강도를 확인한다.
-   - 편집 시 mixed와 desktop/mic를 함께 중복 재생하지 않도록 선택한다.
-   - 같은 파일이라는 이유만으로 체감 영상·음성 정합까지 인증하지 않는다. 후보 확인 중 어긋남이 관찰되면 해당 구간을 점검하되, 별도 영상 파일의 싱크 공정을 선행시키지 않는다.
+이번 recovery는 scene 후보부터 고르지 않는다.
 
-2. **역할 태깅**
-   - 각 후보를 `promise 증명 / 정확 이해 / 소리만 포착 / 오해 / 읽기-청해 격차 / 캐릭터 / 작품 몰입 / 공유 단위` 중 하나 이상으로 태깅한다.
-   - `재미있음`만으로 넣지 않고 영상에서 무슨 일을 하는 장면인지 구분한다.
+1. **Layer A — source narrative**
+   - 접근 가능한 공식 작품 소개·신뢰 가능한 상세 줄거리와 실제 화면·desktop audio를 대조한다.
+   - 사건, 관계·감정 변화, 앞뒤 의존 정보, narrative function, `MUST_KEEP / BRIDGE / OPTIONAL`을 source TC로 기록한다.
+   - 일본어/한국어 자막·대본 원문 전체를 repository나 결과 문서에 복제하지 않는다.
+2. **Layer B — desktop dialogue/audio**
+   - stream 2를 일본어 원문 우선으로 전체 재전사한다. absolute TC, chunk overlap, uncertainty를 보존한다.
+3. **Layer C — user mic**
+   - stream 3을 한국어·일본어 code-switch와 실제 오청·오발음 그대로 전체 재전사한다. raw transcript와 해석을 분리한다.
+4. **Layer D — visual/nonverbal reaction**
+   - 웃음·표정·놀람·침묵·몰입·따라 하기는 transcript만으로 확정하지 않고 실제 화면/과거 AV 로그와 대조한다.
+5. **Synchronized evidence와 새 candidate pool**
+   - 네 layer를 absolute TC로 정렬한 뒤에만 `setup → 작품 사건/대사 → 이해·오해 → reaction → 작품 결과/다음 상태` scene unit을 만든다.
+   - 역할은 `ANCHOR / STORY_REACTION / STORY_LISTENING / BRIDGE / EVIDENCE / CHARACTER`로 기록한다. EVIDENCE/CHARACTER만으로 본편 spine을 만들지 않는다.
 
-3. **셀렉트 릴**
-   - 유효 후보만 원본 시간순으로 모은다. 이 단계에서는 7~9분에 억지로 맞추지 않는다.
+### REVIEW_B 공식 FAIL과 현재 recovery 상태
 
-4. **러프 구조표 갱신**
-   - 기존 약 82분 테스트 촬영은 보조·비교 자료로 유지한다. 기존 구조표와 그 타임코드는 테스트 재료 기반 가설이며 본 촬영 타임코드로 전용하지 않는다.
-   - 기존 기획 방향과 material_first 원칙을 유지하되, 본 촬영의 실제 장면과 원본 위치로 구조표를 갱신한다. 더 강한 장면·흐름이 나오면 실제 재료를 우선한다.
-   - 반복 시청·재확인 여부는 내부 material provenance에서 구분한다. viewer-facing 표시는 강제하지 않되, 최초 반응이 아닌 장면을 최초라고 명시적으로 주장하지 않는다.
+사용자가 REVIEW_B를 실제 시청한 결과를 AI가 구조적으로 해석해 **planning_quality_failure**로 확정했다.
 
-5. **Step 5 품질 판정**
-   - AI/harness가 구조표와 실제 장면 근거를 먼저 전문 판정하고, selected footage로 시청 가능한 review rough cut을 만든다.
-   - 사용자는 문서를 보고 전문 기획을 판정하지 않고 실제 rough cut을 일반 시청자로 본 체감 관측을 남긴다. AI가 그 관측을 구조 문제로 해석해 PASS/FAIL 권고를 정리한 뒤, 사용자가 최종 제작 진행 여부를 확정한다.
+- chronology는 대략 유지했지만 narrative continuity가 무너졌다.
+- 청해 증거를 우선해 작품의 핵심 사건·감정·payoff, 특히 레제의 선택·죽음·결말 인과가 탈락했다.
+- listening evidence와 reaction이 작품 감상 흐름 안에서 결합되지 않고 독립 사례처럼 배열됐다.
+- Cold open의 `사메노 마진/상어 마인`, `漢字読めないの？`가 본편에서 새 의미 없이 반복됐다.
+- historical large-v3 결과가 제한된 핵심 대조에 과도하게 의존했고 source narrative 전체 복원이 없었다.
 
-### 본 촬영 material-first 결과 — Step 5 review 입력
+기존 REVIEW_B를 수정하거나 그 기반으로 REVIEW_C를 만들지 않는다. 기존 34 candidates / 15 selects는 상세 owner에서 **historical evidence**로 보존하되 authoritative select set으로 사용하지 않는다.
 
-2026-09-13에 위 primary material `01:45:25.063` 전체를 실제로 읽고, mic 전체 발화 탐색·핵심 mic/desktop 대조·전체 시간축 및 핵심 얼굴 프레임 확인을 결합해 장면 로깅을 완료했다.
+현재 recovery에서는 stream 2/3 전체 `01:45:25` 재전사, 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 만들었다. final select, body 구조, Cold open, REVIEW_C는 아직 확정하지 않았다. 외부 artifact와 QA 경계는 `materials/ep1_main/PLANNING_RESULTS.md`가 소유한다.
 
-- 장면 후보: **34개** (`유지 18 / 보류 12 / 탈락 4`)
-- 최종 select: **15개**
-- 완료 범위: 역할 태깅 → 장면 경쟁 → 셀렉트 릴 → 실제 타임코드 러프 구조표 → AI 전문 기획 판정
-- 상세 증거 owner: [`materials/ep1_main/PLANNING_RESULTS.md`](materials/ep1_main/PLANNING_RESULTS.md)
-- 현재 상태: **AI 전문 판정과 REVIEW_B 구성 완료. provenance overlay 없는 실제 review rough cut을 본 사용자 체감 관측 대기**
+본편의 현재 기획 원칙은 **작품 서사 = 골격 / 청해 = 소재·발견 / reaction = 재미·인물성**이다. chronology와 narrative continuity를 따로 검사하며, 후반 `전투 climax → 해변 관계 회수 → 레제의 배경 → 귀환 선택 → 죽음 → 덴지의 기다림`을 청해 강도와 독립적으로 보존 후보로 둔다.
 
-A/B/C는 유지한다. 실제 재료가 바꾼 것은 핵심 장면의 역할과 구조다.
+A/B/C는 변경하지 않는다. 기존 package, promise proof, payoff, Cold open은 recovery evidence audit 전까지 과거 판정일 뿐 현재 확정안이 아니다. 다음 단계는 새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계하는 것이다.
 
-1. 약 32분대 가설의 본 촬영 실제 위치는 **33:29~33:41**이다. `漢字読めないの？`에 대한 본 촬영 발화는 과거 요약의 `나랑 똑같네`가 아니라 **`한자 못 읽는다는 말인가 / 나도 못 읽는데`**다.
-2. 이 장면은 짧은 A+B 모순과 package promise를 가장 잘 압축하므로 **promise proof 1순위**로 유지한다. 다만 전체 payoff 1순위로 자동 확정하지 않는다.
-3. 본편 payoff 1순위는 **53:00~58:10의 연속 사건**이다. 긴 도망 제안의 핵심을 따라감 → 현재 삶이 재미있어진 이유를 파악함 → 다른 좋아하는 사람이 있다는 질문에 `걸렸다`고 웃음 → 심장을 가져간다는 대사로 관계 해석을 수정하는 흐름이다.
-4. 기존 테스트 촬영의 `次が最後 → 다음이 최고` 오해는 본 촬영에서 재현되지 않았다. 본 촬영 사용자는 **`다음이 마지막`**으로 정확히 이해했으므로 Cold open·select에서 제거했다. 본 촬영 대표 오해는 **10:20~10:47 `予定 → 여정`**이다.
-5. package A 문구는 **최소 수정 판정**이다. 제목과 썸네일은 유지하되 Cold open의 `다음이 최고` 비트를 `予定→여정`으로 교체한다.
+## 촬영 protocol과 과거 기획 기록
 
-현재 1순위 Cold open은 `33:29 한자 장면 → 10:20 予定 오해 → 56:00 걸렸다 웃음`이다. 대안은 `53:00 긴 서사 이해 몽타주 → 33:29 한자 장면 → 10:20 予定 오해`다.
-
-본 촬영 앞부분의 강한 장면은 기존 촬영에서 이미 본 사건과 겹친다는 사실을 내부 provenance에 보존한다. 후반은 owner의 최초 반응 보존 방침과 기존 take1 범위 밖이라는 근거가 있는 경우에만 내부 분석에서 `최초 반응 후보`로 분류하며, 파일 내부에 정확한 경계 선언이 없다는 불확실성을 남긴다. 이 내부 분류를 viewer-facing 영상에 표시하지 않으며, 최초 반응이 아닌 장면을 최초라고 명시적으로 주장하지 않는다.
-
-Step 5 AI 전문 판정에서 A/B→C, package A, promise proof와 payoff 역할, chronology·사실 경계는 유지했다. REVIEW_B는 REVIEW_A의 장면 선택·순서·압축을 그대로 유지하고 촬영 provenance와 source TC overlay만 제거한다. C09/S06은 더 강한 C25의 character 기능과 중복되어 제외된 상태를 유지하고, C05/S04와 C07/S05는 성공 증거와 작품 감상이라는 서로 다른 기능만 남도록 각각 약 20초 압축을 유지한다. 10분 45초는 문서 추정치만으로 길다/짧다를 확정하지 않고 실제 rough cut의 호흡으로 검증한다. 상세 판정과 시청 질문은 `materials/ep1_main/PLANNING_RESULTS.md`가 소유한다.
+아래는 촬영 조건·내부 provenance·이전 기획 판단을 재현하기 위한 참고 기록이다. 현재 recovery 실행 순서, select, body, Cold open의 owner는 위 recovery 절과 `materials/ep1_main/PLANNING_RESULTS.md`이며, 아래의 과거 `다음 단계`, 러프 구조, package/Cold open 순위를 current instruction으로 실행하지 않는다.
 
 ## 1화 진단용 본 촬영 프로토콜 — 채택
 

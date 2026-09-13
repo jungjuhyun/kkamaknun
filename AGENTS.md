@@ -65,7 +65,8 @@
 3. STATE.json의 현재_lock 경로를 사용한다. EP1_LOCK.json 등 특정 편의 lock을 추측하거나 하드코딩하지 않는다.
 4. 실제 촬영물·실험 결과·관찰 기록이 있으면 material_first를 사용한다.
 5. material_first에서는 실제 footage와 material에서 사건·반응·변화를 먼저 찾고, 촬영 전의 예상이나 가상 원안이 이를 덮어쓰지 않게 한다.
-6. pipeline을 건너뛰고 바로 각·구조·패키징을 작성하지 않는다.
+6. 외부 작품·경기·공연·사건처럼 자체 서사가 있는 material_first 입력은 source narrative, desktop dialogue/audio, user mic, visual/nonverbal reaction을 독립 복원해 synchronized evidence timeline을 만든 뒤 scene 후보를 경쟁시킨다.
+7. pipeline을 건너뛰고 바로 각·구조·패키징을 작성하지 않는다.
 
 System Evaluation 구현·감사·실행 요청은 `evals/system/README.md`를 기준으로 하며 영상 기획 결과물 요청이 아니므로 video_planning pipeline을 실행하지 않는다. 하네스 구현·감사·instruction source 수정 요청도 video_planning pipeline을 실행하지 않는다. tools/scene_collector 아래 작업은 해당 scoped AGENTS.md를 함께 따른다.
 
@@ -86,6 +87,7 @@ Search → Evaluate → Adopt/Buy → Adapt → Build last
 
 - A/B→C는 큰 기획 뼈대이며 경쟁 사례 분석을 대체하지 않는다.
 - material_first에서는 실제 사건·반응·시청각 신호에서 A+B가 특별해지는 장면을 찾은 뒤 콘텐츠 각과 구조를 만든다.
+- 외부 source narrative가 있는 영상은 작품 서사를 본편 골격으로, 분석 주제를 소재·발견으로, 출연자 reaction을 재미·인물성으로 다룬다. chronology 보존과 narrative continuity 보존을 같은 것으로 취급하지 않는다.
 - 촬영 전 가정과 실제 결과를 섞지 않는다. 2차·3차 시청이나 재촬영 여부는 내부 material provenance와 분석 기록에서 구분한다. 이 내부 구분을 viewer-facing 영상에 의무 표기하지 않되, 최초 반응이 아닌 장면을 `첫 반응`, `처음 본 순간`, `처음 보는 장면`이라고 명시적으로 주장하지 않는다.
 - deterministic validator는 current truth·lock·자료 경계·명백한 금지 문구만 검사한다.
 - validator의 PASS는 기획 재미, 시청 지속, 콘텐츠 각, RED TEAM 통과나 최종 품질을 뜻하지 않는다.

@@ -2,8 +2,9 @@
 
 기준 원본: `C:\OBS\체인소맨_레제편\2026-09-06 23-54-01-01.mp4`
 원본 기준 러닝타임: `01:45:25.063`
-분석일: 2026-09-13 KST
-상태: 장면 로깅·역할 태깅·셀렉트 릴·러프 구조·Step 5 AI 전문 판정 완료 — provenance overlay를 제거한 REVIEW_B 시청 반응 대기
+historical 34/15 분석일: 2026-09-13 KST
+source reconstruction recovery: 2026-09-14 KST
+상태: **REVIEW_B planning_quality_failure 확정 — source reconstruction·전체 재전사·narrative map·synchronized timeline·새 후보 풀 생성 완료, 독립 evidence 감사 대기**
 
 이 문서는 본 촬영 장면 증거의 상세 owner다. 1화 current detail owner는 계속 `FIRST_VIDEO.md`이며, 그 문서는 현재 결과 요약과 이 파일의 연결을 소유한다. 원본·임시 WAV/FLAC·프레임·전사 파일은 저장소에 넣지 않는다.
 
@@ -11,7 +12,8 @@
 
 - 원본을 이동·개명·수정·재인코딩하지 않고 읽기 전용으로 검사했다.
 - 직접 확인한 컨테이너 값은 영상 `2560×1440 / 48fps / H.264`, 오디오 stream 1 mixed·2 desktop·3 mic, `start_time 0`, 전체 `6325.0625초`다.
-- mic 전체를 분리해 604개 초벌 발화 구간을 탐색했고, 핵심 구간은 mic/desktop 분리 트랙의 large-v3 재전사로 대조했다.
+- 과거 run에서는 mic 전체 604개 초벌 발화 구간과 핵심 구간 large-v3 대조를 사용했다. 이 결과는 현재 authoritative transcript가 아니라 historical/reference다.
+- recovery run은 stream 2 desktop과 stream 3 mic를 각각 전체 `01:45:25` 재전사했다. primary는 `Qwen/Qwen3-ASR-1.7B` + `Qwen/Qwen3-ForcedAligner-0.6B`, secondary는 핵심·불확실 구간의 `faster-whisper large-v3` 독립 대조다. 모든 raw ASR은 해석과 분리하고 uncertainty를 보존한다.
 - 90초 간격 71개 전체 시간축 프레임과 핵심 구간 1초 간격 얼굴 프레임을 확인했다. 후보의 힘은 전사만으로 정하지 않고 표정·몸 움직임·침묵·작품 화면과의 결합을 함께 봤다.
 - 전사는 탐색·대조 보조다. 아래 일본어 원문은 desktop 분리 트랙 재전사로 확인된 핵심 구간만 확정형으로 쓰며, 영화 전체 자막 확보를 뜻하지 않는다.
 - 이 파일은 사용자가 음성 마커를 넣은 3번째 촬영 계획과 일치하는 형태다. 앞부분은 기존 82분 테스트 촬영에서 이미 본 동일 사건이 확인되므로 내부 로그에서 `재확인/재시청`으로 기록한다. 후반 최초 반응은 owner에 적힌 보존 방침과 기존 take1 범위 밖이라는 근거가 함께 있는 구간만 내부 분석에서 `최초 반응 후보`로 분류한다. 파일 안에 경계 선언이 없으므로 확신이 부족한 곳은 최초라고 단정하지 않는다. 이 provenance는 viewer-facing 영상 표시 의무가 아니다.
@@ -27,7 +29,40 @@
 
 실제 본 촬영은 A/B/C를 바꿀 근거를 만들지는 않았다. 다만 `읽기 약점 ↔ 듣기 강점` 한 장면보다, **정확 이해·핵심어 오해·소리 자가수정·서사 몰입이 한 사람 안에서 교차하는 누적**이 C를 더 잘 만든다.
 
-## 3. 장면 경쟁 기준
+## 3. REVIEW_B 공식 판정과 recovery evidence
+
+REVIEW_B 공식 판정: **planning_quality_failure**
+
+사용자의 실제 시청 관측을 AI가 구조 원인으로 해석한 결과는 다음과 같다.
+
+1. **narrative continuity 실패:** 남긴 컷의 chronology는 대략 유지했지만 상황·관계·질문·감정·인과가 컷 사이에서 사라졌다.
+2. **작품 핵심 사건 coverage 실패:** 레제의 선택, 죽음, 덴지가 모른 채 기다리는 결말까지 이어지는 후반 payoff가 보존되지 않았다.
+3. **listening evidence 과최적화:** `청해 증거로 좋은 장면`이 source narrative의 MUST_KEEP보다 먼저 경쟁했다.
+4. **listening/reaction 분리:** 청해 사례와 반응이 작품의 setup→사건→결과 안에서 결합되지 않고 독립 진단 사례처럼 배열됐다.
+5. **Cold open/body 구조 중복:** `사메노 마진/상어 마인`, `漢字読めないの？` 비트가 본편에서 새 맥락·새 정보·새 감정 없이 다시 나왔다.
+6. **transcription evidence 품질 부족:** 핵심 구간 판단이 historical large-v3와 제한적 대조에 과도하게 의존했고, source narrative 전체 복원이 없었다.
+
+따라서 REVIEW_B를 고치거나 그 select를 이어 REVIEW_C를 만들지 않는다. 기존 34 candidates / 15 selects / REVIEW_A·B 구성은 아래 **historical evidence**로 보존하지만 새 구조의 authoritative select set이 아니다.
+
+### Recovery source layers
+
+- Layer A — source narrative: `C:\kkamaknun_transcription\EP1_NARRATIVE_MAP.md`
+- Layer B — desktop dialogue/audio: `C:\kkamaknun_transcription\EP1_DESKTOP_JA_FULL.jsonl`
+- Layer C — user mic raw: `C:\kkamaknun_transcription\EP1_MIC_RAW_FULL.jsonl`
+- Layer D — visual/nonverbal reaction: 전체 1분 frame map과 과거 AV 로그를 대조하고, transcript만으로 reaction을 확정하지 않았다.
+- synchronized evidence: `C:\kkamaknun_transcription\EP1_SYNC_TIMELINE.jsonl`, `C:\kkamaknun_transcription\EP1_SYNC_TIMELINE.csv`
+- transcription QA: `C:\kkamaknun_transcription\EP1_TRANSCRIPTION_QA.md`
+- 새 scene candidate pool: `C:\kkamaknun_transcription\EP1_NEW_SCENE_POOL.md` — **30 candidates, 미선택 상태**
+
+Narrative map은 청해·reaction과 독립적으로 `MUST_KEEP / BRIDGE / OPTIONAL`을 판정한다. 특히 `도망 제안 → 거절 → 폭탄 정체 → 전투 시작 → 동료 개입 → 전투 climax → 해변 관계 회수 → 레제의 배경 → 레제의 귀환 선택 → 죽음 → 덴지의 기다림` 인과 사슬을 다시 세웠다. 레제 죽음은 고립된 충격 컷이 아니라 선택의 결과와 결말의 비극적 아이러니까지 연결해야 한다.
+
+현재 실행 범위는 evidence layer 생성까지다. final select, body 구조, Cold open, REVIEW_C는 확정·렌더하지 않았다. 다음 단계는 새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계하는 것이다.
+
+# Historical evidence — REVIEW_B 이전 분석
+
+아래 `장면 경쟁 기준`부터 문서 끝까지는 2026-09-13의 34 candidates / 15 selects / REVIEW_A·B를 재현하기 위한 역사 기록이다. 현재 후보·구조·품질 판정으로 실행하지 않는다. A/B/C, 실제 material 사실, provenance history 자체는 보존한다.
+
+## H1. 당시 장면 경쟁 기준
 
 각 후보의 `통과축`은 다음 10개 질문 번호다.
 

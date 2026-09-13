@@ -1,406 +1,177 @@
-# GPT 하네스 마무리 + 1화 실전 검증 계획
+# GPT 하네스 마무리 + EP1 실전 검증·recovery 계획
 
-기준일: 2026-09-04
-상태: 진행 중 — 현재 실행 위치는 STATE.md, 본 촬영 재료·편집 준비 절차는 FIRST_VIDEO.md 참조
-목적: 하네스를 더 복잡하게 만드는 것이 아니라, 현재 잘못 연결된 실행부를 최소 수정하고 GPT의 실제 기획 능력이 1화에서 안정적으로 발휘되는지 검증한다.
+기준일: 2026-09-14
 
-## 1. 최종 성공 기준
+상태: 진행 중 — REVIEW_B planning_quality_failure 종료, source reconstruction evidence 생성 완료, 독립 감사 대기
 
-이번 작업의 최종 성공 기준은 문서 수, 규칙 수, 테스트 수가 아니다.
+현재 상태 owner: `STATE.md`
 
-> **AI/harness의 전문 기획 판정과 실제 review rough cut 시청 테스트를 거쳐, 사용자가 최종 제작 진행을 결정할 수 있는가.**
+공통 process owner: `tools/harness/PIPELINE.yaml`
 
-목표는 그보다 높은 **중간 이상 수준의 기획**이다.
+## 1. 목적과 완료 기준
 
-다음이면 실패로 판정한다.
+목적은 하네스 계층을 늘리는 것이 아니라, 실제 material에서 작품 감상과 청해·reaction을 함께 살리는 기획을 반복 가능하게 만드는 것이다.
 
-- 사용자가 문서만 읽고 "이걸 누가 봐?", "왜 이 장면이 핵심인데?", "중간에 같은 기능만 반복하잖아" 같은 전문 기획 결함을 처음부터 찾아줘야 함
-- current truth, 실제 재료, 경쟁 사례, 후보 경쟁을 모두 거쳤는데도 최종안이 여전히 평범하거나 재미없음
-- 실패할 때마다 새 규칙·새 레이어·새 framework를 추가하는 방향으로 되돌아감
+최종 성공 조건은 다음 세 가지다.
 
-## 2. 상위 채널 로드맵
+1. current truth, lock, 실제 material, 내부 provenance가 보존된다.
+2. 외부 source narrative가 있는 material-first 영상은 source reconstruction을 거쳐 narrative continuity와 핵심 사건 coverage를 보존한다.
+3. AI/harness의 pre-render 품질 gate와 실제 review rough cut 시청 테스트 뒤 사용자가 제작 진행을 결정할 수 있다.
 
-이 로드맵은 각 화의 커리큘럼을 미리 고정하는 계획이 아니다. AI가 개별 영상 기획을 판단할 때 장기 방향을 잃지 않기 위한 상위 맥락이다.
+REVIEW_B는 2번을 충족하지 못해 **planning_quality_failure**다. 이번 recovery는 evidence layer까지 재구축하고, final select·body·Cold open·REVIEW_C는 다음 독립 감사 뒤로 남긴다.
 
-### Phase 1 — 현재 일본어 상태에서 성장
+## 2. 고정 범위
 
-현재 일본어 출발점 확인
-→ 실제 부족한 부분 발견
-→ 실제 필요 때문에 공부·실험
-→ 새 실전 검증
-→ 결과와 성장
-→ 일본어가 늘면서 가능한 행동·경험이 확대
+다음은 재설계하지 않는다.
 
-1화는 이 Phase의 출발점이다. 1화 자체는 독립적으로 볼 가치가 있어야 하며, 시청 후 자연스럽게 다음 질문이 남아야 한다.
+- A: 20년 이상 취미로 애니를 봐왔지만 일본어를 제대로 공부해본 적은 없는 사람
+- B: `체인소 맨: 레제편`을 한국어 자막 없이 보고, 자기 귀에 실제로 무엇이 남아 있는지 확인한다.
+- C: 20년 동안 좋아한 시간이 사람한테 이렇게 남을 수도 있구나. 신기하다.
+- primary material과 stream 2 desktop / stream 3 mic 사실
+- 재확인·재시청·재촬영의 내부 provenance와 최초성 경계
+- viewer-facing 영상에 provenance overlay를 자동 노출하지 않는 원칙
 
-> 애니만 오래 본 사람의 귀가 이렇게 되어 있다면, 제대로 공부하기 시작하면 어떻게 될까?
+기존 34 candidates / 15 selects는 삭제하지 않지만 historical evidence다. REVIEW_B를 수정하거나 그 select로 REVIEW_C를 만들지 않는다.
 
-### Phase 2 — 일본
+## 3. REVIEW_B 공식 FAIL
 
-실제로 일본에 감
-→ 사람·문화·여행·상황에서 일본어를 사용
-→ 예상하지 못한 사건과 경험
-→ "일본어를 공부하는 채널"보다 "이 사람이 일본과 관련해 다음에 무엇을 하고 어디까지 가는지 궁금한 채널"로 확장
+사용자의 실제 시청 결과를 다음 구조 문제로 해석한다.
 
-장기 서사는 중요하지만 한 편의 재미를 희생시키는 상위 명령으로 쓰지 않는다.
-
-## 3. 유지할 기존 하네스
-
-다음은 그대로 살린다.
-
-- STATE.md를 현재 상태와 다음 행동의 owner로 두는 구조
-- AGENTS.md의 progressive disclosure
-- PROJECT_CONTEXT / USER_PROFILE / FIRST_VIDEO / PLAYBOOK의 owner 분리
-- 실제 사실과 가정·시뮬레이션의 구분
-- 편별 잠금(LOCK)
-- deterministic validator
-- RED TEAM의 "생성과 공격을 분리"하는 원칙
-- 실제 촬영 결과가 사전 기획과 다르면 실제 재료에서 재기획한다는 PLAYBOOK 원칙
-
-## 4. 수정할 핵심 문제
-
-### 4-1. 종료된 가상 완성본 POC를 현재 실행 공정에서 분리
-
-현재 STATE.md는 "새 가상 완성본을 또 만들지 않는다"와 "실제 촬영물 → 사건·반응 → 장면 → 콘텐츠 각 → 구성"을 current truth로 둔다.
-
-그러나 tools/harness/PIPELINE.yaml은 아직 "1화 가상 완성본 1차 작성"을 요구한다.
-
-수정 원칙:
-
-- 실패한 ep1 planning reliability POC는 과거 실험으로 닫음
-- 현재 실행 pipeline에서 가상 완성본 단계를 제거
-- STATE.md / tools/harness/STATE.json / pipeline lifecycle이 서로 같은 현재 상태를 말하게 함
-
-### 4-2. 실제 재료 존재 여부에 따라 시작점 분기
-
-실제 재료가 있는 경우:
-
-현재 사실 복원
-→ 실제 재료 지도
-→ 사건·반응 후보
-→ 경쟁 사례 조사
-→ 콘텐츠 각 후보
-→ 후보 경쟁
-→ 구조
-→ 패키징
-→ 검증
-
-촬영 전인 경우:
-
-현재 사실 복원
-→ A/B→C
-→ 경쟁 사례 조사
-→ 여러 실행 가능한 포맷·각
-→ 후보 경쟁
-→ 촬영 설계
-→ 검증
-
-현재 1화는 반드시 첫 번째 경로를 사용한다.
-
-### 4-3. A/B→C는 큰 콘텐츠 뼈대로 유지
-
-A = 누가
-B = 무엇을 한다
-C = 시청 후 남는 감상·반응
-
-경쟁 영상 분석은 A/B→C를 대체하지 않는다.
-
-기획 순서는 "A/B→C를 채우기"가 아니라 실제 재료에서 A+B가 특별해지는 사건을 찾고, 그 사건을 통해 C가 설명 없이 발생하게 만드는 방향으로 사용한다.
-
-### 4-4. 윤성원 PD 방법론을 공통 공정에 연결
-
-문제:
-- 전사 기반으로 채택된 윤성원 PD 방법론이 reference와 PLAYBOOK의 보조 프레임에 존재했지만, 실제 `PIPELINE.yaml`의 통과 조건에 충분히 연결되지 않았다.
-- 그 결과 EP1에서 `콘텐츠 각/핵심 장면`, Cold open, 예상 댓글·공유 단위 같은 판단을 모델의 일반 감으로 처리했고 사용자가 기본 결함을 발견했다.
-- 이를 EP1 전용 보정으로 끝내면 다음 영상에서 같은 누락이 반복될 수 있다.
-
-수정:
-- 새 단계나 새 agent를 만들지 않고 기존 video_planning 공정에 매핑한다.
-- 단계 3 재료 정리: 실제 푸티지 우선 + 표정·억양·침묵·웃음·타이밍 등 시청각 신호.
-- 단계 5 각 후보: A/B→C + 영상이 존재하는 이유가 되는 핵심 장면 + 예상 댓글/공유 단위.
-- 단계 6 후보 경쟁: 왜 보나/타겟 확장 + 핵심 장면의 힘 + 커뮤니티 제목/재가공성.
-- 단계 7 구조: 핵심 장면까지 달리는 빌드업, 재미있는 B컷도 기능이 없으면 제거.
-- 단계 8 패키징: 핵심 장면/C/payoff에서 역산, Cold open은 결과 은폐가 아니라 promise 확인 + 미해결 질문 기준.
-- 단계 9 검증: 핵심 장면·타겟 확장·공유 단위까지 RED TEAM. 러프컷 단계에서는 시청자 모드 이탈 지점 검수.
-
-새 강의 전사가 추가될 때도 같은 원칙을 쓴다:
-> 전사 근거 정리 → 반복 적용 가치 판단 → 기존 공정의 적절한 단계에 매핑 → 필요할 때만 owner 문서 갱신
-
-한 편의 결함을 한 편 전용 규칙으로만 봉합하지 않는다.
-
-## 5. 경쟁 영상 해부를 기획 엔진에 포함
-
-웹 검색은 하네스 구조 조사보다 현재 영상의 **실제 경쟁력 조사**에 우선 사용한다.
-
-성공 사례와 약한 사례를 함께 본다.
-
-각 영상에서 확인할 항목:
-
-1. Promise — 제목·썸네일이 무엇을 약속했는가
-2. Opening — 첫 30~60초에 무엇을 실제로 보여줬는가
-3. Viewer Question — 무엇의 답을 기다리게 했는가
-4. Escalation — 중간에 무엇이 새로 생겼는가
-5. Variation — 반복 구간을 어떻게 변주했는가
-6. Character — 출연자의 성격이 어떤 사건에서 드러났는가
-7. Payoff — 가장 기다린 보상을 무엇으로 줬는가
-8. Packaging Fit — 제목·썸네일 약속과 실제 payoff가 맞는가
-9. Exit Hook — 끝난 뒤 왜 다음 영상을 보고 싶게 되는가
-10. Failure Pattern — 유사하지만 약한 영상은 어디에서 무너졌는가
-
-일본어 채널에 한정하지 않는다. 같은 전달 문제를 해결한 리액션, 챌린지, 자기실험, 게임, 요리, 피트니스, 다큐, 브이로그 등도 참고한다.
-
-조사의 목적은 성공 영상을 복제하는 것이 아니라 현재 1화 재료에 적용 가능한 **구조 원리**만 가져오는 것이다.
-
-## 6. 하나의 원안을 자기검증하는 구조에서 후보 경쟁으로 전환
-
-기존:
-
-원안 1개
-→ 같은 AI가 RED TEAM
-→ 수리
-→ PASS
-
-수정:
-
-실제 재료 + 경쟁 사례
-→ 서로 다른 콘텐츠 각 후보 여러 개 생성
-→ 후보 간 비교
-→ 약한 후보 탈락
-→ 상위 후보만 구체화
-→ 최종 각 선택
-→ 구조
-→ RED TEAM
-
-후보 수를 고정하지 않는다. 숫자를 채우기 위한 억지 후보는 만들지 않는다.
-
-### 후보 경쟁 축
-
-- A+B가 왜 특별한가
-- C가 실제 시청 경험에서 생기는가
-- 이를 증명할 실제 사건·장면이 있는가
-- 클릭 이유가 있는가
-- 첫 구간에 실제로 보여줄 것이 있는가
-- 중간의 시청 이유가 갱신되는가
-- 같은 기능의 사건을 반복하지 않는가
-- 사용자라는 사람이 기억되는가
-- payoff가 존재하는가
-- 제목·썸네일로 정직하면서 강하게 약속할 수 있는가
-- 끝난 뒤 다음 상태 또는 다음 궁금증이 남는가
-- Phase 1의 성장 서사가 실제로 전진하는가
-- 실제 재료와 제작 조건에서 만들 수 있는가
-
-장기 서사 적합성은 보조 강점이다. 한 편 자체의 시청 가치보다 우선하지 않는다.
-
-## 7. 구조와 패키징의 순서
-
-콘텐츠 각이 선택되기 전에 제목·썸네일이나 전체 편집표부터 만들지 않는다.
-
-재료
-→ 콘텐츠 각
-→ 본편 구조
-→ payoff
-→ 패키징
-
-구조는 고정 템플릿에 맞추는 것이 아니라, 각 주요 구간에서 시청자의 기대·질문·판단이 실제로 바뀌는지 본다.
-
-## 8. RED TEAM과 validator의 역할 제한
-
-### RED TEAM
-
-RED TEAM PASS를 "좋은 기획 인증"으로 취급하지 않는다.
-
-역할은 살아남은 최종 후보에서 명백한 약점을 공격하는 것이다.
-
-- 약속과 본편 불일치
-- 초반 이후 볼 이유 소멸
-- 동일 기능 반복
-- C가 마지막 설명에 의존
-- 실제 재료보다 강한 주장
-- 사용자 캐릭터 소실
-- payoff 부족
-- 다음 시청 욕구 부족
-
-### check_draft.py
-
-기획 재미를 평가하지 않는다.
-
-담당 범위:
-
-- current truth
-- lock 위반
-- 없는 자료를 있다고 주장
-- 사실/가정 혼동
-- 명백한 상태 충돌
-
-현재 run의 episode/lock을 자동 또는 명시적으로 연결해, 기본값 때문에 다른 편의 lock을 검사하는 문제를 없앤다.
-
-## 9. 공통 core와 환경별 adapter
-
-공통 core:
-
-- STATE
-- AGENTS
-- PROJECT_CONTEXT
-- PLAYBOOK
-- 현재 run
-- pipeline
-- lock
-- validator
-
-Claude Code hook은 Claude 전용 adapter일 뿐 core가 아니다.
-
-GPT / Codex / Claude가 같은 core와 같은 current truth에서 출발하도록 하되, 모든 환경에 같은 hook 기술을 억지로 복제하지 않는다.
-
-## 10. 하네스 실패와 기획 품질 실패를 분리
-
-### Harness failure
-
-- current truth를 틀림
-- 확정 B를 다시 설계
-- 실제 촬영물을 무시
-- 현재 pipeline을 건너뜀
-- 외부 사실을 필요한 시점에 검증하지 않음
-- 선택된 각과 관계없는 방향으로 이탈
-
-### Planning-quality failure
-
-- current truth를 지킴
-- 실제 재료를 사용함
-- 경쟁 사례를 분석함
-- 후보 경쟁을 수행함
-- 그런데도 최종안이 약하거나 재미없음
-
-두 번째가 발생하면 새 규칙을 몇 개 더 붙이는 방식으로 자동 해결했다고 하지 않는다. 모델의 기획 능력, 조사 품질, 후보 생성·선택 능력을 분리해 판단한다.
-
-## 11. 무한 하네스 개발 방지
-
-이번 작업의 기본 해법으로 사용하지 않는다.
-
-- 새 agent framework
-- 다중 agent 구조
-- 규칙 수 증가
-- 문서 수 증가
-- rubric 무한 세분화
-- 또 다른 메타 시스템
-
-이번 수정은 현재 확인된 실행 연결 문제와 기획 품질 엔진에만 한정한다.
-
-새 문서는 이 계획서 외에는 기존 owner로 해결할 수 없을 때만 만든다.
-
-## 12. 구현 예상 범위
-
-| 파일 | 예상 작업 |
+| 실패 | 구조 원인 |
 |---|---|
-| PROJECT_CONTEXT.md | Phase 1 → Phase 2 장기 로드맵 보강 |
-| PLAYBOOK.md | 실제 재료 → 경쟁 사례 → 후보 경쟁 → 구조 원칙 반영 |
-| STATE.md | 실패한 POC와 현재 실행 상태/lifecycle 정리 |
-| tools/harness/PIPELINE.yaml | 가상완성 POC 대신 실제 기획 실행 공정으로 교체 |
-| tools/harness/STATE.json | 현재 run / lifecycle 정리 |
-| Work Project instruction | repo 밖에서 current ref·bootstrap·freshness·최소 project 규칙 소유; repo 복제본은 두지 않음 |
-| tools/harness/check_draft.py | 현재 run의 lock 선택 방식 정리 |
-| 관련 테스트 | deterministic 오류만 검증 |
+| chronology는 대략 맞지만 장면이 이어지지 않음 | chronology integrity를 narrative continuity로 오인 |
+| 레제의 죽음과 결말 payoff가 약함 | 청해 증거 점수가 source narrative MUST_KEEP보다 우선 |
+| 청해 사례와 reaction이 따로 놈 | 핵심 일본어 한 문장을 scene 단위로 사용 |
+| `사메노 마진`, `漢字読めないの？` 반복 | Cold open을 body 전 설계하고 semantic reuse 검사를 하지 않음 |
+| 핵심 구간 판단 불안정 | 제한적 large-v3 전사와 후보 중심 검증에 과의존 |
 
-Claude 전용 hook은 공통 core를 방해하지 않는 범위에서만 유지·정리한다.
+이 FAIL은 A/B/C가 틀렸다는 뜻이 아니다. **작품 서사 = 골격 / listening = 소재·발견 / reaction = 재미·인물성**이라는 책임 배치가 공정에 없었던 것이 root cause다.
 
-## 13. 실행 순서
+## 4. 공통 material-first recovery 공정
 
-### 단계 1 — current truth 정리
-- 종료된 가상완성 POC의 ACTIVE 잔재 제거
-- STATE / harness state / pipeline lifecycle 일치
-- 장기 Phase 1 → Phase 2 로드맵을 PROJECT_CONTEXT에 반영
+외부 원작·경기·공연·사건처럼 자체 서사가 있는 경우 후보 경쟁 전에 네 layer를 독립 복원한다.
 
-### 단계 2 — 공통 기획 pipeline 교체
-- 실제 재료 존재 여부 분기
-- 실제 재료가 있으면 material-first 강제
-- A/B→C를 큰 뼈대로 유지
-- 경쟁 사례 조사와 후보 경쟁을 pipeline에 연결
+1. Layer A — source narrative
+2. Layer B — desktop dialogue/audio
+3. Layer C — user mic raw
+4. Layer D — visual/nonverbal reaction
 
-### 단계 3 — validator/router 정리
-- 기획 요청이 pipeline으로 들어가게 함
-- 현재 run/episode의 lock을 올바르게 선택
-- deterministic 검사와 기획 품질 평가를 분리
+Layer A는 source TC별 사건, 관계·감정 변화, 앞뒤 의존 정보, narrative function과 `MUST_KEEP / BRIDGE / OPTIONAL`을 기록한다. 중요도는 청해와 독립 판정한다. Layer B/C는 absolute TC, overlap, uncertainty, raw/interpretation 분리를 지킨다. Layer D는 transcript로 추정하지 않고 영상 evidence로 확인한다.
 
-### Step 4 실행 배치
+네 layer를 synchronized evidence timeline으로 정렬하기 전에는 최종 scene 후보 경쟁으로 넘어가지 않는다.
 
-Step 4는 실제 기획 결과물이 커지므로 아래처럼 나눠 checkpoint를 남긴다. 이는 새 pipeline을 추가하는 것이 아니라 기존 Step 4를 실행 단위로만 나눈 것이다.
+## 5. Scene unit과 본편 구조
 
-- **4-A 재료 복원** — 완료
-- **4-B 경쟁 영상 조사·해부** — 완료
-- **4-C 콘텐츠 각 후보 생성·경쟁** — 완료
-- **4-D 본편 구조·payoff·패키징** — 완료
-- **4-E deterministic 검증 + RED TEAM** — 완료
+scene 기본 단위는 가능한 범위의 다음 묶음이다.
 
-### 단계 4 — 1화 실전 검증
-현재 primary material과 파일 구조는 FIRST_VIDEO.md를 따른다. 아래 기존 테스트 재료는 보조·비교 자료로 사용하며, 본 촬영 로깅 후 구조표를 갱신해 판정한다.
+> source setup → 작품 대사/사건 → 사용자의 이해·오해 → 실제 reaction → 작품의 결과/다음 상태
 
-- 약 82분 1차 테스트 촬영
-- 재관찰 후보와 사용자 판정 사건
-- 실제 발언·반응 자료
-- 현재 1화 A/B/C
-- Phase 1 출발점이라는 장기 맥락
+역할은 `ANCHOR / STORY_REACTION / STORY_LISTENING / BRIDGE / EVIDENCE / CHARACTER`로 구분한다. EVIDENCE/CHARACTER만으로 본편 spine을 만들지 않는다.
 
-실행:
+본편을 Cold open보다 먼저 설계한다. chronology integrity는 남긴 사건 순서 보존이고, narrative continuity는 컷 사이 상황·관계·질문·감정·인과 보존이다. 모든 큰 cut boundary에서 다음을 확인한다.
 
-1. 실제 재료 복원
-2. 유사 성공/약한 경쟁 영상 웹 조사
-3. 성공·실패 구조 해부
-4. 현재 재료와 대조
-5. 콘텐츠 각 후보 생성
-6. 후보 경쟁
-7. 최종 각 선택
-8. 본편 구조
-9. 패키징
-10. deterministic 검증 + RED TEAM
-11. 실제 selected footage로 review rough cut 생성
-12. 사용자 시청자 체감 관측 → AI 구조 해석 → 사용자 최종 제작 결정
+- 현재 작품 상황을 이해할 수 있는가
+- 앞 scene의 어떤 상태를 이어받는가
+- 생략 뒤에도 다음 scene의 의미가 남는가
+- reaction의 원인이 보이는가
+- 분석 태그 때문에 장면이 억지로 들어오지 않았는가
 
-Cold open 보정 원칙:
-- 결과/payoff 일부 공개 자체를 금지하지 않음
-- 제목·썸네일 promise를 초반에 즉시 확인시키는가를 우선
-- 독립 장면 강도와 설명 비용을 분리 평가
-- 공개 뒤에도 메인 질문/과정/이유가 남는지 확인
-- 패키지 A/B의 promise가 다르면 Cold open도 별도 경쟁
+## 6. Cold open과 pre-render gate
 
-타임라인 보정 원칙:
-- Cold open만 순서 예외
-- 본편은 1차 시청 실제 시간 순서를 기본적으로 보존
-- 구간 생략은 가능하지만 남긴 사건의 순서는 뒤집지 않음
-- 2차/3차 촬영 여부는 내부 provenance에 보존하되 viewer-facing 표시는 강제하지 않음. 최초 반응이 아닌 장면을 최초라고 명시적으로 주장하지 않음
+본편 완성 뒤 Cold open을 다시 경쟁시킨다. teaser의 body scene이 본편에 재등장하면 더 큰 맥락, 원인/결과, 새 정보, 새 감정, payoff, 의미 재해석 중 하나 이상이 추가돼야 한다.
 
-### 공정 보정 후 EP1 재실행 결과
+다음 중 하나라도 FAIL이면 render하지 않는다.
 
-윤성원 PD 방법론을 공통 공정에 연결한 뒤, 영향받는 단계 3/5/6/7/8/9를 EP1 실제 재료로 다시 실행했다.
+- MUST_KEEP 누락
+- climax/resolution/emotional closure의 근거 없는 삭제
+- narrative continuity 단절 또는 reaction 원인 절단
+- 청해 사례 세 개 이상 연속 나열
+- 작품 감상보다 analysis tag가 편집 순서를 지배
+- Cold open/body 단순 중복
+- 동일 listening/reaction 기능 반복
+- scene context 절단으로 원본 의미 변경
+- A/B→C 증명 때문에 작품 감상 자체 붕괴
 
-- 핵심 장면: `漢字読めないの？ → 나랑 똑같네 / 한자 못읽는다`
-- 핵심 장면 자체는 한자 읽기 사건이지만, 사용자 전체 상태를 요약할 때는 `한자`로 좁히지 않고 **일본어 읽기 전반이 청해보다 약함**으로 표현한다. `전혀 못 읽음`은 과장이므로 `잘 못 읽음/읽기는 약함`을 사용한다.
-- viewer-facing 콘텐츠 각: `일본어 글은 잘 못 읽는데 ‘한자 못 읽냐?’는 알아듣는 사람`
-- 기존 `비대칭 귀`: 최종 해석/payoff
-- `次が最後 → 다음이 최고`: 공유 단위/Cold open 보조
-- `지누키?`: 본편 진단 증거
-- 구조: Cold open 제외 실제 1차 시청 chronology 보존
-- 다음: 공통 Step 5 계약에 따라 review rough cut 시청 테스트
+AI/harness가 이 gate를 책임지며 사용자에게 전문 판정을 넘기지 않는다.
 
-### 단계 5 — review rough cut 시청 테스트·판정
+## 7. EP1 transcription 실행
 
-구체 책임과 질문 계약은 current process owner인 `tools/harness/PIPELINE.yaml`을 따른다. 이 계획서는 평가 항목을 복제하지 않는다. AI/harness가 전문 기획 판정과 사후 구조 해석을 맡고, 사용자는 실제 rough cut을 본 일반 시청자의 체감 관측과 최종 제작 진행 결정을 맡는다.
+primary material 전체 `01:45:25`를 처리한다.
 
-PASS:
-- AI의 evidence와 실제 rough cut 시청 반응을 종합해 사용자가 최소 "실제로 만들어볼 수 있다"로 결정
-- 기본 기획 결함을 사용자가 문서에서 처음부터 QA하지 않아도 됨
-- 다음 영상에서도 재사용할 수 있는 공통 공정으로 판단
+- desktop: stream 2, 일본어 원문 우선, 작품명·고유명사 context, absolute TC, 40초 core + 양쪽 5초 overlap
+- mic: stream 3, Korean/Japanese code-switch, verbatim 우선, 오청·오발음 교정 금지
+- primary local ASR: `Qwen/Qwen3-ASR-1.7B` + `Qwen/Qwen3-ForcedAligner-0.6B`
+- secondary: `faster-whisper large-v3`를 핵심·불확실 구간 독립 대조에만 사용
+- historical large-v3: reference only
 
-FAIL:
-- 실패를 harness failure / planning-quality failure로 분리
-- "하네스를 더 만들자"를 자동 결론으로 삼지 않음
-- 실패 원인이 명확히 확인된 경우에만 최소 수정 여부 결정
+OpenAI transcription API는 credential 값을 읽거나 노출하지 않고 실제 사용 가능성만 확인한다. 사용할 수 없으면 mini·낮은 모델로 몰래 fallback하지 않는다. local 대안의 품질이 planning truth를 지탱하지 못하면 중단한다.
 
-## 14. 완료 조건
+## 8. Narrative reconstruction 범위
 
-이번 계획은 다음 세 조건이 모두 충족되어야 완료다.
+합법적으로 접근 가능한 공식 작품 소개·신뢰 가능한 상세 줄거리를 실제 desktop audio와 화면에 대조한다. 자막·대본 원문 전체를 repository에 복제하지 않는다.
 
-1. 현재 repo와 pipeline의 lifecycle 충돌이 사라짐
-2. 실제 재료 + 경쟁 사례 + 후보 경쟁 방식으로 1화 기획을 끝까지 실행함
-3. 실제 review rough cut 시청 관측을 AI가 구조적으로 해석하고, 사용자가 최종 제작 진행 여부를 확정함
+특히 다음 구간을 독립 QA한다.
 
-**코드와 문서가 정리됐지만 3번이 실패하면 이 계획은 완료가 아니다.**
+- 초반 setup과 마키마 관계 기준
+- 레제와 만남·관계 진전·학교/수영장
+- 정체/위협 전환과 53:00~58:10
+- 전투 시작·동료 개입·전투 climax
+- 95:10~98:07 해변 관계 회수
+- 레제의 배경과 최종 선택
+- 레제 죽음
+- 100:12~105:18 결말
 
+후반은 `전투 재기·climax → 해변 대화 → 레제의 배경 → 귀환 선택 → 죽음 → 덴지가 모른 채 기다리는 결말`의 인과를 하나의 회수 사슬로 본다.
+
+## 9. 이번 실행 artifact와 중지점
+
+repository 밖 `C:\kkamaknun_transcription\`에 다음을 만든다.
+
+- `EP1_DESKTOP_JA_FULL.jsonl`
+- `EP1_MIC_RAW_FULL.jsonl`
+- `EP1_SYNC_TIMELINE.jsonl`
+- `EP1_SYNC_TIMELINE.csv`
+- `EP1_NARRATIVE_MAP.md`
+- `EP1_TRANSCRIPTION_QA.md`
+- `EP1_NEW_SCENE_POOL.md`
+
+이번 실행은 source audit, workflow refactor, 전체 전사, narrative map, synchronized evidence timeline, 새 scene pool에서 멈춘다. final select, body, Cold open, REVIEW_C는 만들지 않는다.
+
+## 10. Owner 반영
+
+- `AGENTS.md`: routing과 source reconstruction 진입 원칙
+- `PLAYBOOK.md`: 장기 반복 원칙
+- `tools/harness/PIPELINE.yaml`: 공통 material-first 단계·scene unit·continuity·render gate
+- `FIRST_VIDEO.md`: EP1 stream/외부 source 경계/recovery 실행 계약
+- `materials/ep1_main/PLANNING_RESULTS.md`: REVIEW_B FAIL evidence, 과거 34/15 격리, 새 evidence 연결
+- `STATE.md` / `tools/harness/STATE.json`: 사람이 읽는 현재 상태와 runtime 다음 행동
+- `tools/harness/EP1_LOCK.json`: A/B/C와 primary material truth의 최소 잠금
+- 이 계획서: historical run과 current recovery를 한 실행 계획으로 통합
+
+`COMMON_RULES.json`과 deterministic validator는 재미·continuity를 문자열 규칙으로 인증하지 않는다. 관련 regression test는 pipeline 계약의 누락만 검사한다.
+
+## 11. Validation과 commit
+
+repository 변경은 feature branch에 atomic single commit으로 남긴다.
+
+- JSON parse
+- YAML parse
+- Python compile/test
+- deterministic validator regression
+- current truth / lock 일치
+- stale reference scan
+- `git diff --check`
+- commit 후 remote/ref/SHA/changed files 재확인
+
+원본 media, 분리 audio, 전사·frame·timeline 임시 artifact는 commit하지 않는다.
+
+## 12. Historical record — current procedure 아님
+
+- 2026-09-02 촬영 전 가상 완성본 POC는 패키징/본편 구조 FAIL로 종료했다.
+- 2026-09-04 actual-material 분기, 후보 경쟁, deterministic validator/RED TEAM 책임 분리를 구현했다.
+- 윤성원 PD 방법론을 A/B→C, 핵심 장면, 시청각 판단, 공유 단위, Cold open, 시청자 모드 검수에 연결했다.
+- 2026-09-13 primary 전체에서 34 candidates와 15 selects를 만들고 REVIEW_A/B를 렌더했다.
+- provenance overlay를 viewer-facing에서 제거하는 결정은 유지한다.
+- REVIEW_B 실제 시청에서 작품 핵심 사건·감정·payoff와 narrative continuity가 무너진 사실이 드러나 현재 recovery를 시작했다.
+
+이 기록의 당시 promise proof, payoff 1순위, Cold open, select 판정은 재현용 history이며 current instruction이 아니다.

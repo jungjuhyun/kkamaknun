@@ -1,6 +1,6 @@
 # STATE.md — 현재 상태
 
-기준 시각: 2026-09-13 KST
+기준 시각: 2026-09-14 KST
 
 ## 현재 상태
 
@@ -29,15 +29,23 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** **1화 Step 5 AI 전문 기획 판정과 REVIEW_B 구성 확정 완료 — provenance overlay 없는 일반 시청 테스트 대기**.
-**다음 실행:** **`C:\kkamaknun_step5_review\EP1_STEP5_REVIEW_B.mp4`를 사용자가 일반 시청자처럼 처음부터 끝까지 본다.**
+**현재 실행 위치:** **REVIEW_B planning_quality_failure 종료 → material-first source reconstruction과 새 evidence layer 생성 완료 — 독립 감사 대기**.
+**다음 실행:** **새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계한다.**
 
-2026-09-13 본 촬영 primary `01:45:25.063` 전체를 실제 분석했다. 장면 후보 34개를 로깅해 유지 18·보류 12·탈락 4로 경쟁시켰고, 동일 기능을 압축한 최종 select 15개와 약 10분 45초 러프 구조표를 만들었다. A/B/C는 유지한다. 약 32분대 한자 가설의 본 촬영 실제 위치는 33:29~33:41이며 promise proof 1순위로 유지하되, 본편 payoff 1순위는 53:00~58:10의 연속 서사 이해·웃음·반전 구간으로 조정했다. 과거 테스트 촬영의 `次が最後 → 다음이 최고` 오해는 본 촬영에서 재현되지 않아 탈락했고, 본 촬영 대표 오해는 `予定 → 여정`이다. package A 문구는 유지하되 Cold open 비트만 교체하는 최소 수정 판정이다. Step 5 AI 전문 판정에서는 C09를 더 강한 C25와 character 기능 중복으로 제외하고, C05/C07은 서로 다른 기능을 보존하되 각 20초 안팎으로 압축했다. REVIEW_B는 REVIEW_A의 장면 선택·순서·압축을 그대로 유지하고 촬영 provenance와 source TC overlay만 제거한다. 내부 provenance는 상세 owner에 보존한다. 최종 Step 5 PASS/FAIL은 실제 rough cut 시청 관측 전에는 확정하지 않는다.
+사용자의 실제 REVIEW_B 시청 결과를 근거로 Step 5를 공식 FAIL로 닫았다. 핵심 원인은 chronology만 대략 보존하고 narrative continuity를 보존하지 못한 것, 청해 증거를 작품의 핵심 사건·감정·payoff보다 우선한 것, listening과 reaction을 작품 감상 흐름 안에서 결합하지 못한 것, Cold open/body의 `사메노 마진/상어 마인` 및 `漢字読めないの？` 단순 반복, historical large-v3 결과에 과도하게 의존한 것이다. 레제의 최종 선택·죽음·덴지가 모른 채 기다리는 결말 인과가 끊긴 것은 planning_quality_failure의 핵심 evidence다.
 
-`tools/harness/PIPELINE.yaml`은 2026-09-04 공통 `video_planning` 공정으로 교체했다. 실제 재료 존재 여부를 먼저 분기하고, `material_first`에서는 **실제 재료 → 사건·반응 → 경쟁 사례 해부 → 콘텐츠 각 후보 → 후보 경쟁 → 구조·payoff → 패키징 → 검증** 순서를 사용한다. 현재 1화는 `material_first` 경로다.
+기존 REVIEW_B를 고치거나 그 기반으로 REVIEW_C를 만들지 않는다. 2026-09-13의 34 candidates / 15 selects는 `materials/ep1_main/PLANNING_RESULTS.md`에 historical evidence로 보존하지만 authoritative select set이 아니다. A/B/C와 primary material, 내부 provenance 사실은 변경하지 않았다.
+
+recovery 실행에서는 stream 2 desktop과 stream 3 mic 전체 `01:45:25`를 별도 재전사하고, source narrative / desktop dialogue·audio / user mic raw / visual·nonverbal reaction 네 layer를 복원했다. 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 `C:\kkamaknun_transcription\`에 생성했다. final select, body 구조, Cold open, REVIEW_C는 아직 확정·렌더하지 않았다.
+
+`tools/harness/PIPELINE.yaml`의 material_first 공정은 외부 source narrative가 있으면 네 layer와 synchronized evidence timeline이 준비되기 전 후보 경쟁으로 넘어가지 않도록 통합 수정했다. 작품 서사는 골격, listening은 소재·발견, reaction은 재미·인물성으로 다룬다. chronology integrity와 narrative continuity를 분리하고, 본편을 먼저 설계한 뒤 Cold open을 경쟁시키며, MUST_KEEP 누락·climax/resolution/emotional closure 삭제·진단표 배열·Cold open 단순 중복을 pre-render hard gate에서 막는다.
 
 `AGENTS.md`의 기획 라우팅은 실제 기획 요청을 `tools/harness/STATE.json` → 현재 `PIPELINE.yaml` → 현재 lock 순으로 연결한다. 현재 편은 `EP1`, lock은 `tools/harness/EP1_LOCK.json`, 입력 경로는 `material_first`다. `check_draft.py`는 이 lock을 `STATE.json`에서 선택하며 **current truth·잠금·자료 경계의 deterministic 오류만 검사**한다. PASS는 기획 품질 인증이 아니다.
 
+
+## 과거 실행 기록 — current instruction 아님
+
+아래 2026-09-04~2026-09-13의 가설·보정·REVIEW_B 이전 기록은 역사적 근거다. 현재 실행은 위 recovery 상태와 상세 owner를 따른다.
 
 2026-09-04 추가 엑셀 확인: 이번에 사용자가 수정한 새 source는 **`해석표` 시트 하나**다. 기존 판정 열은 보존하고 `평가 대상 / 이해 결과 / 포착 방식 / 오류·병목 / 세부 근거`로 1차 정규화했다. 청해 대상으로 분류된 68행의 작업 집계는 `정확 15 / 요지 이해 34 / 부분 이해 13 / 오해 2 / 미이해 4`이며 **객관 점수가 아니라 기획용 분류**다. 행별 일본어 대조 원문은 사용할 수 있지만 영화 전체 자막 완전 확보로 일반화하지 않는다.
 
