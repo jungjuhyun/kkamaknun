@@ -86,7 +86,7 @@ Search → Evaluate → Adopt/Buy → Adapt → Build last
 
 - A/B→C는 큰 기획 뼈대이며 경쟁 사례 분석을 대체하지 않는다.
 - material_first에서는 실제 사건·반응·시청각 신호에서 A+B가 특별해지는 장면을 찾은 뒤 콘텐츠 각과 구조를 만든다.
-- 촬영 전 가정과 실제 결과를 섞지 않는다. 2차·3차 시청이나 재촬영은 1차 시청인 것처럼 재배열하지 않는다.
+- 촬영 전 가정과 실제 결과를 섞지 않는다. 2차·3차 시청이나 재촬영 여부는 내부 material provenance와 분석 기록에서 구분한다. 이 내부 구분을 viewer-facing 영상에 의무 표기하지 않되, 최초 반응이 아닌 장면을 `첫 반응`, `처음 본 순간`, `처음 보는 장면`이라고 명시적으로 주장하지 않는다.
 - deterministic validator는 current truth·lock·자료 경계·명백한 금지 문구만 검사한다.
 - validator의 PASS는 기획 재미, 시청 지속, 콘텐츠 각, RED TEAM 통과나 최종 품질을 뜻하지 않는다.
 - RED TEAM은 살아남은 안의 명백한 약점을 공격하는 절차이지 좋은 기획 인증서가 아니다.

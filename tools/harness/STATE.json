@@ -6,8 +6,8 @@
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "Step 5 AI 전문 기획 판정 완료 — REVIEW_A 시청 반응 대기",
-  "다음_실행": "사용자가 C:\\kkamaknun_step5_review\\EP1_STEP5_REVIEW_A.mp4를 실제로 보고 일반 시청자 체감 관측을 남긴다. AI가 이를 구조 문제로 해석한 뒤 최종 PASS/FAIL 권고를 제시한다.",
+  "현재_계획_단계": "Step 5 AI 전문 기획 판정과 REVIEW_B 구성 확정 완료 — provenance overlay 없는 일반 시청 테스트 대기",
+  "다음_실행": "사용자가 C:\\kkamaknun_step5_review\\EP1_STEP5_REVIEW_B.mp4를 일반 시청자처럼 처음부터 끝까지 본다.",
   "Step4_배치": {
     "4-A": "실제 재료 복원 — 완료",
     "4-B": "경쟁 영상 조사·해부 — 완료",
@@ -25,7 +25,7 @@
     "최종_select_수": 15,
     "상세_owner": "materials/ep1_main/PLANNING_RESULTS.md",
     "러프_구조_예상_길이": "약 10분 45초",
-    "최초성_경계": "기존 take1에서 이미 본 앞부분은 재확인/재시청으로 표시. 후반은 owner의 최초 반응 보존 방침과 기존 take1 범위 밖 근거가 함께 있는 경우만 최초 반응 후보로 표시하며, primary 파일 안의 정확한 경계 선언 부재를 남긴다."
+    "최초성_경계": "기존 take1에서 이미 본 앞부분은 내부 provenance에서 재확인/재시청으로 기록한다. 후반은 owner의 최초 반응 보존 방침과 기존 take1 범위 밖 근거가 함께 있는 경우만 내부 분석에서 최초 반응 후보로 분류하며, primary 파일 안의 정확한 경계 선언 부재를 남긴다. viewer-facing 표시는 강제하지 않고 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않는다."
   },
   "EP1_재료_체크포인트": {
     "기존_take1_사용자_확정_사건수": 7,
@@ -53,7 +53,7 @@
     "본촬영_대표_오해": "10:20~10:47 `予定 → 여정`",
     "다음이_최고": "본 촬영에서는 `次が最後 → 다음이 마지막`으로 정확히 이해해 탈락",
     "cold_open_1순위": "33:29 한자 장면 → 10:20 予定 오해 → 56:00 걸렸다 웃음",
-    "timeline_integrity": "Cold open만 순서 예외. 본편은 primary 원본 chronology를 보존하고 재확인/재시청과 최초 반응 후보를 구분한다."
+    "timeline_integrity": "Cold open만 순서 예외. 본편은 primary 원본 chronology를 보존한다. 재확인/재시청과 최초 반응 후보는 내부 provenance에서 구분하되 viewer-facing 표시는 강제하지 않는다."
   },
   "패키징": {
     "판정": "최소 수정",
@@ -63,8 +63,9 @@
   },
   "Step5": {
     "AI_전문_판정": "완료 — 상세 근거는 materials/ep1_main/PLANNING_RESULTS.md",
-    "review_artifact": "C:\\kkamaknun_step5_review\\EP1_STEP5_REVIEW_A.mp4",
-    "REVIEW_A_선택": "기존 15 selects 중 C09/S06 제외, C05/S04와 C07/S05 압축, 나머지 기능 보존",
+    "review_artifact": "C:\\kkamaknun_step5_review\\EP1_STEP5_REVIEW_B.mp4",
+    "REVIEW_B_선택": "REVIEW_A와 동일: 기존 15 selects 중 C09/S06 제외, C05/S04와 C07/S05 압축, 나머지 기능 보존",
+    "viewer_facing_provenance": "촬영 provenance와 source TC overlay를 노출하지 않는다. 내부 provenance는 보존하고 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않는다.",
     "사용자_역할": "실제 rough cut을 본 일반 시청자의 체감 관측과 최종 제작 진행 의사결정",
     "AI_사후_역할": "체감 관측을 구조 문제로 해석하고 evidence와 PASS/FAIL 권고 정리"
   },

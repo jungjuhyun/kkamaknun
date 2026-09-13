@@ -73,6 +73,13 @@ def test_step5_keeps_quality_outside_deterministic_validator():
     assert "같은 AI의 RED TEAM PASS만으로 \"좋은 기획\"이라고 선언하지 않는다" in PIPELINE_TEXT
 
 
+def test_step5_keeps_provenance_internal_without_forcing_overlay():
+    assert "재확인·재시청·재촬영 여부는 내부 material provenance와 분석 기록에 보존" in PIPELINE_TEXT
+    assert "viewer-facing 영상에 표시를 강제하지 않는다" in PIPELINE_TEXT
+    assert "최초 반응이 아닌 장면을 `첫 반응`, `처음 본 순간`, `처음 보는 장면`이라고 명시적으로 주장하지 않는다" in PIPELINE_TEXT
+    assert "재확인·재시청 사실을 숨기지 않고 표시" not in PIPELINE_TEXT
+
+
 if __name__ == "__main__":
     failures = 0
     for name, fn in sorted(globals().items()):
