@@ -91,7 +91,7 @@ Search → Evaluate → Adopt/Buy → Adapt → Build last
 - validator의 PASS는 기획 재미, 시청 지속, 콘텐츠 각, RED TEAM 통과나 최종 품질을 뜻하지 않는다.
 - RED TEAM은 살아남은 안의 명백한 약점을 공격하는 절차이지 좋은 기획 인증서가 아니다.
 - 공정과 current truth를 지켰는데 영상이 약하면 planning_quality_failure로 분리해 판단한다. 실패했다고 자동으로 harness layer를 추가하지 않는다.
-- 실제 기획의 최종 품질 판정은 사용자에게 남긴다. AI는 근거, deterministic 결과, 남은 불확실성을 정확히 보고한다.
+- AI/harness는 실제 장면 근거로 전문 기획 판정을 먼저 수행하고 review rough cut을 만든다. 사용자는 문서 기반 전문 evaluator가 아니라 실제 영상을 본 시청자로서 체감 반응을 제공한다. AI는 그 관측을 구조 문제로 해석해 근거·권고·남은 불확실성을 보고하고, 최종 제작 진행 여부의 의사결정은 사용자에게 남긴다.
 
 ## 7. Owner별 변경 원칙
 

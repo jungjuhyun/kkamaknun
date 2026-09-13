@@ -14,6 +14,7 @@ from check_draft import check, resolve_lock_path  # noqa: E402
 
 COMMON = json.loads((HERE / "COMMON_RULES.json").read_text(encoding="utf-8"))
 LOCK = json.loads((HERE / "EP1_LOCK.json").read_text(encoding="utf-8"))
+PIPELINE_TEXT = (HERE / "PIPELINE.yaml").read_text(encoding="utf-8")
 
 A = LOCK["잠금_문장"]["A"]
 B = LOCK["잠금_문장"]["B"]
@@ -56,6 +57,20 @@ def test_simulation_sentence_is_not_required_anymore():
 def test_quality_is_outside_validator_scope():
     # 재미·중간 엔진·RED TEAM 수행 여부는 문자열 검사기로 품질 인증하지 않는다.
     assert run(CLEAN + "이 구조는 무조건 재미있고 시청지속도 완벽하다.\n") == []
+
+
+def test_step5_separates_professional_judgment_from_viewer_observation():
+    assert "이름: AI 전문 기획 판정" in PIPELINE_TEXT
+    assert "단계: review rough cut 생성" in PIPELINE_TEXT
+    assert "단계: 사용자 시청 테스트" in PIPELINE_TEXT
+    assert "단계: AI 사후 해석" in PIPELINE_TEXT
+    assert "최종 제작 진행 여부의 의사결정은 사용자에게 남긴다" in PIPELINE_TEXT
+    assert "사용자는 \"실제로 만들어볼 수 있는가\", \"시청자라면 계속 볼 것 같은가\"를 최종 판정한다" not in PIPELINE_TEXT
+
+
+def test_step5_keeps_quality_outside_deterministic_validator():
+    assert "판정자: validator + AI/harness" in PIPELINE_TEXT
+    assert "같은 AI의 RED TEAM PASS만으로 \"좋은 기획\"이라고 선언하지 않는다" in PIPELINE_TEXT
 
 
 if __name__ == "__main__":
