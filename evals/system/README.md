@@ -29,7 +29,7 @@ The additional Phase 2 completion claim is limited to:
 
 > Docker-free automated System Evaluation runner feasibility verified
 
-Phase 3's completion claim is limited to the implemented controlled Codex surrogate Core Regression suite passing its current Phase 3 release gate. It is not completed System RED TEAM, final harness reliability, or Actual Work acceptance; effective target model and reasoning remain `UNKNOWN` unless independently observed. The Phase 4 contract is implemented, but its Actual Work pilot has not run. Phase 5 is not implemented.
+Phase 3's completion claim is limited to the implemented controlled Codex surrogate Core Regression suite passing its current Phase 3 release gate. It is not completed System RED TEAM, final harness reliability, or Actual Work acceptance; effective target model and reasoning remain `UNKNOWN` unless independently observed. The Phase 4 Actual Work pilot has run and its corrected aggregate is `PHASE4_PILOT_BLOCKED` (4/5 PASS); this is not Phase 4 completion. Phase 5 is not implemented.
 
 The original three production-failure fixtures still contain pre-authored oracle evidence. Their Phase 3 counterparts execute Codex against controlled access/history services, capture actual operations, and grade outcomes. They are automated surrogate regressions, not end-to-end Work production regressions. The executable reference pair remains a direct-component plumbing proof.
 
