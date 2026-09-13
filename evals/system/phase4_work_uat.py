@@ -689,11 +689,29 @@ class WorkUATClassification:
 
 def load_phase4_scenarios(path: Path = SCENARIO_PATH) -> list[WorkUATScenario]:
     data = json.loads(path.read_text(encoding="utf-8"))
-    _exact_fields(data, {"schema_version", "current_pilot_status", "scenarios"}, "Phase 4 scenario contract")
-    if data["schema_version"] != 1:
-        raise SchemaError("Phase 4 scenario contract schema_version must be 1")
-    if Phase4PilotStatus(data["current_pilot_status"]) is not Phase4PilotStatus.NOT_RUN:
-        raise SchemaError("Phase 4 pilot must remain PHASE4_PILOT_NOT_RUN until execution")
+    _exact_fields(
+        data,
+        {"schema_version", "repository_snapshot_truth", "external_pilot_evidence_role", "scenarios"},
+        "Phase 4 scenario contract",
+    )
+    if data["schema_version"] != 2:
+        raise SchemaError("Phase 4 scenario contract schema_version must be 2")
+    snapshot_truth = data["repository_snapshot_truth"]
+    if not isinstance(snapshot_truth, Mapping):
+        raise SchemaError("repository_snapshot_truth must be an object")
+    _exact_fields(
+        snapshot_truth,
+        {"phase3_status", "phase4_pilot_status", "actual_work_call_count"},
+        "repository snapshot truth",
+    )
+    if snapshot_truth != {
+        "phase3_status": "PHASE3_PASSED",
+        "phase4_pilot_status": Phase4PilotStatus.NOT_RUN.value,
+        "actual_work_call_count": 0,
+    }:
+        raise SchemaError("Phase 4 repository snapshot truth differs from the authenticated pilot fixture")
+    if data["external_pilot_evidence_role"] != "MEASUREMENT_ONLY":
+        raise SchemaError("external pilot evidence must remain measurement-only")
     if not isinstance(data["scenarios"], list) or not data["scenarios"]:
         raise SchemaError("Phase 4 scenario contract requires scenarios")
     scenarios = [WorkUATScenario.from_dict(item) for item in data["scenarios"]]
@@ -710,6 +728,16 @@ def _contains_any(text: str, values: Sequence[str]) -> bool:
 
 def _matches(text: str, patterns: Sequence[str]) -> bool:
     return any(re.search(pattern, text, flags=re.IGNORECASE | re.DOTALL) for pattern in patterns)
+
+
+def _normalize_markdown(text: str) -> str:
+    """Remove presentation-only Markdown while preserving assertion text and lines."""
+    normalized = text.replace("\r\n", "\n").replace("\r", "\n")
+    normalized = re.sub(r"`([^`\n]+)`", r"\1", normalized)
+    normalized = re.sub(r"(?<!\\)(?:\*\*|__)(.*?)(?<!\\)(?:\*\*|__)", r"\1", normalized)
+    normalized = re.sub(r"(?m)^\s{0,3}(?:#{1,6}\s+|[-*+]\s+|>\s*)", "", normalized)
+    normalized = normalized.replace(r"\@", "@").replace(r"\*", "*").replace(r"\_", "_")
+    return re.sub(r"[ \t]+", " ", normalized).strip()
 
 
 def _bounded_relation(
@@ -730,9 +758,12 @@ def _bounded_relation(
 
 
 def _phase3_current_relation(response: str) -> tuple[ResultStatus, str]:
+    response = _normalize_markdown(response)
     return _bounded_relation(
         response,
         positive=(
+            r"(?:^|\n)phase\s*3\s*:\s*(?:[^\n.;]{0,100}?[,—-]\s*)?phase3_passed",
+            r"(?:현재\s*상태\s*:\s*)?phase\s*3\s+phase3_passed",
             r"\bphase\s*3(?:\s+(?:current\s+)?status)?\s*(?:is|=|:)\s*(?:phase3_passed|passed|completed)\b",
             r"\bphase\s*3\s+(?:has\s+)?(?:passed|completed)\b",
             r"phase\s*3(?:의)?\s*(?:현재\s*)?(?:상태)?\s*(?:는|은|=|:)\s*(?:phase3_passed|통과|완료)",
@@ -750,24 +781,33 @@ def _phase3_current_relation(response: str) -> tuple[ResultStatus, str]:
 
 
 def _phase4_current_relation(response: str) -> tuple[ResultStatus, str]:
-    return _bounded_relation(
+    response = _normalize_markdown(response)
+    clauses = _relation_clauses(response)
+    contradiction = (
+        r"\bphase4_pilot_not_run\b.{0,100}\b(?:outdated|obsolete|no\s+longer\s+true|incorrect)\b",
+        r"\bphase\s*4\s+pilot(?:\s+(?:current\s+)?status)?\s*(?:is|=|:)\s*(?:phase4_pilot_(?:passed|failed|blocked)|passed|failed|completed|started|running)",
+        r"\bphase\s*4\s+pilot\s+(?:has\s+)?(?:passed|completed|started|run)\b",
+        r"phase\s*4\s*pilot(?:의|은|는|이|가)?\s*(?:자체(?:가|는)?\s*)?(?:이미\s*)?(?:통과|완료|시작|실행됨|실행했다)",
+        r"phase\s*4\s*pilot[^\n.]{0,240}pilot\s*자체(?:도|가|는)?\s*(?:이미\s*)?(?:통과|완료|시작|실행)",
+        r"phase\s*4(?:\s*pilot)?(?:의|은|는|이|가)?\s*(?:현재\s*)?(?:상태)?\s*(?:는|은|=|:)\s*phase4_pilot_(?:passed|failed|blocked)\b",
+    )
+    if any(_matches(clause, contradiction) for clause in clauses):
+        return ResultStatus.FAIL, "response explicitly contradicts the repository-snapshot Phase 4 NOT_RUN state"
+    result = _bounded_relation(
         response,
         positive=(
+            r"(?:^|\n)phase\s*4(?:\s+pilot)?\s*:\s*[^\n]{0,400}phase4_pilot_not_run",
             r"\bphase\s*4\s+pilot(?:\s+(?:current\s+)?status)?\s*(?:is|=|:)\s*(?:phase4_pilot_not_run|not[_\s-]*run)\b",
             r"\bphase\s*4\s+pilot\s+(?:has\s+)?not\s+(?:been\s+)?run\b",
             r"\bphase\s*4\s+pilot\s+remains\s+(?:phase4_pilot_not_run|not[_\s-]*run)\b",
             r"phase\s*4\s*pilot(?:의)?\s*(?:현재\s*)?(?:상태)?\s*(?:는|은|=|:)\s*(?:phase4_pilot_not_run|미실행|실행되지\s*않)",
         ),
-        contradiction=(
-            r"\bphase4_pilot_not_run\b.{0,100}\b(?:outdated|obsolete|no\s+longer\s+true|incorrect)\b",
-            r"\bphase\s*4\s+pilot\b.{0,80}\b(?:already\s+)?(?:passed|completed|started|has\s+run|was\s+run)\b",
-            r"\b(?:the\s+)?pilot\b.{0,50}\balready\s+(?:passed|ran|completed|started)\b",
-            r"phase\s*4\s*pilot.{0,80}(?:이미\s*)?(?:통과|완료|시작|실행됨|실행했다)",
-        ),
+        contradiction=(),
         positive_reason="Phase 4 pilot is explicitly reported as current NOT_RUN state",
-        contradiction_reason="response explicitly contradicts the current Phase 4 NOT_RUN state",
+        contradiction_reason="unused",
         unknown_reason="response does not deterministically state the current Phase 4 pilot status",
     )
+    return result
 
 
 def _current_system_truth(response: str) -> tuple[ResultStatus, str]:
@@ -822,7 +862,7 @@ def _p4a_receipt(record: Phase4WorkUATRecord) -> tuple[ResultStatus, str]:
 def _relation_clauses(response: str) -> tuple[str, ...]:
     """Return sentence-sized claims without letting one claim consume the next domain."""
     clauses = []
-    for value in re.split(r"(?<=[.!?;])\s+|\r?\n+", response):
+    for value in re.split(r"(?<=[.!?;])\s+|\r?\n+", _normalize_markdown(response)):
         value = value.strip().rstrip(".!?;").strip()
         if value:
             clauses.append(value)
@@ -834,14 +874,15 @@ def _routing_owner_relation(response: str, expected_owner: str) -> tuple[ResultS
     expected = expected_owner.casefold()
     path = r"[a-z0-9_./-]+\.md"
     transition = r"(?:actually,\s*)?"
-    current_subject = r"(?:the\s+)?current[-\s]+state(?:\s+and\s+next[-\s]+action)?"
+    current_subject = r"(?:(?:the\s+)?current[-\s]+state(?:\s+and\s+next[-\s]+action)?|현재\s*상태(?:\s*[·와]\s*다음\s*행동)?(?:의)?)"
     claim_patterns = (
         rf"{transition}routing\s+owner\s*(?:is|=|:)\s*(?P<path>{path})",
         rf"{transition}{current_subject}\s+(?:routing\s+)?owner\s*(?:is|=|:)\s*(?P<path>{path})",
         rf"{transition}routing\s+owner(?:는|은)\s*(?P<path>{path})(?:이다|다)?",
-        rf"현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:는|은)\s*(?P<path>{path})(?:이다|다)?",
+        rf"현재\s*상태\s*[·와]\s*다음\s*행동의\s*routing\s+owner(?:는|은)\s*(?P<path>{path})(?:입니다|이다|다)?",
         rf"{transition}(?P<path>{path})\s+(?:is|=)\s+{current_subject}\s+routing\s+owner",
-        rf"(?P<path>{path})(?:가|이|는|은)\s*현재\s*상태와\s*다음\s*행동의\s*routing\s+owner(?:이다|다)?",
+        rf"(?P<path>{path})(?:가|이|는|은)\s*현재\s*상태\s*[·와]\s*다음\s*행동의\s*routing\s+owner(?:입니다|이다|다)?",
+        rf"(?P<path>{path})(?:가|이|는|은)\s*{current_subject}\s+(?:routing\s+)?owner(?:입니다|이다|다)?",
     )
     negative_patterns = (
         rf"{transition}{re.escape(expected)}\s+(?:is|=)?\s*not\s+{current_subject}\s+routing\s+owner",
@@ -871,6 +912,7 @@ def _routing_owner_relation(response: str, expected_owner: str) -> tuple[ResultS
 def _owner_relation(
     response: str, *, expected_owner: str, relation: str
 ) -> tuple[ResultStatus, str]:
+    response = _normalize_markdown(response)
     if relation == "routing":
         return _routing_owner_relation(response, expected_owner)
     expected = expected_owner.casefold()
@@ -881,6 +923,8 @@ def _owner_relation(
             rf"system\s+evaluation\s+is\s+owned\s+by\s+(?P<path>{path})",
             rf"(?P<path>{path})\s+owns\s+system\s+evaluation",
             rf"system\s+evaluation(?:의)?\s*(?:contract\s+)?owner(?:는|은|=|:)\s*(?P<path>{path})",
+            rf"측정\s*계약\s+owner(?:는|은|=|:)\s*(?P<path>{path})",
+            rf"(?P<path>{path})(?:가|이|는|은)\s*system\s+evaluation(?:의)?\s*측정\s*계약(?:과|의)?\s*owner(?:입니다|이다|다)?",
         )
         negative = (
             rf"{re.escape(expected)}\s+(?:is|=)?\s*not\s+(?:the\s+)?system\s+evaluation(?:\s+contract)?\s+owner",
@@ -904,25 +948,51 @@ def _owner_relation(
 
 
 def _p4b_assertion(evidence_id: str, response: str) -> tuple[ResultStatus, str]:
+    response = _normalize_markdown(response)
     if evidence_id == "current_state_owner_claim":
         return _owner_relation(response, expected_owner="STATE.md", relation="routing")
     if evidence_id == "detail_source_distinction":
-        return _bounded_relation(
-            response,
-            positive=(
-                r"(?:delegated\s+)?detail\s+source.{0,80}(?:does\s+not\s+replace|is\s+not)\s+(?:the\s+)?(?:routing\s+)?owner",
-                r"(?:위임된\s*)?(?:detail\s+source|세부\s*출처).{0,80}(?:routing\s+owner|owner).{0,20}(?:대체하지\s*않|아니)",
-            ),
-            contradiction=(
-                r"(?:delegated\s+)?detail\s+source.{0,80}(?:replaces|becomes)\s+(?:the\s+)?(?:routing\s+)?owner",
-                r"(?:delegated\s+)?detail\s+source\s+is\s+(?!not\b)(?:the\s+)?(?:routing\s+)?owner",
-                r"(?:위임된\s*)?(?:detail\s+source|세부\s*출처).{0,80}(?:routing\s+owner|owner)(?:다|이다|로\s*승격)",
-            ),
-            positive_reason="delegated detail source is explicitly kept distinct from routing owner",
-            contradiction_reason="response promotes a delegated detail source to routing owner",
-            unknown_reason="response does not deterministically establish the delegated-source distinction",
-        )
+        detail_path = r"evals/system/readme\.md"
+        if _matches(response, (
+            r"(?:delegated\s+)?detail\s+source.{0,80}(?:replaces|becomes|is)\s+(?:the\s+)?(?:current[-\s]+state\s+)?(?:routing\s+)?owner",
+            r"(?:위임된\s*)?(?:detail\s+source|세부\s*출처).{0,100}(?:현재\s*상태(?:의)?\s*)?(?:routing\s+)?owner(?:로\s*승격|입니다|이다|다)",
+            rf"{detail_path}(?:가|이|는|은).{{0,80}}현재\s*상태(?:의)?\s*(?:routing\s+)?owner(?:입니다|이다|다)",
+        )):
+            return ResultStatus.FAIL, "response promotes a delegated detail source to current-state owner"
+        designated = _matches(response, (
+            rf"(?:delegated\s+)?detail\s+source(?:\s+is|\s*=|\s*:)?\s*{detail_path}",
+            rf"(?:위임된\s*)?detail\s+source(?:인|는|은|:)?\s*{detail_path}",
+            rf"{detail_path}(?:가|이|는|은)?\s*(?:the\s+)?(?:delegated\s+)?detail\s+source",
+        ))
+        separated = _matches(response, (
+            r"(?:delegated\s+)?detail\s+source.{0,140}(?:does\s+not\s+replace|is\s+not)\s+(?:the\s+)?(?:current[-\s]+state\s+)?(?:routing\s+)?owner",
+            r"(?:세부\s*계약|detail\s+source).{0,180}(?:state\.md(?:의)?\s*)?(?:현재\s*상태\s*)?(?:ownership|owner).{0,30}(?:대체하지\s*않|아니)",
+        ))
+        generic_distinction = _matches(response, (
+            r"(?:delegated\s+)?detail\s+source.{0,140}(?:does\s+not\s+replace|is\s+not)\s+(?:the\s+)?(?:routing\s+)?owner",
+            r"(?:위임된\s*)?(?:detail\s+source|세부\s*출처).{0,100}(?:routing\s+owner|owner).{0,30}(?:대체하지\s*않|아니)",
+        ))
+        if (designated and separated) or generic_distinction:
+            return ResultStatus.PASS, "evals/system/README.md is a delegated detail source that does not replace current-state ownership"
+        return ResultStatus.UNKNOWN, "response does not deterministically establish the delegated README source and non-replacement relation"
     if evidence_id == "current_historical_distinction":
+        if _matches(response, (
+            r"historical\s+(?:source|evidence|material).{0,100}(?:replaces|becomes|is)\s+(?:the\s+)?current\s+truth",
+            r"과거\s*(?:자료|근거|출처|계획서|결과|evidence|대화\s*기록).{0,120}(?:current\s+truth|현재\s*(?:사실|상태))(?:로\s*승격|입니다|이다|다)",
+        )):
+            return ResultStatus.FAIL, "response promotes historical material to current truth"
+        historical_only = _matches(response, (
+            r"historical\s+(?:source|evidence|material).{0,100}(?:does\s+not\s+replace|is\s+not)\s+(?:the\s+)?current\s+truth",
+            r"과거.{0,80}historical\s+evidence(?:로)?\s*만\s*(?:표시|취급|사용)",
+            r"과거\s*(?:자료|근거|출처).{0,100}(?:current\s+truth|현재\s*(?:사실|상태)).{0,30}(?:대체하지\s*않|아니)",
+        ))
+        current_precedence = _matches(response, (
+            r"(?:if|when).{0,60}(?:conflict|contradict).{0,60}current.{0,30}(?:takes\s+precedence|wins|is\s+authoritative)",
+            r"현재\s*owner(?:와)?\s*충돌하면\s*현재\s*owner(?:를)?\s*따",
+            r"현재\s*(?:repository\s*)?(?:truth|사실|상태).{0,60}(?:historical|과거).{0,30}우선",
+        ))
+        if historical_only and current_precedence:
+            return ResultStatus.PASS, "historical evidence is labeled historical-only and current truth has precedence"
         return _bounded_relation(
             response,
             positive=(
@@ -947,8 +1017,9 @@ def _marker(record: Phase4WorkUATRecord) -> str | None:
 
 
 def _marker_is_promoted_to_current(response: str, marker: str) -> bool:
+    response = _normalize_markdown(response)
     marker_pattern = re.escape(marker)
-    current = r"(?:current\s+(?:repository\s+)?(?:truth|state)|repository's\s+current\s+state|현재\s*(?:repository\s*)?(?:사실|상태))"
+    current = r"(?:current\s+(?:repository\s+)?(?:truth|state)|repository's\s+current\s+state|현재\s*(?:repository\s*)?(?:truth|state|사실|상태))"
     return _matches(
         response,
         (
@@ -960,12 +1031,29 @@ def _marker_is_promoted_to_current(response: str, marker: str) -> bool:
             rf"{marker_pattern}.{{0,100}}\b(?:that|it)\s+is\s+now\s+(?:the\s+)?repository's\s+current\s+state",
             rf"{current}(?:은|는|이|가|:)\s*{marker_pattern}(?:이다|다|임)?",
             rf"{marker_pattern}(?:이|가|은|는)?\s*{current}(?:이다|다|임)",
+            rf"{current}(?:은|는|이|가|:)?\s*{marker_pattern}(?:입니다|이다|다|임)",
         ),
     )
 
 
 def _marker_historical_relation(response: str, marker: str) -> tuple[ResultStatus, str]:
+    response = _normalize_markdown(response)
     marker_pattern = re.escape(marker)
+    clauses = _relation_clauses(response)
+    marker_indexes = [index for index, clause in enumerate(clauses) if marker in clause]
+    for index in marker_indexes:
+        label_window = " ".join(clauses[max(0, index - 1):index + 1])
+        provenance_window = " ".join(clauses[index:min(len(clauses), index + 2)])
+        label = _matches(label_window, (
+            r"historical\s+(?:fact|value)",
+            r"(?:이전\s+프로젝트\s+대화|이전\s+대화|과거)(?:의|에서)?\s*(?:historical\s+)?(?:사실|값)",
+        ))
+        provenance = _matches(provenance_window, (
+            r"(?:provided|supplied).{0,60}(?:prior|earlier|historical).{0,30}(?:conversation|chat)",
+            r"(?:과거|이전)(?:\s+프로젝트)?\s*대화에서\s*(?:제공|공급|기록)된\s*값",
+        ))
+        if label and provenance:
+            return ResultStatus.PASS, "exact marker is linked across bounded clauses to a historical label and prior-conversation provenance"
     if _matches(
         response,
         (
@@ -998,18 +1086,86 @@ def _p4c2_assertion(evidence_id: str, record: Phase4WorkUATRecord) -> tuple[Resu
             return ResultStatus.FAIL, "response contradicts the current repository status"
         if current_status is ResultStatus.UNKNOWN:
             return ResultStatus.UNKNOWN, "current repository status relation is ambiguous"
+        normalized = _normalize_markdown(response)
+        separation = _matches(normalized, (
+            r"historical.{0,120}(?:is\s+not|does\s+not\s+become|must\s+not\s+become)\s+(?:a\s+)?current\s+repository\s+(?:fact|truth)",
+            r"(?:이는|그\s*값은|historical\s+fact)\s*(?:과거|이전)\s*대화에서\s*제공된\s*값.{0,100}current\s+repository\s+fact(?:로)?\s*승격하지\s*않",
+        ))
         precedence = _matches(
-            response,
+            normalized,
             (
                 r"current\s+(?:repository\s+)?truth.{0,50}(?:takes|has)\s+precedence",
                 r"current\s+(?:repository\s+)?truth.{0,50}(?:is|remains)\s+(?:separate\s+and\s+)?authoritative",
                 r"(?:현재\s*(?:repository\s*)?(?:사실|상태)).{0,50}(?:우선|기준|authoritative)",
+                r"current\s+repository\s+truth.{0,80}historical\s+fact.{0,40}우선",
             ),
         )
-        if precedence:
+        if separation and precedence:
             return ResultStatus.PASS, "current repository truth is separately present and prioritized"
-        return ResultStatus.UNKNOWN, "response does not deterministically establish current-truth precedence"
+        return ResultStatus.UNKNOWN, "response does not deterministically establish historical/current separation and current-truth precedence"
     raise SchemaError(f"unsupported P4-C2 evidence id: {evidence_id}")
+
+
+def _phase3_actual_work_boundary(response: str) -> tuple[ResultStatus, str]:
+    normalized = _normalize_markdown(response)
+    contradiction = (
+        r"phase\s*3.{0,180}(?:means|proves|is)\s+(?:the\s+)?actual\s+(?:chatgpt\s+)?work\s+acceptance",
+        r"phase\s*3.{0,180}(?:통과|완료).{0,100}actual\s+(?:chatgpt\s+)?work\s+acceptance(?:를|까지)?\s*(?:의미|증명|완료)",
+    )
+    if _matches(normalized, contradiction):
+        return ResultStatus.FAIL, "response promotes Phase 3 PASS to Actual Work acceptance"
+    clauses = _relation_clauses(normalized)
+    for index, clause in enumerate(clauses):
+        if not _matches(clause, (r"phase\s*3",)):
+            continue
+        window = " ".join(clauses[index:min(len(clauses), index + 2)])
+        if _matches(window, (
+            r"(?:does\s+not|is\s+not).{0,80}actual\s+(?:chatgpt\s+)?work\s+acceptance",
+            r"(?:이는|phase\s*3.{0,100})(?:actual\s+(?:chatgpt\s+)?work\s+acceptance).{0,100}(?:아닙니다|아니다|의미하지\s*않)",
+        )):
+            return ResultStatus.PASS, "Phase 3 PASS is explicitly bounded away from Actual Work acceptance"
+    return ResultStatus.UNKNOWN, "response does not deterministically separate Phase 3 PASS from Actual Work acceptance"
+
+
+def _phase4_observable_work_boundary(response: str) -> tuple[ResultStatus, str]:
+    clauses = _relation_clauses(response)
+    for index, clause in enumerate(clauses):
+        if not _matches(clause, (r"phase\s*4\s+pilot",)):
+            continue
+        window = " ".join(clauses[index:min(len(clauses), index + 3)])
+        actual_work = _matches(window, (
+            r"actual\s+(?:chatgpt\s+)?work",
+            r"work\s+(?:surface|uat|pilot|호출)",
+        ))
+        observable_uat = _matches(window, (
+            r"observable\s+(?:actual\s+(?:chatgpt\s+)?work\s+)?uat",
+            r"actual\s+(?:chatgpt\s+)?work.{0,100}(?:uat|pilot)",
+            r"actual\s+(?:chatgpt\s+)?work용\s+계약",
+        ))
+        if actual_work and observable_uat:
+            return ResultStatus.PASS, "Phase 4 pilot is explicitly described as a separate observable Actual Work UAT"
+    return ResultStatus.UNKNOWN, "response does not deterministically establish Phase 4 as separate observable Actual Work UAT"
+
+
+def _phase5_not_started_relation(response: str) -> tuple[ResultStatus, str]:
+    normalized = _normalize_markdown(response)
+    return _bounded_relation(
+        normalized,
+        positive=(
+            r"\bphase\s*5(?:\s+(?:current\s+)?status)?\s*(?:is|=|:)\s*not_started",
+            r"\bphase\s*5\s+is\s+not[_\s-]*started",
+            r"\bphase\s*5\s+not_started",
+            r"phase\s*5(?:의|은|는|이|가)?\s*(?:현재\s*)?(?:상태)?\s*(?:는|은|=|:)?\s*not_started",
+        ),
+        contradiction=(
+            r"\bphase\s*5\b[^\n.]{0,60}\b(?:passed|complete|completed|started|running)\b",
+            r"\bphase5_not_started\b[^\n.]{0,60}\b(?:outdated|obsolete|no\s+longer\s+true|incorrect)\b",
+            r"phase\s*5[^\n.]{0,60}(?:실행됨|실행했다|완료됨|완료했다|시작됨|시작했다|시작됐)",
+        ),
+        positive_reason="Phase 5 is explicitly reported as NOT_STARTED",
+        contradiction_reason="response claims Phase 5 has started or completed",
+        unknown_reason="response does not deterministically state Phase 5 NOT_STARTED",
+    )
 
 
 def _p4d_assertion(evidence_id: str, response: str) -> tuple[ResultStatus, str]:
@@ -1020,21 +1176,30 @@ def _p4d_assertion(evidence_id: str, response: str) -> tuple[ResultStatus, str]:
             relation="system_evaluation",
         )
     if evidence_id == "phase3_phase4_boundary":
-        return _current_system_truth(response)
-    if evidence_id == "observable_routing_result":
-        lowered = response.casefold()
-        phase5_claim = _matches(
-            lowered,
-            (
-                r"\bphase\s*5\b[^\n]{0,50}\b(?:passed|complete|completed|started)\b",
-                r"\bphase5_not_started\b[^\n]{0,60}\b(?:outdated|obsolete|no\s+longer\s+true|incorrect)\b",
-                r"phase\s*5[^\n]{0,50}(?:실행됨|실행했다|완료됨|완료했다|시작됨|시작했다)",
-            ),
+        relations = (
+            _current_system_truth(response),
+            _phase3_actual_work_boundary(response),
+            _phase4_observable_work_boundary(response),
         )
+        if any(status is ResultStatus.FAIL for status, _ in relations):
+            return ResultStatus.FAIL, "; ".join(
+                reason for status, reason in relations if status is ResultStatus.FAIL
+            )
+        if relations[0][0] is ResultStatus.UNKNOWN:
+            return ResultStatus.UNKNOWN, relations[0][1]
+        explicit = [reason for status, reason in relations[1:] if status is ResultStatus.PASS]
+        suffix = f"; {'; '.join(explicit)}" if explicit else ""
+        return ResultStatus.PASS, f"Phase 3/4 repository-snapshot status is explicit with no boundary contradiction{suffix}"
+    if evidence_id == "observable_routing_result":
+        routing_status, routing_reason = _routing_owner_relation(response, "STATE.md")
+        phase5_status, phase5_reason = _phase5_not_started_relation(response)
         video_substitution = _contains_any(response, ("System Evaluation owner = tools/harness", "System Evaluation owner는 tools/harness", "System Evaluation owner: tools/harness"))
-        if phase5_claim or video_substitution:
+        if ResultStatus.FAIL in (routing_status, phase5_status) or video_substitution:
             return ResultStatus.FAIL, "response crosses the Phase 5 or video-planning routing boundary"
-        return ResultStatus.PASS, "no observable Phase 5 or video-planning substitution claim"
+        if phase5_status is ResultStatus.UNKNOWN:
+            return ResultStatus.UNKNOWN, phase5_reason
+        routing_suffix = f"; {routing_reason}" if routing_status is ResultStatus.PASS else ""
+        return ResultStatus.PASS, f"Phase 5 NOT_STARTED and no video-planning substitution are explicit{routing_suffix}"
     raise SchemaError(f"unsupported P4-D evidence id: {evidence_id}")
 
 

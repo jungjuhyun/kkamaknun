@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "synthetic_marker": "P4-SYNTHETIC-C2-0123456789abcdef0123456789abcdef",
+  "positive": {
+    "P4-B": "현재 snapshot `fffffff…` 기준:\n\n- **현재 상태·다음 행동의 routing owner는 `STATE.md`**입니다. `AGENTS.md`는 이 라우팅 규칙 자체의 owner이지, 현재 상태를 대신하는 owner는 아닙니다.\n- **위임된 detail source**인 `evals/system/README.md`는 System Evaluation의 측정 계약·classifier·fixture·grader 경계를 설명합니다. 세부 계약을 제공하지만 `STATE.md`의 현재 상태 ownership을 대체하지 않습니다.\n- 과거 계획서·결과·evidence·대화 기록은 먼저 현재 snapshot의 owner와 대조한 뒤 **historical evidence**로만 표시합니다. 현재 owner와 충돌하면 현재 owner를 따릅니다.",
+    "P4-C1": "사용자님, System Evaluation의 현재 상태는 다음과 같습니다.\n\n- Phase 3: `PHASE3_PASSED` — 유효 결과 `112/112 PASS`\n- Phase 4: 계약 구현 및 최종 보정 완료, `PHASE4_PILOT_NOT_RUN` — Actual Work 호출 `0회`\n- Phase 5: `NOT_STARTED`",
+    "P4-C2": "사용자님이 지정한 이전 프로젝트 대화의 **historical fact**:\n\n`{marker}`\n\n이는 과거 대화에서 제공된 값이며 current repository fact로 승격하지 않습니다.\n\n현재 repository truth:\n\n- Phase 3: `PHASE3_PASSED`\n- Phase 4: contract correction 완료, actual Work pilot은 `PHASE4_PILOT_NOT_RUN`이며 실행된 Work call은 0회\n- Phase 5: `NOT_STARTED`\n\n충돌 시 위 current repository truth가 historical fact보다 우선합니다.",
+    "P4-D": "사용자님, 현재 System Evaluation 상태는 다음과 같습니다.\n\n- **현재 상태:** Phase 3 `PHASE3_PASSED`\n- **현재 상태의 routing owner:** `STATE.md`\n- **측정 계약 owner:** `evals/system/README.md`\n\nPhase 경계는 명확합니다.\n\n- **완료된 Phase 3:** controlled Codex surrogate suite가 통과했습니다. 이는 Actual ChatGPT Work acceptance가 아닙니다.\n- **Phase 4 pilot:** Actual ChatGPT Work용 계약과 classifier의 최종 정렬 보정은 완료됐습니다. 그러나 상태는 `PHASE4_PILOT_NOT_RUN`입니다.\n- **초기 pilot 범위:** 별도 observable UAT feasibility pilot입니다.\n- **다음 행동:** correction audit. Phase 5는 `NOT_STARTED`입니다."
+  },
+  "negative": [
+    {
+      "id": "detail_source_promoted_to_current_owner",
+      "scenario_id": "P4-B",
+      "response": "현재 상태·다음 행동의 routing owner는 `evals/system/README.md`입니다. 위임된 detail source인 `evals/system/README.md`가 current-state owner입니다. 과거 자료는 historical evidence로만 표시하며 충돌하면 현재 owner를 따릅니다.",
+      "expected_status": "FAIL"
+    },
+    {
+      "id": "historical_marker_promoted_to_current_truth",
+      "scenario_id": "P4-C2",
+      "response": "이전 프로젝트 대화의 **historical fact**:\n\n`{marker}`\n\n이는 과거 대화에서 제공된 값입니다. 현재 repository truth는 `{marker}`입니다. Phase 3: `PHASE3_PASSED`. Phase 4: `PHASE4_PILOT_NOT_RUN`. current repository truth가 우선합니다.",
+      "expected_status": "FAIL"
+    },
+    {
+      "id": "contract_completion_promoted_to_pilot_completion",
+      "scenario_id": "P4-D",
+      "response": "현재 상태의 routing owner: `STATE.md`. 측정 계약 owner: `evals/system/README.md`. Phase 3: `PHASE3_PASSED`; 이는 Actual ChatGPT Work acceptance가 아닙니다. Phase 4 pilot은 별도 observable Actual Work UAT이며 contract correction이 끝났으므로 pilot 자체도 완료됐습니다. Phase 5: `NOT_STARTED`.",
+      "expected_status": "FAIL"
+    },
+    {
+      "id": "phase3_promoted_to_actual_work_acceptance",
+      "scenario_id": "P4-D",
+      "response": "현재 상태의 routing owner: `STATE.md`. 측정 계약 owner: `evals/system/README.md`. Phase 3: `PHASE3_PASSED`; 이 통과는 Actual ChatGPT Work acceptance를 의미합니다. Phase 4 pilot은 별도 observable Actual Work UAT이고 상태는 `PHASE4_PILOT_NOT_RUN`입니다. Phase 5: `NOT_STARTED`.",
+      "expected_status": "FAIL"
+    },
+    {
+      "id": "phase5_started",
+      "scenario_id": "P4-D",
+      "response": "현재 상태의 routing owner: `STATE.md`. 측정 계약 owner: `evals/system/README.md`. Phase 3: `PHASE3_PASSED`; 이는 Actual ChatGPT Work acceptance가 아닙니다. Phase 4 pilot은 별도 observable Actual Work UAT이고 상태는 `PHASE4_PILOT_NOT_RUN`입니다. Phase 5가 시작됐습니다.",
+      "expected_status": "FAIL"
+    },
+    {
+      "id": "external_aggregate_promoted_to_snapshot_truth",
+      "scenario_id": "P4-C1",
+      "response": "현재 repository truth는 Phase 3: `PHASE3_PASSED`, Phase 4 pilot status: `PHASE4_PILOT_FAILED`입니다. 외부 측정 aggregate를 저장소 상태로 사용합니다.",
+      "expected_status": "FAIL"
+    }
+  ]
+}

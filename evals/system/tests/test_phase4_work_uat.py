@@ -135,6 +135,17 @@ class Phase4ScenarioContractTests(unittest.TestCase):
     def test_contract_validation_reports_not_run(self):
         self.assertEqual(validate_phase4_contract()["status"], Phase4PilotStatus.NOT_RUN.value)
 
+    def test_dual_clock_contract_is_explicit(self):
+        self.assertEqual(
+            self.raw_contract["repository_snapshot_truth"],
+            {
+                "phase3_status": "PHASE3_PASSED",
+                "phase4_pilot_status": "PHASE4_PILOT_NOT_RUN",
+                "actual_work_call_count": 0,
+            },
+        )
+        self.assertEqual(self.raw_contract["external_pilot_evidence_role"], "MEASUREMENT_ONLY")
+
 
 class Phase4ClassifierTests(unittest.TestCase):
     @classmethod
@@ -143,6 +154,11 @@ class Phase4ClassifierTests(unittest.TestCase):
         cls.scenarios = {scenario.id: scenario for scenario in cls.scenario_list}
         cls.template = json.loads(
             (SYSTEM_ROOT / "actual_work_uat_template.json").read_text(encoding="utf-8")
+        )
+        cls.observed_regression = json.loads(
+            (SYSTEM_ROOT / "tests" / "fixtures" / "PHASE4_OBSERVED_RESPONSE_REGRESSION.json").read_text(
+                encoding="utf-8"
+            )
         )
 
     def response_for(self, scenario_id, marker=None):
@@ -171,6 +187,7 @@ class Phase4ClassifierTests(unittest.TestCase):
         if scenario_id == "P4-C2":
             return (
                 f"Historical fact from the prior conversation: {marker}. "
+                "That historical value is not a current repository fact. "
                 "Current repository truth takes precedence: "
                 "Phase 3 status is PHASE3_PASSED; "
                 "Phase 4 pilot status is PHASE4_PILOT_NOT_RUN.",
@@ -314,6 +331,26 @@ class Phase4ClassifierTests(unittest.TestCase):
         for scenario_id in INITIAL_RUNNABLE_PILOT:
             with self.subTest(scenario_id=scenario_id):
                 self.assertEqual(self.classify(scenario_id).status, ResultStatus.PASS)
+
+    def test_sanitized_observed_response_regressions_pass(self):
+        marker = self.observed_regression["synthetic_marker"]
+        for scenario_id, response in self.observed_regression["positive"].items():
+            with self.subTest(scenario_id=scenario_id):
+                data = self.record_data(scenario_id, marker=marker if scenario_id == "P4-C2" else None)
+                data["response"]["final_response"] = response.replace("{marker}", marker)
+                self.sync_response_hashes(data)
+                self.assertEqual(self.classify(scenario_id, data).status, ResultStatus.PASS)
+
+    def test_sanitized_observed_response_reversals_fail(self):
+        marker = self.observed_regression["synthetic_marker"]
+        for fixture in self.observed_regression["negative"]:
+            with self.subTest(fixture=fixture["id"]):
+                scenario_id = fixture["scenario_id"]
+                data = self.record_data(scenario_id, marker=marker if scenario_id == "P4-C2" else None)
+                data["response"]["final_response"] = fixture["response"].replace("{marker}", marker)
+                self.sync_response_hashes(data)
+                self.set_status(data, fixture["expected_status"])
+                self.assertEqual(self.classify(scenario_id, data).status.value, fixture["expected_status"])
 
     def test_prelabeled_correct_field_is_rejected(self):
         data = self.record_data("P4-B")

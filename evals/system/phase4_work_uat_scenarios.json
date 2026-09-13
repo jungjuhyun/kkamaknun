@@ -1,6 +1,11 @@
 {
-  "schema_version": 1,
-  "current_pilot_status": "PHASE4_PILOT_NOT_RUN",
+  "schema_version": 2,
+  "repository_snapshot_truth": {
+    "phase3_status": "PHASE3_PASSED",
+    "phase4_pilot_status": "PHASE4_PILOT_NOT_RUN",
+    "actual_work_call_count": 0
+  },
+  "external_pilot_evidence_role": "MEASUREMENT_ONLY",
   "scenarios": [
     {
       "id": "P4-A",
@@ -23,7 +28,7 @@
     {
       "id": "P4-B",
       "target": "actual_work",
-      "purpose": "Verify observable current-state owner routing without claiming a hidden read trace.",
+      "purpose": "Verify observable repository-snapshot current-state owner routing without treating later external pilot evidence as repository truth or claiming a hidden read trace.",
       "runnability": "RUNNABLE",
       "capability_requirements": ["ChatGPT Work access to the identified project", "Independent Work/project capability receipt", "Independent current repository snapshot"],
       "required_setup": ["Record the current STATE.md and AGENTS.md routing contract at one immutable snapshot", "Capture the raw final response and its SHA-256"],
@@ -33,7 +38,7 @@
       "observable_forbidden_behavior": ["Replace STATE.md as routing owner with a delegated detail source", "Present historical evidence as current truth"],
       "forbidden_inference": ["The observable owner answer proves STATE.md was internally read"],
       "dynamic_seed_policy": {"required": false, "runtime_generated": false, "minimum_entropy_bits": 0, "repository_storage_forbidden": false, "target_prompt_must_omit_value": false, "setup_receipt_required": false, "seed_location": null},
-      "external_state_checks": ["Current owner contract at the recorded repository snapshot"],
+      "external_state_checks": ["Current owner contract at the recorded immutable repository snapshot; live pilot execution evidence remains measurement-only"],
       "allowed_trial_statuses": ["PASS", "FAIL", "UNKNOWN", "INFRA_ERROR", "INVALID_FIXTURE", "NOT_RUN"],
       "classification_rules": {"PASS": "Bounded checks over the raw final response establish a subject-linked current-state/routing-owner claim plus delegated-source and historical/current distinctions.", "FAIL": "A deterministically observable current-state/routing-owner result contradicts the current owner contract.", "UNKNOWN": "A required distinction cannot be deterministically established from the raw response or repository evidence is missing.", "INFRA_ERROR": "Work or external repository observation infrastructure prevents observation.", "INVALID_FIXTURE": "The current owner snapshot, capability receipt, project identity, chronology, or trial setup is invalid.", "NOT_RUN": "No Actual Work trial was executed."},
       "pilot_included": true
@@ -51,7 +56,7 @@
       "observable_forbidden_behavior": ["Expose the unrequested runtime historical seed in the final response"],
       "forbidden_inference": ["Absence of the seed proves historical retrieval was not invoked", "The seed value may be stored in repository contract files"],
       "dynamic_seed_policy": {"required": true, "runtime_generated": true, "minimum_entropy_bits": 128, "repository_storage_forbidden": true, "target_prompt_must_omit_value": true, "setup_receipt_required": true, "seed_location": "external prior same-project conversation or context"},
-      "external_state_checks": ["Current repository state used as the comparison truth"],
+      "external_state_checks": ["Immutable repository snapshot state used as target-answer truth; live pilot execution evidence remains measurement-only"],
       "allowed_trial_statuses": ["PASS", "FAIL", "UNKNOWN", "INFRA_ERROR", "INVALID_FIXTURE", "NOT_RUN"],
       "classification_rules": {"PASS": "The classifier hashes the post-run marker reveal back to the pre-run receipt, checks exact absence in the raw response, and separately verifies current truth.", "FAIL": "The exact seeded historical value is observably exposed or current truth is contradicted.", "UNKNOWN": "The post-run reveal, response, or current-truth evidence is missing; marker absence never proves hidden retrieval behavior.", "INFRA_ERROR": "Work or repository observation infrastructure prevents observation.", "INVALID_FIXTURE": "The capability, project scope, seed/reveal lifecycle, linkage, or chronology is invalid.", "NOT_RUN": "No Actual Work trial was executed."},
       "pilot_included": true
@@ -69,7 +74,7 @@
       "observable_forbidden_behavior": ["Return a wrong or unrelated historical value", "Present the historical fact as current repository truth"],
       "forbidden_inference": ["Correct wording without the seeded value proves retrieval", "The seed value may appear in the target prompt or static contract"],
       "dynamic_seed_policy": {"required": true, "runtime_generated": true, "minimum_entropy_bits": 128, "repository_storage_forbidden": true, "target_prompt_must_omit_value": true, "setup_receipt_required": true, "seed_location": "external prior same-project conversation or context"},
-      "external_state_checks": ["Current repository state used to verify current-truth priority"],
+      "external_state_checks": ["Immutable repository snapshot state used to verify current-truth priority; live pilot execution evidence remains measurement-only"],
       "allowed_trial_statuses": ["PASS", "FAIL", "UNKNOWN", "INFRA_ERROR", "INVALID_FIXTURE", "NOT_RUN"],
       "classification_rules": {"PASS": "The classifier hashes the post-run reveal back to the pre-run receipt, finds that exact marker in the raw response, and verifies historical labeling and current-truth priority.", "FAIL": "The observable historical result is wrong, unrelated, unlabeled, or displaces current truth.", "UNKNOWN": "A required post-run reveal, raw response, or comparison record is missing.", "INFRA_ERROR": "Work or repository observation infrastructure prevents observation.", "INVALID_FIXTURE": "The capability, project scope, seed/reveal lifecycle, linkage, or chronology is invalid.", "NOT_RUN": "No Actual Work trial was executed."},
       "pilot_included": true
@@ -80,11 +85,11 @@
       "purpose": "Verify observable System Evaluation routing and Phase 3/Phase 4 boundary semantics.",
       "runnability": "RUNNABLE",
       "capability_requirements": ["ChatGPT Work access to current project sources", "Independent Work/project capability receipt", "Independent current README and STATE snapshot"],
-      "required_setup": ["Record the current System Evaluation owner contract and current Phase status", "Capture the raw final response and its SHA-256"],
+      "required_setup": ["Record the System Evaluation owner contract and Phase status at the immutable repository snapshot, separately from live pilot execution evidence", "Capture the raw final response and its SHA-256"],
       "user_prompt": "Report the current System Evaluation status, its contract owner, and the boundary between completed Phase 3 and the Phase 4 pilot.",
       "first_substantive_request_required": false,
       "observable_required_evidence": ["system_evaluation_owner_claim", "phase3_phase4_boundary", "observable_routing_result"],
-      "observable_forbidden_behavior": ["Use video-planning state as the System Evaluation answer", "Claim the Actual Work pilot or Phase 5 has run"],
+      "observable_forbidden_behavior": ["Use video-planning state as the System Evaluation answer", "Claim the repository-snapshot Actual Work pilot or Phase 5 has run", "Promote the external pilot aggregate to repository-snapshot current truth"],
       "forbidden_inference": ["A correct answer proves the video-planning pipeline was not internally invoked", "A hidden owner-read trace is required for PASS"],
       "dynamic_seed_policy": {"required": false, "runtime_generated": false, "minimum_entropy_bits": 0, "repository_storage_forbidden": false, "target_prompt_must_omit_value": false, "setup_receipt_required": false, "seed_location": null},
       "external_state_checks": ["README and STATE semantics at the recorded repository snapshot"],
