@@ -8,6 +8,14 @@
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
   "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 — source reconstruction과 새 evidence layer 생성 완료",
   "다음_실행": "새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계한다.",
+  "portable_workspace": {
+    "root": "K:\\kkamaknun",
+    "repository": "K:\\kkamaknun\\repo",
+    "primary_source_root": "K:\\kkamaknun\\source",
+    "transcription_root": "K:\\kkamaknun\\transcription",
+    "review_root": "K:\\kkamaknun\\review",
+    "경로_정책": "current local input/output은 portable workspace 아래의 역할별 경로를 사용한다. media·evidence·review artifact는 repository에 commit하지 않는다."
+  },
   "A_B_C": {
     "판정": "유지",
     "A": "20년 이상 취미로 애니를 봐왔지만 일본어를 제대로 공부해본 적은 없는 사람",
@@ -15,7 +23,7 @@
     "C_핵심": "20년 동안 좋아한 시간이 사람한테 이렇게 남을 수도 있구나. 신기하다."
   },
   "EP1_본촬영": {
-    "primary_material": "C:\\OBS\\체인소맨_레제편\\2026-09-06 23-54-01-01.mp4",
+    "primary_material": "K:\\kkamaknun\\source\\ep1\\2026-09-06 23-54-01-01.mp4",
     "전체_러닝타임_초": 6325.0625,
     "desktop_audio_stream": 2,
     "mic_audio_stream": 3,
@@ -23,7 +31,7 @@
     "내부_provenance": "재확인·재시청·재촬영 사실은 내부 기록에 보존한다. viewer-facing 표시는 강제하지 않으며 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않는다."
   },
   "REVIEW_B": {
-    "artifact": "C:\\kkamaknun_step5_review\\EP1_STEP5_REVIEW_B.mp4",
+    "artifact": "K:\\kkamaknun\\review\\EP1_STEP5_REVIEW_B.mp4",
     "공식_판정": "planning_quality_failure",
     "종료": true,
     "실패_근거": [
@@ -62,13 +70,13 @@
     "raw_boundary": "ASR raw와 interpretation을 분리하고 오청·오발음을 정답으로 교정하지 않는다."
   },
   "외부_artifacts": {
-    "desktop_full": "C:\\kkamaknun_transcription\\EP1_DESKTOP_JA_FULL.jsonl",
-    "mic_full": "C:\\kkamaknun_transcription\\EP1_MIC_RAW_FULL.jsonl",
-    "sync_jsonl": "C:\\kkamaknun_transcription\\EP1_SYNC_TIMELINE.jsonl",
-    "sync_csv": "C:\\kkamaknun_transcription\\EP1_SYNC_TIMELINE.csv",
-    "narrative_map": "C:\\kkamaknun_transcription\\EP1_NARRATIVE_MAP.md",
-    "transcription_QA": "C:\\kkamaknun_transcription\\EP1_TRANSCRIPTION_QA.md",
-    "new_scene_pool": "C:\\kkamaknun_transcription\\EP1_NEW_SCENE_POOL.md",
+    "desktop_full": "K:\\kkamaknun\\transcription\\EP1_DESKTOP_JA_FULL.jsonl",
+    "mic_full": "K:\\kkamaknun\\transcription\\EP1_MIC_RAW_FULL.jsonl",
+    "sync_jsonl": "K:\\kkamaknun\\transcription\\EP1_SYNC_TIMELINE.jsonl",
+    "sync_csv": "K:\\kkamaknun\\transcription\\EP1_SYNC_TIMELINE.csv",
+    "narrative_map": "K:\\kkamaknun\\transcription\\EP1_NARRATIVE_MAP.md",
+    "transcription_QA": "K:\\kkamaknun\\transcription\\EP1_TRANSCRIPTION_QA.md",
+    "new_scene_pool": "K:\\kkamaknun\\transcription\\EP1_NEW_SCENE_POOL.md",
     "repository_commit_금지": true
   },
   "narrative_recovery": {

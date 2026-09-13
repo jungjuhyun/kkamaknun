@@ -1,6 +1,6 @@
 # EP1 본 촬영 material-first 결과
 
-기준 원본: `C:\OBS\체인소맨_레제편\2026-09-06 23-54-01-01.mp4`
+기준 원본: `K:\kkamaknun\source\ep1\2026-09-06 23-54-01-01.mp4`
 원본 기준 러닝타임: `01:45:25.063`
 historical 34/15 분석일: 2026-09-13 KST
 source reconstruction recovery: 2026-09-14 KST
@@ -46,13 +46,13 @@ REVIEW_B 공식 판정: **planning_quality_failure**
 
 ### Recovery source layers
 
-- Layer A — source narrative: `C:\kkamaknun_transcription\EP1_NARRATIVE_MAP.md`
-- Layer B — desktop dialogue/audio: `C:\kkamaknun_transcription\EP1_DESKTOP_JA_FULL.jsonl`
-- Layer C — user mic raw: `C:\kkamaknun_transcription\EP1_MIC_RAW_FULL.jsonl`
+- Layer A — source narrative: `K:\kkamaknun\transcription\EP1_NARRATIVE_MAP.md`
+- Layer B — desktop dialogue/audio: `K:\kkamaknun\transcription\EP1_DESKTOP_JA_FULL.jsonl`
+- Layer C — user mic raw: `K:\kkamaknun\transcription\EP1_MIC_RAW_FULL.jsonl`
 - Layer D — visual/nonverbal reaction: 전체 1분 frame map과 과거 AV 로그를 대조하고, transcript만으로 reaction을 확정하지 않았다.
-- synchronized evidence: `C:\kkamaknun_transcription\EP1_SYNC_TIMELINE.jsonl`, `C:\kkamaknun_transcription\EP1_SYNC_TIMELINE.csv`
-- transcription QA: `C:\kkamaknun_transcription\EP1_TRANSCRIPTION_QA.md`
-- 새 scene candidate pool: `C:\kkamaknun_transcription\EP1_NEW_SCENE_POOL.md` — **30 candidates, 미선택 상태**
+- synchronized evidence: `K:\kkamaknun\transcription\EP1_SYNC_TIMELINE.jsonl`, `K:\kkamaknun\transcription\EP1_SYNC_TIMELINE.csv`
+- transcription QA: `K:\kkamaknun\transcription\EP1_TRANSCRIPTION_QA.md`
+- 새 scene candidate pool: `K:\kkamaknun\transcription\EP1_NEW_SCENE_POOL.md` — **30 candidates, 미선택 상태**
 
 Narrative map은 청해·reaction과 독립적으로 `MUST_KEEP / BRIDGE / OPTIONAL`을 판정한다. 특히 `도망 제안 → 거절 → 폭탄 정체 → 전투 시작 → 동료 개입 → 전투 climax → 해변 관계 회수 → 레제의 배경 → 레제의 귀환 선택 → 죽음 → 덴지의 기다림` 인과 사슬을 다시 세웠다. 레제 죽음은 고립된 충격 컷이 아니라 선택의 결과와 결말의 비극적 아이러니까지 연결해야 한다.
 

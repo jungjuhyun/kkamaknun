@@ -36,7 +36,9 @@
 
 기존 REVIEW_B를 고치거나 그 기반으로 REVIEW_C를 만들지 않는다. 2026-09-13의 34 candidates / 15 selects는 `materials/ep1_main/PLANNING_RESULTS.md`에 historical evidence로 보존하지만 authoritative select set이 아니다. A/B/C와 primary material, 내부 provenance 사실은 변경하지 않았다.
 
-recovery 실행에서는 stream 2 desktop과 stream 3 mic 전체 `01:45:25`를 별도 재전사하고, source narrative / desktop dialogue·audio / user mic raw / visual·nonverbal reaction 네 layer를 복원했다. 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 `C:\kkamaknun_transcription\`에 생성했다. final select, body 구조, Cold open, REVIEW_C는 아직 확정·렌더하지 않았다.
+recovery 실행에서는 stream 2 desktop과 stream 3 mic 전체 `01:45:25`를 별도 재전사하고, source narrative / desktop dialogue·audio / user mic raw / visual·nonverbal reaction 네 layer를 복원했다. 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 생성했다. portable workspace의 current artifact 위치는 `K:\kkamaknun\transcription\`이다. final select, body 구조, Cold open, REVIEW_C는 아직 확정·렌더하지 않았다.
+
+현재 local 실행의 canonical workspace root는 `K:\kkamaknun\`이다. Git working repository는 `repo\`, primary media는 `source\ep1\`, evidence artifact는 `transcription\`, review artifact는 `review\` 아래에 둔다. repository source에는 media·transcription·review artifact를 넣지 않으며, C:의 기존 원본과 작업 사본은 검증된 historical provenance로만 보존한다.
 
 `tools/harness/PIPELINE.yaml`의 material_first 공정은 외부 source narrative가 있으면 네 layer와 synchronized evidence timeline이 준비되기 전 후보 경쟁으로 넘어가지 않도록 통합 수정했다. 작품 서사는 골격, listening은 소재·발견, reaction은 재미·인물성으로 다룬다. chronology integrity와 narrative continuity를 분리하고, 본편을 먼저 설계한 뒤 Cold open을 경쟁시키며, MUST_KEEP 누락·climax/resolution/emotional closure 삭제·진단표 배열·Cold open 단순 중복을 pre-render hard gate에서 막는다.
 
