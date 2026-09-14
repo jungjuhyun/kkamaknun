@@ -29,14 +29,16 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** **REVIEW_B planning_quality_failure 종료 → material-first source reconstruction과 새 evidence layer 생성 완료 — 독립 감사 대기**.
-**다음 실행:** **새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계한다.**
+**현재 실행 위치:** **REVIEW_B planning_quality_failure 종료 → material-first source reconstruction·repair·독립 evidence audit 통과 — body-first 재설계 준비**.
+**다음 실행:** **독립 감사를 통과한 current evidence layer에서 scene candidate를 다시 경쟁해 final select와 콘텐츠 각을 확정하고, 본편 구조를 먼저 설계한 뒤 Cold open을 경쟁시킨다.**
 
 사용자의 실제 REVIEW_B 시청 결과를 근거로 Step 5를 공식 FAIL로 닫았다. 핵심 원인은 chronology만 대략 보존하고 narrative continuity를 보존하지 못한 것, 청해 증거를 작품의 핵심 사건·감정·payoff보다 우선한 것, listening과 reaction을 작품 감상 흐름 안에서 결합하지 못한 것, Cold open/body의 `사메노 마진/상어 마인` 및 `漢字読めないの？` 단순 반복, historical large-v3 결과에 과도하게 의존한 것이다. 레제의 최종 선택·죽음·덴지가 모른 채 기다리는 결말 인과가 끊긴 것은 planning_quality_failure의 핵심 evidence다.
 
 기존 REVIEW_B를 고치거나 그 기반으로 REVIEW_C를 만들지 않는다. 2026-09-13의 34 candidates / 15 selects는 `materials/ep1_main/PLANNING_RESULTS.md`에 historical evidence로 보존하지만 authoritative select set이 아니다. A/B/C와 primary material, 내부 provenance 사실은 변경하지 않았다.
 
 recovery 실행에서는 stream 2 desktop과 stream 3 mic 전체 `01:45:25`를 별도 재전사하고, source narrative / desktop dialogue·audio / user mic raw / visual·nonverbal reaction 네 layer를 복원했다. 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 생성했다. current external evidence 위치는 `K:\kkamaknun\transcription\`이다. final select, body 구조, Cold open, REVIEW_C는 아직 확정·렌더하지 않았다.
+
+repair 뒤 새 Codex 세션에서 primary MP4와 raw desktop/mic을 기준으로 reconstructed evidence를 read-only 독립 재감사했고 **`EVIDENCE_GATE_PASS`**를 확인했다. `予定/여정?` 사건 분리, N09/N10 narrative boundary, N25 captured ending, P29 reaction을 실제 source에서 재확인했으며, JSONL/CSV 633행 대응·TC 순서·25 narrative beats·30 scene candidates·stale regression scan에서 planning-critical blocker가 남지 않았다. post-credit의 파워 카페 장면은 current primary recording 범위 밖이고 사용자 reaction도 없는 구간이므로 이번 captured-material evidence의 blocker로 취급하지 않는다. 이 PASS는 **evidence source fidelity gate 통과**이며 final select·body 구조·Cold open·REVIEW_C의 품질 PASS나 최종 Step 5 PASS를 뜻하지 않는다.
 
 현재 code와 current truth는 GitHub와 각 PC의 local Git repository에서 관리한다. 집과 회사의 canonical local working repository는 모두 `C:\kkamaknun`이며 branch·commit을 GitHub로 동기화한다. 이동식 SSD `K:`는 repository 실행 위치가 아니라 대용량 external material 운반용이며, current media·evidence·review artifact는 각각 `K:\kkamaknun\source`, `K:\kkamaknun\transcription`, `K:\kkamaknun\review`에 둔다. `K:\kkamaknun\repo`는 2026-09-13 이전 과정에서 만든 historical/transport copy이므로 canonical repository나 현재 실행 경로로 사용하지 않는다. external artifact는 local repository 안으로 복사하거나 Git에 add·commit하지 않는다.
 

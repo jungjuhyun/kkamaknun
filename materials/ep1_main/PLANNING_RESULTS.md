@@ -5,7 +5,7 @@
 원본 기준 러닝타임: `01:45:25.063`
 historical 34/15 분석일: 2026-09-13 KST
 source reconstruction recovery: 2026-09-14 KST
-상태: **REVIEW_B planning_quality_failure 확정 — source reconstruction·전체 재전사·narrative map·synchronized timeline·새 후보 풀 생성 완료, 독립 evidence 감사 대기**
+상태: **REVIEW_B planning_quality_failure 확정 — source reconstruction·repair·독립 evidence audit 통과, body-first 재설계 준비**
 
 이 문서는 본 촬영 장면 증거의 상세 owner다. 1화 current detail owner는 계속 `FIRST_VIDEO.md`이며, 그 문서는 현재 결과 요약과 이 파일의 연결을 소유한다. 원본·임시 WAV/FLAC·프레임·전사 파일은 저장소에 넣지 않는다.
 
@@ -57,7 +57,20 @@ REVIEW_B 공식 판정: **planning_quality_failure**
 
 Narrative map은 청해·reaction과 독립적으로 `MUST_KEEP / BRIDGE / OPTIONAL`을 판정한다. 특히 `도망 제안 → 거절 → 폭탄 정체 → 전투 시작 → 동료 개입 → 전투 climax → 해변 관계 회수 → 레제의 배경 → 레제의 귀환 선택 → 죽음 → 덴지의 기다림` 인과 사슬을 다시 세웠다. 레제 죽음은 고립된 충격 컷이 아니라 선택의 결과와 결말의 비극적 아이러니까지 연결해야 한다.
 
-현재 실행 범위는 evidence layer 생성까지다. final select, body 구조, Cold open, REVIEW_C는 확정·렌더하지 않았다. 다음 단계는 새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계하는 것이다.
+### Independent evidence audit — 2026-09-14
+
+repair 작업과 분리된 새 Codex 세션에서 primary MP4와 raw desktop/mic을 다시 확인하는 read-only 독립 감사를 수행했고 최종 verdict는 **`EVIDENCE_GATE_PASS`**였다.
+
+- `予定/여정?`: 10분대 `サメの魔人` 사건과 12분대 `予定`·`여정?` 사건이 실제 source에서 분리되어 있고 raw utterance와 interpretation 경계도 유지됨 — PASS.
+- N09/N10: 덴지의 내부 선택 → 위협·역습·태풍 → 약 50:30 narrative transition → 축제·불꽃 setup 순서와 beat/candidate/sync state가 실제 source와 일치 — PASS.
+- N25 captured ending: 카페의 기다림 약속, 레제의 출발 시도와 귀환 선택, 마키마·천사악마의 저지·피습, 덴지가 진실을 모른 채 기다리는 closure가 current primary recording 안에서 보존됨 — PASS.
+- P29: `걸렸다` 발화와 약한 표정 변화·눈 커짐·고정 응시·작은 고개 움직임이 실제 반응 수준이며 strong laugh / `head_down`은 없음 — PASS.
+- 구조·회귀: JSONL/CSV 각 633행 parse와 완전 대응, TC 순서, narrative beat 25개, scene candidate 30개, ID/stale regression scan에 planning-critical blocker 없음.
+- post-credit의 파워 카페 장면은 `01:45:25`에 끝나는 current primary recording 범위 밖이고 사용자 reaction도 없는 구간이므로 captured-material evidence의 누락 결함이나 planning blocker로 취급하지 않는다.
+
+이 PASS는 reconstructed evidence가 **body-first planning 입력으로 사용할 수 있을 정도의 source fidelity gate를 통과했다**는 뜻이다. final select, 콘텐츠 각, body 구조, Cold open, REVIEW_C의 품질이나 최종 Step 5 PASS를 뜻하지 않는다.
+
+현재 final select, body 구조, Cold open, REVIEW_C는 여전히 확정·렌더하지 않았다. 다음 단계는 current 30-candidate evidence pool을 공통 pipeline의 후보 생성·경쟁 기준으로 다시 평가해 final select와 콘텐츠 각을 정하고, 그 결과로 **본편 구조를 먼저 설계한 뒤 Cold open을 경쟁**시키는 것이다.
 
 # Historical evidence — REVIEW_B 이전 분석
 

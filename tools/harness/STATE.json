@@ -1,13 +1,13 @@
 {
-  "상태": "EVIDENCE_RECONSTRUCTION_COMPLETE_AWAITING_INDEPENDENT_AUDIT",
+  "상태": "EVIDENCE_AUDIT_PASSED_READY_FOR_BODY_FIRST_PLANNING",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 — source reconstruction과 새 evidence layer 생성 완료",
-  "다음_실행": "새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계한다.",
+  "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 — source reconstruction·repair·독립 evidence audit 통과",
+  "다음_실행": "독립 감사를 통과한 evidence layer에서 scene candidate를 다시 경쟁해 final select와 콘텐츠 각을 확정하고, 본편 구조를 먼저 설계한 뒤 Cold open을 경쟁시킨다.",
   "경로_정책": {
     "code_current_truth": {
       "sync_source": "GitHub",
@@ -70,10 +70,25 @@
     "narrative_beat_수": 25,
     "sync_timeline_행수": 633,
     "새_scene_candidate_수": 30,
+    "독립_evidence_audit": "EVIDENCE_GATE_PASS",
+    "planning_critical_blocker_수": 0,
     "final_select": "미확정",
     "body_structure": "미확정",
     "cold_open": "미확정",
     "REVIEW_C": "미렌더"
+  },
+  "independent_evidence_audit": {
+    "결과": "EVIDENCE_GATE_PASS",
+    "실행_방식": "repair 세션과 분리된 새 Codex 세션에서 primary MP4 + raw desktop/mic 기준 read-only 재감사",
+    "핵심_확인": [
+      "予定/여정? 사건 분리와 raw/interpretation 경계 PASS",
+      "N09/N10 narrative boundary와 실제 사건 순서 PASS",
+      "N25 captured ending과 덴지가 진실을 모른 채 기다리는 closure PASS",
+      "P29 reaction strength PASS — strong laugh/head_down 없음",
+      "JSONL/CSV 633행 대응, TC 순서, 25 beats, 30 candidates, stale regression scan PASS"
+    ],
+    "post_credit_power": "current primary recording 범위 밖이며 사용자 reaction도 없는 구간이라 captured-material blocker가 아님",
+    "scope_limit": "evidence source fidelity gate 통과만 의미하며 final select/body/Cold open/REVIEW_C 또는 최종 Step 5 품질 PASS를 의미하지 않는다."
   },
   "transcription": {
     "OpenAI_API": "호스트에서 credential/API 사용 불가를 확인했다. credential 값을 요구·노출하지 않았고 mini/저정확도 모델로 fallback하지 않았다.",

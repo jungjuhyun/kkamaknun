@@ -187,7 +187,9 @@ K:\kkamaknun\source\ep1\2026-09-06 23-54-01-01.mp4
 
 본편의 현재 기획 원칙은 **작품 서사 = 골격 / 청해 = 소재·발견 / reaction = 재미·인물성**이다. chronology와 narrative continuity를 따로 검사하며, 후반 `전투 climax → 해변 관계 회수 → 레제의 배경 → 귀환 선택 → 죽음 → 덴지의 기다림`을 청해 강도와 독립적으로 보존 후보로 둔다.
 
-A/B/C는 변경하지 않는다. 기존 package, promise proof, payoff, Cold open은 recovery evidence audit 전까지 과거 판정일 뿐 현재 확정안이 아니다. 다음 단계는 새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계하는 것이다.
+repair 뒤 새 Codex 세션에서 primary MP4와 raw desktop/mic을 기준으로 reconstructed evidence를 read-only 독립 재감사했고 **`EVIDENCE_GATE_PASS`**를 확인했다. `予定/여정?` 사건 분리, N09/N10 narrative boundary, N25 captured ending, P29 reaction이 실제 source와 일치했으며 JSONL/CSV 633행 대응·TC 순서·25 narrative beats·30 scene candidates·stale regression scan에서 planning-critical blocker가 남지 않았다. post-credit의 파워 카페 장면은 current primary recording 범위 밖이고 사용자 reaction도 없는 구간이므로 captured-material evidence의 blocker로 취급하지 않는다. 이 PASS는 evidence source fidelity gate 통과일 뿐 final select·body 구조·Cold open·REVIEW_C의 품질 PASS나 최종 Step 5 PASS를 뜻하지 않는다.
+
+A/B/C는 변경하지 않는다. 기존 package, promise proof, payoff, Cold open은 REVIEW_B 이전의 historical 판정이며 current authoritative 안으로 복귀시키지 않는다. 이제 독립 감사를 통과한 30-candidate evidence pool을 공통 pipeline의 후보 생성·경쟁 기준으로 다시 평가해 final select와 콘텐츠 각을 정하고, 그 결과로 **본편 구조를 먼저 설계한 뒤 Cold open을 경쟁**시킨다.
 
 ## 촬영 protocol과 과거 기획 기록
 
@@ -1592,7 +1594,7 @@ POC2는:
 - 소리는 못 잡았는데 문맥으로 맞힘
 - 소리는 잡았는데 뜻은 틀림
 - 귀로 너무 익숙한 표현인데 한자로 보면 전혀 못 읽음
-- 익숙한 일본어의 실제 한자를 보고 `왜 이 글자가 들어가지?`라는 위화감이 생김
+- 익숙한 일본어의 실제 한자를 보고 `왜 이 한자가 들어가지?`라는 위화감이 생김
 - 한국 한자어와 연결되면서 예상 밖의 의미·어원 관계가 발견됨
 - 처음에는 그림처럼 보이던 한자가 반복 학습 뒤 읽히거나 유추되기 시작함
 - **같은 표현인데 캐릭터의 감정·억양·상황에 따라 전혀 다르게 들리는 경험**
