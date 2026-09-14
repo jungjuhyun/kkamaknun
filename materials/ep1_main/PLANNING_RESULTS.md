@@ -5,7 +5,7 @@
 원본 기준 러닝타임: `01:45:25.063`
 historical 34/15 분석일: 2026-09-13 KST
 source reconstruction recovery: 2026-09-14 KST
-상태: **REVIEW_B planning_quality_failure 확정 — source reconstruction·repair·독립 evidence audit 통과, body-first 재설계 준비**
+상태: **REVIEW_B planning_quality_failure 종료 — current body-first replanning·subtitle-assisted Step 9 재검증 `STEP9_PASS` — Step 10 review rough cut 준비 완료, 사용자 시청 대기**
 
 이 문서는 본 촬영 장면 증거의 상세 owner다. 1화 current detail owner는 계속 `FIRST_VIDEO.md`이며, 그 문서는 현재 결과 요약과 이 파일의 연결을 소유한다. 원본·임시 WAV/FLAC·프레임·전사 파일은 저장소에 넣지 않는다.
 
@@ -53,7 +53,7 @@ REVIEW_B 공식 판정: **planning_quality_failure**
 - Layer D — visual/nonverbal reaction: 전체 1분 frame map과 과거 AV 로그를 대조하고, transcript만으로 reaction을 확정하지 않았다.
 - synchronized evidence: `K:\kkamaknun\transcription\EP1_SYNC_TIMELINE.jsonl`, `K:\kkamaknun\transcription\EP1_SYNC_TIMELINE.csv`
 - transcription QA: `K:\kkamaknun\transcription\EP1_TRANSCRIPTION_QA.md`
-- 새 scene candidate pool: `K:\kkamaknun\transcription\EP1_NEW_SCENE_POOL.md` — **30 candidates, 미선택 상태**
+- 새 scene candidate pool: `K:\kkamaknun\transcription\EP1_NEW_SCENE_POOL.md` — **30 candidates, current body-first replanning의 경쟁 입력**
 
 Narrative map은 청해·reaction과 독립적으로 `MUST_KEEP / BRIDGE / OPTIONAL`을 판정한다. 특히 `도망 제안 → 거절 → 폭탄 정체 → 전투 시작 → 동료 개입 → 전투 climax → 해변 관계 회수 → 레제의 배경 → 레제의 귀환 선택 → 죽음 → 덴지의 기다림` 인과 사슬을 다시 세웠다. 레제 죽음은 고립된 충격 컷이 아니라 선택의 결과와 결말의 비극적 아이러니까지 연결해야 한다.
 
@@ -72,7 +72,54 @@ repair 작업과 분리된 새 Codex 세션에서 primary MP4와 raw desktop/mic
 
 EP1 packaging의 semantic owner는 `FIRST_VIDEO.md`다. recovery에서 historical로 격리된 것은 REVIEW_B의 34/15 select, body, scene-specific proof/payoff sequence와 Cold open이지 current packaging promise 자체가 아니다. 이 material/evidence owner는 package를 다시 소유하지 않으며, `予定 → 여정?`를 포함한 개별 scene은 current promise를 증명·보조하는 후보이지 새 top-level 상품이 아니다.
 
-현재 final select, body 구조, Cold open, REVIEW_C는 여전히 확정·렌더하지 않았다. 최근 package constraint 미반영 body-first draft도 persistent current truth나 Step 9 입력으로 채택하지 않았다. 다음 단계는 current 30-candidate evidence pool을 `FIRST_VIDEO.md`의 packaging promise 아래 다시 평가해 final select와 scene-level storytelling angle을 정하고, 그 결과로 **본편 구조를 먼저 설계한 뒤 Cold open과 exact copy를 경쟁**시키는 것이다.
+packaging promise가 current constraint로 복원되기 전에 만들어진 별도 body-first draft는 persistent current truth나 Step 9 입력으로 채택하지 않았다. current 30-candidate evidence pool을 `FIRST_VIDEO.md`의 promise 아래 처음부터 다시 경쟁한 current planning과 정확한 장면 범위는 아래에 기록한다. 이 파일은 evidence provenance와 planned boundary를 소유하며 packaging 의미는 계속 `FIRST_VIDEO.md`가 소유한다.
+
+## 4. Current body-first planning과 subtitle-assisted Step 9
+
+최종 verdict: **`STEP9_PASS`**. 이는 review rough cut 생성용 planning gate 통과이며 사용자 시청을 포함한 Step 10이나 최종 Step 5 PASS가 아니다.
+
+- storytelling 방향: `선택을 따라가는 귀`. 덴지와 레제의 선택을 따라가는 작품 서사를 골격으로 두고, 정확한 일본어 형태는 놓쳐도 들은 말·화면·앞 사건을 합쳐 관계와 감정선에 도착하는 비대칭을 누적한다.
+- 작품 서사 보조 primary subtitle: `K:\kkamaknun\source\ep1\subtitles\ChainsawMan_Movie_Reze_erai.smi`. `ChainsawMan_Movie_Reze_subsplease.smi`도 함께 확인했으며 두 파일의 줄 수와 대사 내용은 같고 빈 sync marker 하나의 시각만 1초 다르다. 한국어 자막은 작품 사건·대사 의미 확인용이며 user mic evidence를 대체하지 않는다.
+- current Cold open: recording TC `33:26.6~33:38.6` + `53:32.9~53:45.6`, 약 24.7초. body 재등장에는 전체 관계·원인·결과가 추가된다.
+- current package copy: 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다` / 썸네일 `뜻은 아는데 일본어는 모름?`. `내용은 아는데 일본어는 모름?`은 전체 영화 이해를 과장할 위험 때문에 기각했다. exact copy lock은 아니다.
+- 레제 과거: `100:11.8~100:14.2`의 사용자 `하나도 못 알아듣겠다`와, `100:14.1~100:23.2`·`100:43.3~100:59.2`의 작품 자막 정보, `101:04.1~101:14.0`의 귀환 선택 bridge를 분리한다. 작품 정보는 listening success가 아니다.
+
+### Current final select — primary recording planned boundaries
+
+아래 범위는 evidence/beat의 넓은 원래 범위가 아니라 review rough cut에 사용할 planned in/out이다. Cold open 뒤 S01~S17은 recording TC 오름차순이다.
+
+| scene | planned in/out | current function |
+|---|---|---|
+| Cold open | `33:26.6~33:38.6`; `53:32.9~53:45.6` | 글자·정확한 형태의 약점과 실제 의미 추적의 대비 |
+| S01 | `05:17~05:31`; `06:41~07:08`; `09:50~10:31` | 시작 조건, 작품 진입, 첫 listening state |
+| S02 | `11:31~12:05`; `12:14~12:50`; `15:47~16:42`; `20:30~21:28` | 초기 오청·부분 이해와 마키마 관계 setup |
+| S03 | `22:18~23:26`; `24:20~24:34`; `25:04~25:40`; `29:45~30:12`; `30:29~31:10` | 레제 만남·카페 초대·천사 bridge |
+| S04 | `31:20~31:55`; `32:24~33:50`; `34:10~35:08` | 한자 장면의 full context와 읽기/듣기 비대칭 |
+| S05 | `35:20~35:55`; `36:20~37:35`; `39:40~40:20`; `41:42~41:55`; `42:45~42:59` | 관계 형성과 수영 setup·reaction |
+| S06 | `45:45~47:10`; `47:20~48:20`; `48:30~50:30` | 친밀감에서 위협·내부 선택으로 전환 |
+| S07 | `52:20~53:00` | 도망 제안 직전 관계 bridge |
+| S08 | `53:00~54:30`; `55:10~55:50` | 도망 제안과 덴지의 거절·현재 삶 선택 |
+| S09 | `55:58~56:30`; `56:40~58:10` | 배신·폭탄 정체와 전투 시작 |
+| S10 | `58:10~59:30`; `60:40~61:20` | 위협 확장과 전투 진입 bridge |
+| S11 | `63:18~63:36`; `65:17~65:42`; `66:16~67:05`; `69:18~69:31`; `70:19~70:38`; `71:33~72:08`; `72:20~72:53`; `73:21~73:40`; `77:02~77:34`; `78:01~78:12` | 차량 추격, 덴지의 재전투 이유, Beam 설명·협력 |
+| S12 | `78:18~78:45`; `78:57~79:14`; `79:26~79:53`; `80:14~80:58`; `82:50~83:05`; `83:32~84:10`; `84:26~85:10` | 아키·천사 위기와 구조, 덴지 재진입 |
+| S13 | `85:16~85:32`; `85:59~86:43`; `86:59~87:10`; `90:05~90:15`; `91:20~91:40`; `92:00~94:10`; `94:10~94:35`; `94:50~95:10` | 수영 callback, 물 전술 실행·결과, 해변 도착 |
+| S14 | `95:10~95:50`; `96:04~96:25`; `96:40~97:20`; `97:27~98:10`; `98:38~99:12` | 해변 resolution, 관계 회수, 카페 약속 |
+| S15 | `100:11.8~100:14.2`; `100:14.1~100:23.2`; `100:43.3~100:59.2`; `101:04.1~101:14.0` | 못 들은 레제 과거와 귀환 선택 bridge를 분리 |
+| S16 | `101:25~101:50`; `102:05~102:15` | 귀환 선택에서 마키마·천사의 저지로 연결 |
+| S17 | `102:15~102:38`; `102:38~103:23`; `103:23~103:50`; `103:50~104:20`; `104:20~104:45`; `104:50~105:18` | 피습·죽음과 덴지가 모른 채 기다리는 결말 |
+
+S11~S13의 hard continuity는 `레제가 차량을 추격 → 덴지가 다시 나서는 이유 → Beam의 설명과 협력 → 아키·천사의 위기와 구조 → 덴지 재진입 → 수영 callback → 물 전술 실행·결과 → 해변 resolution`이다. TC 자체보다 이 인과를 보존하며 전투 전체를 길게 남기지 않는다.
+
+### Step 10 review rough cut artifact
+
+- artifact: `K:\kkamaknun\review\EP1_STEP10_REVIEW_C.mp4`
+- provenance: REVIEW_B를 source로 쓰지 않고 current planned boundaries를 primary MP4에서 직접 추출했다.
+- 구성: Cold open 2구간 + 4초 context slate + chronology body 72구간.
+- 실제 검사값: `44:43.021`, 1280×720 / 30fps / H.264, AAC 48kHz stereo, 파일 크기 245,559,398 bytes.
+- 검증: ffprobe 정상, 영상·오디오 stream 정상, 시작·중간·끝 decode 정상, Cold open/context/N22 표시 frame 확인.
+- 레제 과거 표시: `내가 실제로 들은 것`과 `작품 자막 정보 — 내가 들은 내용 아님`을 화면에서 분리했다.
+- current status: **`STEP10_ROUGH_CUT_READY` / `USER_VIEW_PENDING` / `FINAL_STEP5_UNDECIDED`**. 사용자는 아직 이 artifact를 보지 않았다.
 
 # Historical evidence — REVIEW_B 이전 분석
 

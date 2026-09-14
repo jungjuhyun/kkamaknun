@@ -171,7 +171,7 @@ K:\kkamaknun\source\ep1\2026-09-06 23-54-01-01.mp4
    - 네 layer를 absolute TC로 정렬한 뒤에만 `setup → 작품 사건/대사 → 이해·오해 → reaction → 작품 결과/다음 상태` scene unit을 만든다.
    - 역할은 `ANCHOR / STORY_REACTION / STORY_LISTENING / BRIDGE / EVIDENCE / CHARACTER`로 기록한다. EVIDENCE/CHARACTER만으로 본편 spine을 만들지 않는다.
 
-### REVIEW_B 공식 FAIL과 현재 recovery 상태
+### REVIEW_B 공식 FAIL과 current Step 9·Step 10 상태
 
 사용자가 REVIEW_B를 실제 시청한 결과를 AI가 구조적으로 해석해 **planning_quality_failure**로 확정했다.
 
@@ -183,19 +183,29 @@ K:\kkamaknun\source\ep1\2026-09-06 23-54-01-01.mp4
 
 기존 REVIEW_B를 수정하거나 그 기반으로 REVIEW_C를 만들지 않는다. 기존 34 candidates / 15 selects는 상세 owner에서 **historical evidence**로 보존하되 authoritative select set으로 사용하지 않는다.
 
-현재 recovery에서는 stream 2/3 전체 `01:45:25` 재전사, 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 만들었다. final select, body 구조, Cold open, REVIEW_C는 아직 확정하지 않았다. 외부 artifact와 QA 경계는 `materials/ep1_main/PLANNING_RESULTS.md`가 소유한다.
+recovery에서는 stream 2/3 전체 `01:45:25` 재전사, 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 만들었다. 외부 artifact, exact planned boundary와 QA 경계는 `materials/ep1_main/PLANNING_RESULTS.md`가 소유한다.
 
 본편의 현재 기획 원칙은 **작품 서사 = 골격 / 청해 = 소재·발견 / reaction = 재미·인물성**이다. chronology와 narrative continuity를 따로 검사하며, 후반 `전투 climax → 해변 관계 회수 → 레제의 배경 → 귀환 선택 → 죽음 → 덴지의 기다림`을 청해 강도와 독립적으로 보존 후보로 둔다.
 
-repair 뒤 새 Codex 세션에서 primary MP4와 raw desktop/mic을 기준으로 reconstructed evidence를 read-only 독립 재감사했고 **`EVIDENCE_GATE_PASS`**를 확인했다. `予定/여정?` 사건 분리, N09/N10 narrative boundary, N25 captured ending, P29 reaction이 실제 source와 일치했으며 JSONL/CSV 633행 대응·TC 순서·25 narrative beats·30 scene candidates·stale regression scan에서 planning-critical blocker가 남지 않았다. post-credit의 파워 카페 장면은 current primary recording 범위 밖이고 사용자 reaction도 없는 구간이므로 captured-material evidence의 blocker로 취급하지 않는다. 이 PASS는 evidence source fidelity gate 통과일 뿐 final select·body 구조·Cold open·REVIEW_C의 품질 PASS나 최종 Step 5 PASS를 뜻하지 않는다.
+repair 뒤 새 Codex 세션에서 primary MP4와 raw desktop/mic을 기준으로 reconstructed evidence를 read-only 독립 재감사했고 **`EVIDENCE_GATE_PASS`**를 확인했다. `予定/여정?` 사건 분리, N09/N10 narrative boundary, N25 captured ending, P29 reaction이 실제 source와 일치했으며 JSONL/CSV 633행 대응·TC 순서·25 narrative beats·30 scene candidates·stale regression scan에서 planning-critical blocker가 남지 않았다. post-credit의 파워 카페 장면은 current primary recording 범위 밖이고 사용자 reaction도 없는 구간이므로 captured-material evidence의 blocker로 취급하지 않는다.
 
 A/B/C와 **EP1의 packaging promise / product positioning**은 변경하지 않는다. 제목·썸네일은 `일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람(A)이 실제로 체인소 맨: 레제편을 한국어 자막 없이 보고(B), 듣고 의미·흐름을 따라가는 부분과 정확한 단어·문장 형태·문자를 잡지 못하는 부분이 비대칭적으로 드러난 결과`를 영상 전체의 promise로 대표해야 한다. 여기서 `20년`은 작품 수·덕후성·학습 기간이 아니라 취미 시청 기간이다.
 
 현재 editable baseline/reference는 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다`, 썸네일 `뜻은 아는데 일본어는 모름?`이다. exact copy는 immutable lock이 아니므로 더 좋은 문구로 개선할 수 있지만, 같은 A + 실제 자막 없는 레제편 시청 + 듣기와 정확한 형태·문자 사이의 비대칭 promise를 유지해야 한다. 전혀 다른 영상 상품으로 재발명하지 않는다.
 
-historical로 격리하는 것은 REVIEW_B의 34 candidates / 15 selects, authoritative scene select, body와 scene ordering, scene-specific promise proof sequence, payoff 구현 순서, Cold open과 그 반복 구조다. packaging promise 자체는 recovery에서 폐기하지 않는다. `予定 → 여정?`, `漢字読めないの？`, `血抜き？`와 그 밖의 current scene candidate는 promise proof·body·contrast·share unit·reaction·supporting evidence로 경쟁할 수 있지만 단일 사례가 top-level content angle·제목·썸네일 상품을 대체하지 않는다.
+historical로 격리하는 것은 REVIEW_B의 34 candidates / 15 selects, authoritative scene select, body와 scene ordering, scene-specific promise proof sequence, payoff 구현 순서, Cold open과 그 반복 구조다. packaging promise 자체는 recovery에서 폐기하지 않는다. `予定 → 여정?`, `漢字読めないの？`, `血抜き？`와 그 밖의 current scene은 promise proof·body·contrast·share unit·reaction·supporting evidence이지 단일 사례가 top-level 상품을 대체하지 않는다.
 
-이제 독립 감사를 통과한 30-candidate evidence pool에서 **이 current packaging promise를 작품 서사와 장면 구조로 가장 잘 증명하고 재미있게 전달하는 범위** 안에서 final select, scene-level storytelling angle, body, payoff 구현, Cold open과 exact copy refinement를 다시 경쟁한다. 본편 구조를 먼저 설계한 뒤 Cold open을 경쟁시킨다.
+current promise 아래에서 30 candidates를 다시 경쟁해 본편을 먼저 설계하고, 한국어 SAMI로 작품 서사와 사용자 실제 청해를 분리해 실패 범위만 재검증한 결과는 **`STEP9_PASS`**다. current storytelling 방향은 **`선택을 따라가는 귀`**다. 마키마를 선택하던 덴지, 레제를 선택하게 된 덴지, 결국 카페로 돌아가기로 한 레제를 실제 작품 인과로 따라가면서, 정확한 일본어는 군데군데 놓치지만 들은 말·화면·앞 사건을 합쳐 관계와 감정선에는 끝내 도착하는 비대칭을 경험시킨다. 작품 서사가 골격이고 listening은 발견, reaction은 인물성이다.
+
+current body는 Cold open 뒤 primary recording chronology를 보존한다. 초반의 읽기·듣기 비대칭과 관계 형성에서 시작해 도망 제안·거절·배신, 전투 재기와 Beam 협력, 아키·천사 위기, 수영 callback과 물 전술, 해변 resolution, 카페 약속, 레제 과거, 귀환 선택, 피습·죽음, 덴지가 진실을 모른 채 기다리는 결말까지 연결한다. 특히 S11~S13은 `레제의 차량 추격 → 덴지가 다시 나서는 이유 → Beam의 설명과 협력 → 아키·천사의 위기와 구조 → 덴지의 재진입 → 수영 callback → 물 전술 실행·결과 → 해변` 인과를 보존한다.
+
+레제 과거는 작품 자막이 알려 주는 `자유 박탈·실험·소련이 만든 병사` 정보와 사용자가 실제로 말한 `하나도 못 알아듣겠다`를 분리한다. 작품 설명을 listening success로 쓰지 않고, 중요한 작품 정보가 귀에서는 완전히 비어 있던 current 비대칭 evidence로 사용한 뒤 화면과 앞 사건으로 귀환 선택을 잇는다.
+
+current Cold open 1순위는 `33:26.6~33:38.6` + `53:32.9~53:45.6` 약 24.7초다. `漢字読めないの？`의 의미를 잡는 장면과 레제의 도주 제안 핵심을 따라가는 장면을 짧게 대비하며 긴 진단 설명은 붙이지 않는다. body 재등장 때는 각각 전체 장면의 관계·원인·결과가 추가된다.
+
+current exact copy는 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다`, 썸네일 `뜻은 아는데 일본어는 모름?`이다. `내용은 아는데 일본어는 모름?`은 영화 전체 이해를 과장할 위험 때문에 기각했다. exact copy는 여전히 개선 가능하지만 current promise 밖의 다른 상품으로 바꾸지 않는다.
+
+이 planning의 selected footage를 REVIEW_B와 분리해 primary MP4에서 직접 만든 Step 10 artifact는 `K:\kkamaknun\review\EP1_STEP10_REVIEW_C.mp4`다. 실제 길이는 `44:43.021`, 1280×720 H.264 + AAC stereo이며 ffprobe와 시작·중간·끝 decode를 통과했다. 사용자는 아직 보지 않았으므로 **Step 10 사용자 시청은 `PENDING_EXTERNAL`이고 최종 Step 5는 미판정**이다. 다음 행동은 사용자가 이 rough cut을 일반 시청자 모드로 보고 체감 관측을 남기는 것이다.
 
 ## 촬영 protocol과 과거 기획 기록
 

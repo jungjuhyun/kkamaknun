@@ -1,6 +1,6 @@
 # STATE.md — 현재 상태
 
-기준 시각: 2026-09-14 KST
+기준 시각: 2026-09-15 KST
 
 ## 현재 상태
 
@@ -29,8 +29,8 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** **REVIEW_B planning_quality_failure 종료 → material-first source reconstruction·repair·독립 evidence audit 통과 → EP1 packaging promise ownership 복원 — body-first 재설계 준비**.
-**다음 실행:** **FIRST_VIDEO.md가 소유한 current packaging promise 아래에서 독립 감사를 통과한 30-candidate evidence를 다시 경쟁·정렬해 final select와 scene-level storytelling angle을 정하고, 본편 구조를 먼저 설계한 뒤 Cold open과 exact copy를 경쟁시킨다. 그 다음에만 Step 9로 간다.**
+**현재 실행 위치:** **REVIEW_B planning_quality_failure 종료 → material-first source reconstruction·repair·독립 evidence audit 통과 → packaging promise 아래 body-first replanning·한국어 자막 보조 Step 9 재검증 통과 → EP1 Step 10 review rough cut 준비 완료, 사용자 시청 대기**.
+**다음 실행:** **사용자가 `K:\kkamaknun\review\EP1_STEP10_REVIEW_C.mp4`를 일반 시청자 모드로 보고 지루한 곳·집중된 곳·헷갈린 곳·반복처럼 느낀 곳·기억에 남은 장면과 시청 직후 감상을 남긴다. 그 관측을 받은 뒤 AI가 구조 원인과 최소 수정 필요 여부를 해석한다.**
 
 사용자의 실제 REVIEW_B 시청 결과를 근거로 Step 5를 공식 FAIL로 닫았다. 핵심 원인은 chronology만 대략 보존하고 narrative continuity를 보존하지 못한 것, 청해 증거를 작품의 핵심 사건·감정·payoff보다 우선한 것, listening과 reaction을 작품 감상 흐름 안에서 결합하지 못한 것, Cold open/body의 `사메노 마진/상어 마인` 및 `漢字読めないの？` 단순 반복, historical large-v3 결과에 과도하게 의존한 것이다. 레제의 최종 선택·죽음·덴지가 모른 채 기다리는 결말 인과가 끊긴 것은 planning_quality_failure의 핵심 evidence다.
 
@@ -38,11 +38,11 @@
 
 EP1 packaging의 semantic owner는 `FIRST_VIDEO.md`다. 유지하는 current promise는 `일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람이 실제 레제편을 한국어 자막 없이 보며 드러낸, 듣기·의미/흐름 이해와 정확한 단어·문장 형태·문자 사이의 비대칭`이다. 그 owner에 기록된 title/thumbnail baseline은 개선 가능하며 exact-copy lock이 아니다. 개별 listening scene은 이 전체 promise의 proof/supporting evidence이며 새 top-level 상품으로 대체하지 않는다.
 
-최근 별도 실행에서 만들어진 package constraint 미반영 body-first draft는 persistent current truth로 채택된 적이 없고 Step 9 입력으로 확정하지 않는다. evidence reconstruction과 25 narrative beats / 633 sync rows / 30 current candidates / `EVIDENCE_GATE_PASS`는 유지하며, 다음 planning 실행에서 current packaging promise 아래 body/select를 다시 경쟁·정렬한다.
+packaging promise가 current constraint로 복원되기 전에 만들어진 별도 body-first draft는 persistent current truth나 Step 9 입력으로 채택하지 않았다. 그 뒤 current promise 아래에서 30 candidates를 다시 경쟁하고 작품 서사를 골격으로 final select·body·Cold open·exact copy를 정렬했으며, 새 한국어 SAMI로 작품 서사와 사용자 실제 청해를 분리해 실패 범위만 재검증한 결과 **`STEP9_PASS`**를 확정했다. 현재 storytelling 방향은 `선택을 따라가는 귀`, exact copy는 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다` / 썸네일 `뜻은 아는데 일본어는 모름?`이고 exact-copy lock은 아니다.
 
-recovery 실행에서는 stream 2 desktop과 stream 3 mic 전체 `01:45:25`를 별도 재전사하고, source narrative / desktop dialogue·audio / user mic raw / visual·nonverbal reaction 네 layer를 복원했다. 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 생성했다. current external evidence 위치는 `K:\kkamaknun\transcription\`이다. final select, body 구조, Cold open, REVIEW_C는 아직 확정·렌더하지 않았다.
+recovery 실행에서는 stream 2 desktop과 stream 3 mic 전체 `01:45:25`를 별도 재전사하고, source narrative / desktop dialogue·audio / user mic raw / visual·nonverbal reaction 네 layer를 복원했다. 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 생성했다. current external evidence 위치는 `K:\kkamaknun\transcription\`이고 작품 서사 보조 source는 `K:\kkamaknun\source\ep1\subtitles\`의 한국어 SAMI다. 자막의 작품 정보와 사용자 mic의 실제 청해는 합치지 않는다.
 
-repair 뒤 새 Codex 세션에서 primary MP4와 raw desktop/mic을 기준으로 reconstructed evidence를 read-only 독립 재감사했고 **`EVIDENCE_GATE_PASS`**를 확인했다. `予定/여정?` 사건 분리, N09/N10 narrative boundary, N25 captured ending, P29 reaction을 실제 source에서 재확인했으며, JSONL/CSV 633행 대응·TC 순서·25 narrative beats·30 scene candidates·stale regression scan에서 planning-critical blocker가 남지 않았다. post-credit의 파워 카페 장면은 current primary recording 범위 밖이고 사용자 reaction도 없는 구간이므로 이번 captured-material evidence의 blocker로 취급하지 않는다. 이 PASS는 **evidence source fidelity gate 통과**이며 final select·body 구조·Cold open·REVIEW_C의 품질 PASS나 최종 Step 5 PASS를 뜻하지 않는다.
+repair 뒤 새 Codex 세션에서 primary MP4와 raw desktop/mic을 기준으로 reconstructed evidence를 read-only 독립 재감사했고 **`EVIDENCE_GATE_PASS`**를 확인했다. 그 evidence로 만든 current planning은 subtitle-assisted Step 9 재검증에서 **`STEP9_PASS`**를 받았다. 이 planning의 selected footage를 REVIEW_B와 분리해 primary MP4에서 직접 만든 `EP1_STEP10_REVIEW_C.mp4`는 `44:43.021`, 1280×720 H.264 + AAC stereo이며 ffprobe와 시작·중간·끝 decode 검사를 통과했다. 아직 사용자는 이 rough cut을 보지 않았고 **Step 10 사용자 시청은 `PENDING_EXTERNAL`, 최종 Step 5는 미판정, `AI_최종_PASS`는 false**다.
 
 현재 code와 current truth는 GitHub와 각 PC의 local Git repository에서 관리한다. 집과 회사의 canonical local working repository는 모두 `C:\kkamaknun`이며 branch·commit을 GitHub로 동기화한다. 이동식 SSD `K:`는 repository 실행 위치가 아니라 대용량 external material 운반용이며, current media·evidence·review artifact는 각각 `K:\kkamaknun\source`, `K:\kkamaknun\transcription`, `K:\kkamaknun\review`에 둔다. `K:\kkamaknun\repo`는 2026-09-13 이전 과정에서 만든 historical/transport copy이므로 canonical repository나 현재 실행 경로로 사용하지 않는다. external artifact는 local repository 안으로 복사하거나 Git에 add·commit하지 않는다.
 
