@@ -189,11 +189,17 @@ K:\kkamaknun\source\ep1\2026-09-06 23-54-01-01.mp4
 
 repair 뒤 새 Codex 세션에서 primary MP4와 raw desktop/mic을 기준으로 reconstructed evidence를 read-only 독립 재감사했고 **`EVIDENCE_GATE_PASS`**를 확인했다. `予定/여정?` 사건 분리, N09/N10 narrative boundary, N25 captured ending, P29 reaction이 실제 source와 일치했으며 JSONL/CSV 633행 대응·TC 순서·25 narrative beats·30 scene candidates·stale regression scan에서 planning-critical blocker가 남지 않았다. post-credit의 파워 카페 장면은 current primary recording 범위 밖이고 사용자 reaction도 없는 구간이므로 captured-material evidence의 blocker로 취급하지 않는다. 이 PASS는 evidence source fidelity gate 통과일 뿐 final select·body 구조·Cold open·REVIEW_C의 품질 PASS나 최종 Step 5 PASS를 뜻하지 않는다.
 
-A/B/C는 변경하지 않는다. 기존 package, promise proof, payoff, Cold open은 REVIEW_B 이전의 historical 판정이며 current authoritative 안으로 복귀시키지 않는다. 이제 독립 감사를 통과한 30-candidate evidence pool을 공통 pipeline의 후보 생성·경쟁 기준으로 다시 평가해 final select와 콘텐츠 각을 정하고, 그 결과로 **본편 구조를 먼저 설계한 뒤 Cold open을 경쟁**시킨다.
+A/B/C와 **EP1의 packaging promise / product positioning**은 변경하지 않는다. 제목·썸네일은 `일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람(A)이 실제로 체인소 맨: 레제편을 한국어 자막 없이 보고(B), 듣고 의미·흐름을 따라가는 부분과 정확한 단어·문장 형태·문자를 잡지 못하는 부분이 비대칭적으로 드러난 결과`를 영상 전체의 promise로 대표해야 한다. 여기서 `20년`은 작품 수·덕후성·학습 기간이 아니라 취미 시청 기간이다.
+
+현재 editable baseline/reference는 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다`, 썸네일 `뜻은 아는데 일본어는 모름?`이다. exact copy는 immutable lock이 아니므로 더 좋은 문구로 개선할 수 있지만, 같은 A + 실제 자막 없는 레제편 시청 + 듣기와 정확한 형태·문자 사이의 비대칭 promise를 유지해야 한다. 전혀 다른 영상 상품으로 재발명하지 않는다.
+
+historical로 격리하는 것은 REVIEW_B의 34 candidates / 15 selects, authoritative scene select, body와 scene ordering, scene-specific promise proof sequence, payoff 구현 순서, Cold open과 그 반복 구조다. packaging promise 자체는 recovery에서 폐기하지 않는다. `予定 → 여정?`, `漢字読めないの？`, `血抜き？`와 그 밖의 current scene candidate는 promise proof·body·contrast·share unit·reaction·supporting evidence로 경쟁할 수 있지만 단일 사례가 top-level content angle·제목·썸네일 상품을 대체하지 않는다.
+
+이제 독립 감사를 통과한 30-candidate evidence pool에서 **이 current packaging promise를 작품 서사와 장면 구조로 가장 잘 증명하고 재미있게 전달하는 범위** 안에서 final select, scene-level storytelling angle, body, payoff 구현, Cold open과 exact copy refinement를 다시 경쟁한다. 본편 구조를 먼저 설계한 뒤 Cold open을 경쟁시킨다.
 
 ## 촬영 protocol과 과거 기획 기록
 
-아래는 촬영 조건·내부 provenance·이전 기획 판단을 재현하기 위한 참고 기록이다. 현재 recovery 실행 순서, select, body, Cold open의 owner는 위 recovery 절과 `materials/ep1_main/PLANNING_RESULTS.md`이며, 아래의 과거 `다음 단계`, 러프 구조, package/Cold open 순위를 current instruction으로 실행하지 않는다.
+아래는 촬영 조건·내부 provenance·이전 기획 판단을 재현하기 위한 참고 기록이다. current packaging promise와 select/body/Cold open의 상태·기획 기준은 위 recovery 절이 소유하고, `materials/ep1_main/PLANNING_RESULTS.md`는 current evidence와 historical 분석의 상세 경계를 소유한다. 아래의 과거 `다음 단계`, 러프 구조, package/Cold open 순위를 current instruction으로 실행하지 않는다.
 
 ## 1화 진단용 본 촬영 프로토콜 — 채택
 
@@ -729,7 +735,7 @@ Phase 1의 다음 상태를 열되, 다음 화의 구체적 방법이나 성공 
 
 패키징은 `20년`을 작품 수·덕후성 과장으로 쓰지 않고 **공부하지 않은 기간과 취미 노출의 모순**으로 사용한다.
 
-#### 1안 — 현재 우선안
+#### 1안 — 당시 우선안
 
 제목:
 > **일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다**
@@ -770,7 +776,7 @@ Phase 1의 다음 상태를 열되, 다음 화의 구체적 방법이나 성공 
 약점:
 - `애니 대사는 들린다`가 모든 장면·모든 작품에 일반화된 것처럼 읽힐 수 있어 1안보다 사실 경계가 약하다.
 
-현재 선택:
+당시 선택:
 > **1안을 버리지 않고, 아래 두 패키지 후보를 Step 4-E의 RED TEAM 대상으로 함께 넘긴다.**
 
 - **패키지 A — 비대칭 결과형**
@@ -1014,7 +1020,7 @@ Exit:
 
 ### 최종 패키지 후보 2개
 
-#### 패키지 A — 비대칭 결과형 / 현재 제작 기본안
+#### 패키지 A — 비대칭 결과형 / 당시 제작 기본안
 제목:
 > **일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다**
 
@@ -1024,7 +1030,7 @@ Exit:
 판정:
 - A+B와 실제 payoff 일치도가 가장 높다.
 - 객관 급수 답을 요구하지 않아 현재 재료와 가장 안전하다.
-- 현재 **제작 기본안**으로 둔다.
+- 당시 **제작 기본안**으로 뒀다.
 
 #### 패키지 B — 실력 호기심형 / 유지
 제목:
@@ -1276,7 +1282,7 @@ Exit:
 
 ### 재실행 단계 8 — 패키징 (본 촬영 전 가설 기록)
 
-#### 패키지 A — 현재 기본안
+#### 패키지 A — 당시 기본안
 
 제목:
 > **일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다**
@@ -1304,8 +1310,8 @@ Exit:
 - 본편 끝에서 `시험 급수로 확정할 수는 없지만, 청해만 보면 초급이라고 보기 어려운 모습이 나타났다`는 제한적 답을 직접 줘야 한다.
 - 새 콘텐츠 각은 바꾸지 않는다. `중급?`은 패키징 promise다.
 
-현재 우선순위:
-> **A를 제작 기본안, B를 대안으로 유지한다.**
+당시 우선순위:
+> **A를 당시 제작 기본안, B를 대안으로 유지했다.**
 
 ### 과거 사용자 품질 판정용 러프 구조표 (본 촬영 전 가설·현재 Step 5 입력 아님)
 
@@ -1325,13 +1331,13 @@ Exit:
 
 #### 이 과거 구조표의 당시 Step 5 사전 판정
 
-**현재 보이는 강점**
+**당시 보인 강점**
 - 제목/썸네일의 `읽기 약점 ↔ 듣기 강점` 모순이 Cold open과 32분대 핵심 장면에서 실제로 회수된다.
 - 본편은 1차 시청 chronology를 보존하면서도 `된다/안 된다 → 오해 → 읽기/듣기 모순 → 실제 작품 소비`로 시청 이유가 변한다.
 - `다음이 최고`는 메인 각이 아니라 공유 가능한 강한 보조 사건으로 남고, `지누키?`는 설명이 필요한 본편 증거로 내려가 역할이 분리된다.
 - 32분대 이후에도 `이런 귀로 실제 작품을 어디까지 따라가나`라는 새 질문이 있어 핵심 장면 공개 뒤 바로 끝나지 않는다.
 
-**현재 남은 검증 위험**
+**당시 남긴 검증 위험**
 - 32분대 `漢字読めないの？` 장면의 실제 표정·호흡이 로그에서 기대한 만큼 강하지 않으면, ‘핵심 장면’ 지위가 약해질 수 있다.
 - 후반 사건이 많기 때문에 러프컷에서 수영장/관계/전투를 모두 살리면 4:35 이후가 길어질 수 있다. 실제 가편에서는 기능이 겹치는 사건을 더 덜어낼 가능성이 높다.
 - 따라서 Step 5에서 판단할 것은 추상 문구가 아니라 **이 러프 구조가 실제로 한 편으로 굴러가는가**이며, 최종 컷 선택은 원본 시청각 확인과 가편에서 한 번 더 검증한다.

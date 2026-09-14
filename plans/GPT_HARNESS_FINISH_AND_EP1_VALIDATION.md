@@ -2,7 +2,7 @@
 
 기준일: 2026-09-14
 
-상태: 진행 중 — REVIEW_B planning_quality_failure 종료, source reconstruction evidence 생성 완료, 독립 감사 대기
+상태: 진행 중 — REVIEW_B planning_quality_failure 종료, source reconstruction·독립 evidence audit 통과, EP1 packaging promise ownership 복원, body-first 재실행 대기
 
 현재 상태 owner: `STATE.md`
 
@@ -18,7 +18,7 @@
 2. 외부 source narrative가 있는 material-first 영상은 source reconstruction을 거쳐 narrative continuity와 핵심 사건 coverage를 보존한다.
 3. AI/harness의 pre-render 품질 gate와 실제 review rough cut 시청 테스트 뒤 사용자가 제작 진행을 결정할 수 있다.
 
-REVIEW_B는 2번을 충족하지 못해 **planning_quality_failure**다. 이번 recovery는 evidence layer까지 재구축하고, final select·body·Cold open·REVIEW_C는 다음 독립 감사 뒤로 남긴다.
+REVIEW_B는 2번을 충족하지 못해 **planning_quality_failure**다. recovery는 evidence layer를 재구축했고 독립 evidence audit도 통과했다. final select·body·Cold open·REVIEW_C는 current packaging promise 아래에서 진행할 다음 planning 실행으로 남긴다.
 
 ## 2. 고정 범위
 
@@ -30,6 +30,7 @@ REVIEW_B는 2번을 충족하지 못해 **planning_quality_failure**다. 이번 
 - primary material과 stream 2 desktop / stream 3 mic 사실
 - 재확인·재시청·재촬영의 내부 provenance와 최초성 경계
 - viewer-facing 영상에 provenance overlay를 자동 노출하지 않는 원칙
+- EP1 packaging promise. semantic owner는 `FIRST_VIDEO.md`이며 exact title/thumbnail copy는 개선 가능하지만, A + 실제 자막 없는 레제편 시청 + 듣기와 정확한 형태·문자 사이의 비대칭이라는 영상 전체 상품은 다른 상품으로 재발명하지 않는다.
 
 기존 34 candidates / 15 selects는 삭제하지 않지만 historical evidence다. REVIEW_B를 수정하거나 그 select로 REVIEW_C를 만들지 않는다.
 
@@ -142,13 +143,13 @@ OpenAI transcription API는 credential 값을 읽거나 노출하지 않고 실�
 - `AGENTS.md`: routing과 source reconstruction 진입 원칙
 - `PLAYBOOK.md`: 장기 반복 원칙
 - `tools/harness/PIPELINE.yaml`: 공통 material-first 단계·scene unit·continuity·render gate
-- `FIRST_VIDEO.md`: EP1 stream/외부 source 경계/recovery 실행 계약
+- `FIRST_VIDEO.md`: EP1 stream/외부 source 경계/recovery 실행 계약과 packaging semantic ownership
 - `materials/ep1_main/PLANNING_RESULTS.md`: REVIEW_B FAIL evidence, 과거 34/15 격리, 새 evidence 연결
 - `STATE.md` / `tools/harness/STATE.json`: 사람이 읽는 현재 상태와 runtime 다음 행동
-- `tools/harness/EP1_LOCK.json`: A/B/C와 primary material truth의 최소 잠금
+- `tools/harness/EP1_LOCK.json`: A/B/C, packaging promise 실행 제약과 primary material truth의 최소 잠금
 - 이 계획서: historical run과 current recovery를 한 실행 계획으로 통합
 
-`COMMON_RULES.json`과 deterministic validator는 재미·continuity를 문자열 규칙으로 인증하지 않는다. 관련 regression test는 pipeline 계약의 누락만 검사한다.
+`COMMON_RULES.json`과 deterministic validator는 재미·continuity를 문자열 규칙으로 인증하지 않는다. 관련 regression test는 current lock routing·deterministic 제약과 pipeline 계약의 누락만 검사한다.
 
 ## 11. Validation과 commit
 

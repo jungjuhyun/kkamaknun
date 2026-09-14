@@ -1,12 +1,18 @@
 {
-  "설명": "현재 1화 기획 실행 잠금. current truth의 owner를 대체하지 않으며 check_draft.py가 명백한 위반만 검사한다.",
+  "설명": "현재 1화 기획 실행 잠금. current truth의 semantic owner를 대체하지 않으며 check_draft.py가 명백한 위반만 검사한다.",
   "편": "1화",
   "입력_경로": "material_first",
   "잠금_문장": {
     "A": "20년 이상 취미로 애니를 봐왔지만 일본어를 제대로 공부해본 적은 없는 사람",
     "B": "체인소 맨: 레제편을 한국어 자막 없이 보고, 자기 귀에 실제로 무엇이 남아 있는지 확인한다.",
     "C": "20년 동안 좋아한 시간이 사람한테 이렇게 남을 수도 있구나. 신기하다.",
+    "패키징_promise": "제목·썸네일은 일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람이 체인소 맨: 레제편을 실제로 한국어 자막 없이 보며 드러낸, 듣기와 정확한 단어·문장 형태·문자 사이의 비대칭을 영상 전체의 약속으로 대표한다.",
     "타임라인": "Cold open을 제외한 본편은 1차 시청의 실제 시간 순서를 기본적으로 보존한다."
+  },
+  "패키징_제약": {
+    "semantic_owner": "FIRST_VIDEO.md",
+    "exact_copy_locked": false,
+    "설명": "잠금_문장의 packaging promise만 deterministic 실행 제약이다. 제목·썸네일 exact copy와 scene-level 구현은 owner가 정한 promise 안에서 개선·경쟁할 수 있다."
   },
   "현재_사실_참조": [
     "FIRST_VIDEO.md",

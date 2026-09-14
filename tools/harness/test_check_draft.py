@@ -19,8 +19,9 @@ PIPELINE_TEXT = (HERE / "PIPELINE.yaml").read_text(encoding="utf-8")
 A = LOCK["잠금_문장"]["A"]
 B = LOCK["잠금_문장"]["B"]
 C = LOCK["잠금_문장"]["C"]
+PACKAGE_PROMISE = LOCK["잠금_문장"]["패키징_promise"]
 TIMELINE = LOCK["잠금_문장"]["타임라인"]
-CLEAN = f"A: `{A}`\nB: \"{B}\"\nC: `{C}`\n타임라인: `{TIMELINE}`\n실제 촬영물의 사건과 반응을 바탕으로 기획한다.\n"
+CLEAN = f"A: `{A}`\nB: \"{B}\"\nC: `{C}`\n패키징: `{PACKAGE_PROMISE}`\n타임라인: `{TIMELINE}`\n실제 촬영물의 사건과 반응을 바탕으로 기획한다.\n"
 
 
 def run(text):
@@ -43,6 +44,13 @@ def test_locked_b_redesign_is_caught():
 def test_locked_c_redesign_is_caught():
     text = CLEAN.replace(C, "나는 일본어를 완벽하게 알아듣는다.")
     assert any("잠금 C" in fail for fail in run(text))
+
+
+def test_package_promise_is_locked_but_exact_copy_is_editable():
+    assert LOCK["패키징_제약"]["semantic_owner"] == "FIRST_VIDEO.md"
+    assert LOCK["패키징_제약"]["exact_copy_locked"] is False
+    text = CLEAN.replace(PACKAGE_PROMISE, "予定→여정 오청 하나를 영상 전체 상품으로 만든다.")
+    assert any("잠금 패키징_promise" in fail for fail in run(text))
 
 
 def test_unowned_subtitle_body_claim_is_caught():

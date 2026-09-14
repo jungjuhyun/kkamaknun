@@ -70,7 +70,9 @@ repair 작업과 분리된 새 Codex 세션에서 primary MP4와 raw desktop/mic
 
 이 PASS는 reconstructed evidence가 **body-first planning 입력으로 사용할 수 있을 정도의 source fidelity gate를 통과했다**는 뜻이다. final select, 콘텐츠 각, body 구조, Cold open, REVIEW_C의 품질이나 최종 Step 5 PASS를 뜻하지 않는다.
 
-현재 final select, body 구조, Cold open, REVIEW_C는 여전히 확정·렌더하지 않았다. 다음 단계는 current 30-candidate evidence pool을 공통 pipeline의 후보 생성·경쟁 기준으로 다시 평가해 final select와 콘텐츠 각을 정하고, 그 결과로 **본편 구조를 먼저 설계한 뒤 Cold open을 경쟁**시키는 것이다.
+EP1 packaging의 semantic owner는 `FIRST_VIDEO.md`다. recovery에서 historical로 격리된 것은 REVIEW_B의 34/15 select, body, scene-specific proof/payoff sequence와 Cold open이지 current packaging promise 자체가 아니다. 이 material/evidence owner는 package를 다시 소유하지 않으며, `予定 → 여정?`를 포함한 개별 scene은 current promise를 증명·보조하는 후보이지 새 top-level 상품이 아니다.
+
+현재 final select, body 구조, Cold open, REVIEW_C는 여전히 확정·렌더하지 않았다. 최근 package constraint 미반영 body-first draft도 persistent current truth나 Step 9 입력으로 채택하지 않았다. 다음 단계는 current 30-candidate evidence pool을 `FIRST_VIDEO.md`의 packaging promise 아래 다시 평가해 final select와 scene-level storytelling angle을 정하고, 그 결과로 **본편 구조를 먼저 설계한 뒤 Cold open과 exact copy를 경쟁**시키는 것이다.
 
 # Historical evidence — REVIEW_B 이전 분석
 
@@ -282,14 +284,14 @@ Cold open만 순서 예외다. 본편은 원본 시간순을 유지한다. 재�
 - 자연스러운 예상 댓글: `한자는 못 읽는데 한자 못 읽냐는 말은 알아듣네`, `예정은 여정으로 듣는데 긴 연애 대화는 또 다 따라가는 게 이상하다`, `나도 자막 끄면 이런 식일지 궁금함`.
 - exit hook: `이 귀에 지금 비어 있는 글자와 정확한 표현을 붙이면 어떻게 달라질까?`만 남기고 다음 학습법은 설명하지 않는다.
 
-## 11. Package A 재검증
+## H11. 당시 Package A 재검증
 
-판정: **최소 수정**.
+당시 판정: **최소 수정**.
 
-- 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다`는 유지한다. A+B와 실제 본 촬영 전체에 맞는다.
-- 썸네일 `글은 잘 못 읽는데 들림?`도 유지 가능하다. C02와 C15가 실제로 회수한다.
-- 수정 대상은 패키지 문구가 아니라 Cold open 구성이다. 본 촬영에서 `次が最後` 오해가 재현되지 않았으므로 그 비트를 제거하고 `予定→여정`으로 교체한다.
-- 본편 payoff를 한자 장면 하나로 약속하지 않는다. 제목의 넓은 질문은 C23~C26과 C33이 회수한다.
+- 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다`는 유지했다. 당시 A+B와 실제 본 촬영 전체에 맞는다고 판정했다.
+- 썸네일 `글은 잘 못 읽는데 들림?`도 유지 가능하다고 판정했다. C02와 C15가 회수한다는 당시 근거였다.
+- 당시 수정 대상은 패키지 문구가 아니라 Cold open 구성이었다. 본 촬영에서 `次が最後` 오해가 재현되지 않아 그 비트를 제거하고 `予定→여정`으로 교체했다.
+- 당시 본편 payoff를 한자 장면 하나로 약속하지 않았다. 제목의 넓은 질문은 C23~C26과 C33이 회수한다고 판정했다.
 
 ## 12. Step 5 AI 전문 기획 판정
 
@@ -318,7 +320,7 @@ Cold open만 순서 예외다. 본편은 원본 시간순을 유지한다. 재�
 
 ## 13. REVIEW_B 선택 계약
 
-- 현재 34 candidates, 15 final selects, A/B/C, promise proof 1순위, payoff 1순위, 대표 오해, package A, Cold open 1순위·대안, chronology·최초성 경계는 변경하지 않는다.
+- 당시 34 candidates, 15 final selects, A/B/C, promise proof 1순위, payoff 1순위, 대표 오해, package A, Cold open 1순위·대안, chronology·최초성 경계는 REVIEW_B 선택 계약 안에서 변경하지 않았다.
 - REVIEW_B는 REVIEW_A와 동일하게 기존 15 selects 중 **S06/C09만 제외**한다. 더 강한 S11/C25가 동일 character 기능을 수행하고 payoff 사건까지 결합하기 때문이다.
 - **S04/C05와 S05/C07은 제외하지 않고 각각 약 20초로 압축**한다. C05는 C04 직후 판단 반전, C07은 언어 판정이 작품 감상으로 넘어가는 기능을 각각 보존한다.
 - S01~S05, S07~S13의 재확인과 S14~S15의 내부 `최초 반응 후보` 분류는 이 문서에 보존하되 viewer-facing 영상에는 표시하지 않는다.

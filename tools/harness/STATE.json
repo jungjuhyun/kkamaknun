@@ -1,13 +1,13 @@
 {
-  "상태": "EVIDENCE_AUDIT_PASSED_READY_FOR_BODY_FIRST_PLANNING",
+  "상태": "PACKAGING_PROMISE_RESTORED_READY_FOR_BODY_FIRST_REPLANNING",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 — source reconstruction·repair·독립 evidence audit 통과",
-  "다음_실행": "독립 감사를 통과한 evidence layer에서 scene candidate를 다시 경쟁해 final select와 콘텐츠 각을 확정하고, 본편 구조를 먼저 설계한 뒤 Cold open을 경쟁시킨다.",
+  "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 — source reconstruction·repair·독립 evidence audit 통과 — EP1 packaging promise ownership 복원",
+  "다음_실행": "FIRST_VIDEO.md가 소유한 current packaging promise 아래에서 독립 감사를 통과한 30-candidate evidence를 다시 경쟁·정렬해 final select와 scene-level storytelling angle을 정하고, 본편 구조를 먼저 설계한 뒤 Cold open과 exact copy를 경쟁시킨다. 그 다음에만 Step 9로 간다.",
   "경로_정책": {
     "code_current_truth": {
       "sync_source": "GitHub",
@@ -34,6 +34,14 @@
     "A": "20년 이상 취미로 애니를 봐왔지만 일본어를 제대로 공부해본 적은 없는 사람",
     "B": "체인소 맨: 레제편을 한국어 자막 없이 보고, 자기 귀에 실제로 무엇이 남아 있는지 확인한다.",
     "C_핵심": "20년 동안 좋아한 시간이 사람한테 이렇게 남을 수도 있구나. 신기하다."
+  },
+  "EP1_패키징": {
+    "상태": "CURRENT_CONSTRAINT",
+    "semantic_owner": "FIRST_VIDEO.md",
+    "promise_summary": "일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람이 체인소 맨: 레제편을 실제로 한국어 자막 없이 보며 드러낸, 듣기·의미/흐름 이해와 정확한 단어·문장 형태·문자 사이의 비대칭을 영상 전체의 제목·썸네일 promise로 대표한다.",
+    "exact_copy_locked": false,
+    "competition_boundary": "final select, scene-level storytelling angle, body, payoff 구현, Cold open, exact copy는 promise 안에서 재경쟁한다. 영상이 무엇을 파는지 전혀 다른 상품으로 재발명하지 않는다.",
+    "individual_evidence_boundary": "予定→여정? 등 개별 listening scene은 promise proof·body·contrast·share unit·reaction·supporting evidence이며 top-level product를 대체하지 않는다."
   },
   "EP1_본촬영": {
     "primary_material": "K:\\kkamaknun\\source\\ep1\\2026-09-06 23-54-01-01.mp4",
@@ -89,6 +97,11 @@
     ],
     "post_credit_power": "current primary recording 범위 밖이며 사용자 reaction도 없는 구간이라 captured-material blocker가 아님",
     "scope_limit": "evidence source fidelity gate 통과만 의미하며 final select/body/Cold open/REVIEW_C 또는 최종 Step 5 품질 PASS를 의미하지 않는다."
+  },
+  "최근_body_first_draft": {
+    "persistent_current_truth": false,
+    "Step_9_input": false,
+    "처리": "packaging promise가 current constraint로 복원되기 전 별도 실행에서 만들어졌으므로 그대로 채택하지 않는다. evidence reconstruction은 다시 하지 않고 다음 planning 실행에서 current promise 아래 body/select를 다시 경쟁·정렬한다."
   },
   "transcription": {
     "OpenAI_API": "호스트에서 credential/API 사용 불가를 확인했다. credential 값을 요구·노출하지 않았고 mini/저정확도 모델로 fallback하지 않았다.",

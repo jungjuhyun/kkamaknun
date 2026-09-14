@@ -29,12 +29,16 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** **REVIEW_B planning_quality_failure 종료 → material-first source reconstruction·repair·독립 evidence audit 통과 — body-first 재설계 준비**.
-**다음 실행:** **독립 감사를 통과한 current evidence layer에서 scene candidate를 다시 경쟁해 final select와 콘텐츠 각을 확정하고, 본편 구조를 먼저 설계한 뒤 Cold open을 경쟁시킨다.**
+**현재 실행 위치:** **REVIEW_B planning_quality_failure 종료 → material-first source reconstruction·repair·독립 evidence audit 통과 → EP1 packaging promise ownership 복원 — body-first 재설계 준비**.
+**다음 실행:** **FIRST_VIDEO.md가 소유한 current packaging promise 아래에서 독립 감사를 통과한 30-candidate evidence를 다시 경쟁·정렬해 final select와 scene-level storytelling angle을 정하고, 본편 구조를 먼저 설계한 뒤 Cold open과 exact copy를 경쟁시킨다. 그 다음에만 Step 9로 간다.**
 
 사용자의 실제 REVIEW_B 시청 결과를 근거로 Step 5를 공식 FAIL로 닫았다. 핵심 원인은 chronology만 대략 보존하고 narrative continuity를 보존하지 못한 것, 청해 증거를 작품의 핵심 사건·감정·payoff보다 우선한 것, listening과 reaction을 작품 감상 흐름 안에서 결합하지 못한 것, Cold open/body의 `사메노 마진/상어 마인` 및 `漢字読めないの？` 단순 반복, historical large-v3 결과에 과도하게 의존한 것이다. 레제의 최종 선택·죽음·덴지가 모른 채 기다리는 결말 인과가 끊긴 것은 planning_quality_failure의 핵심 evidence다.
 
 기존 REVIEW_B를 고치거나 그 기반으로 REVIEW_C를 만들지 않는다. 2026-09-13의 34 candidates / 15 selects는 `materials/ep1_main/PLANNING_RESULTS.md`에 historical evidence로 보존하지만 authoritative select set이 아니다. A/B/C와 primary material, 내부 provenance 사실은 변경하지 않았다.
+
+EP1 packaging의 semantic owner는 `FIRST_VIDEO.md`다. 유지하는 current promise는 `일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람이 실제 레제편을 한국어 자막 없이 보며 드러낸, 듣기·의미/흐름 이해와 정확한 단어·문장 형태·문자 사이의 비대칭`이다. 그 owner에 기록된 title/thumbnail baseline은 개선 가능하며 exact-copy lock이 아니다. 개별 listening scene은 이 전체 promise의 proof/supporting evidence이며 새 top-level 상품으로 대체하지 않는다.
+
+최근 별도 실행에서 만들어진 package constraint 미반영 body-first draft는 persistent current truth로 채택된 적이 없고 Step 9 입력으로 확정하지 않는다. evidence reconstruction과 25 narrative beats / 633 sync rows / 30 current candidates / `EVIDENCE_GATE_PASS`는 유지하며, 다음 planning 실행에서 current packaging promise 아래 body/select를 다시 경쟁·정렬한다.
 
 recovery 실행에서는 stream 2 desktop과 stream 3 mic 전체 `01:45:25`를 별도 재전사하고, source narrative / desktop dialogue·audio / user mic raw / visual·nonverbal reaction 네 layer를 복원했다. 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 생성했다. current external evidence 위치는 `K:\kkamaknun\transcription\`이다. final select, body 구조, Cold open, REVIEW_C는 아직 확정·렌더하지 않았다.
 
@@ -54,30 +58,30 @@ repair 뒤 새 Codex 세션에서 primary MP4와 raw desktop/mic을 기준으로
 2026-09-04 추가 엑셀 확인: 이번에 사용자가 수정한 새 source는 **`해석표` 시트 하나**다. 기존 판정 열은 보존하고 `평가 대상 / 이해 결과 / 포착 방식 / 오류·병목 / 세부 근거`로 1차 정규화했다. 청해 대상으로 분류된 68행의 작업 집계는 `정확 15 / 요지 이해 34 / 부분 이해 13 / 오해 2 / 미이해 4`이며 **객관 점수가 아니라 기획용 분류**다. 행별 일본어 대조 원문은 사용할 수 있지만 영화 전체 자막 완전 확보로 일반화하지 않는다.
 
 
-아래 Step 4-B~4-E 기록은 **본 촬영 전체 로깅 전 테스트 재료 기반 가설의 이력**이다. 현재 장면·핵심 역할·payoff·패키징 판정은 위 2026-09-13 결과와 상세 owner를 따른다.
+아래 Step 4-B~4-E 기록은 **본 촬영 전체 로깅 전 테스트 재료 기반 가설의 이력**이다. 당시 장면·핵심 역할·payoff·패키징 판정의 변천을 재현할 뿐 current select/body/Cold open은 아니다.
 
 Step 4-B 경쟁 영상 해부 완료. 가장 가까운 구조 참고는 Matt vs Japan의 `illiterate boy speaks perfect Japanese`로, **읽기 약점/듣기 강점의 모순을 제목과 첫 장면에서 먼저 증명**한다. 30일 일본어 challenge 계열에서는 `최종 실제 시험`, `중간 progress/실전 사건`, `결과 대기 갱신`이 반복적으로 보였다. 반대로 step/tips 중심 정보형은 현재 1화가 피해야 할 `진단·설명 목록` 구조의 대비 사례로 둔다. 상세 source와 적용 원리는 `FIRST_VIDEO.md`의 Step 4-B 절이 owner다.
 
 Step 4-C 후보 경쟁 완료. 메인 각은 **`오래 취미로 본 애니가 남긴 비대칭 귀`**로 선택했다. 여기서 `20년`은 작품 수나 덕후성의 크기가 아니라 취미 시청 기간을 뜻한다. 사용자는 여러 작품을 폭넓게 많이 본 타입이 아니라 좋아하는 작품을 오래 보고 반복해서 보는 시청자에 가깝다.
 
-Step 4-D 구조·payoff·패키징 완료. 본편은 `정확히 이해 → 소리만 포착 → 유사음 오매칭 → 귀/문자 비대칭 → 실제 작품 웃음·몰입`으로 발견 기능을 바꾸며 진행한다. payoff는 점수가 아니라 `오랜 취미 시청이 남긴 비대칭적인 청해 형태`다. 현재 패키징은 하나를 미리 버리지 않고 2개 후보를 Step 4-E로 넘긴다. A는 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다` / `뜻은 아는데 일본어는 모름?`, B는 `일본어 안 배웠는데 청해는 중급? 20년 넘게 애니 본 결과` / `청해는 중급?` 계열이다. `중급`은 확정 결론이 아니라 질문형 훅으로만 사용한다. `뜻은 아는데 일본어는 모르는 귀`는 가장 강한 중간 발견으로 흡수하고, 수영장 웃음·관계 반응·전투 몰입·성우 발화를 재미로 자발적으로 따라 하는 행동은 사용자 캐릭터를 살리는 실제 사건으로 사용한다. `성우를 따라 해서 청해가 늘었다`는 인과관계는 주장하지 않는다. 상세 후보/탈락 이유는 `FIRST_VIDEO.md` Step 4-C가 owner다.
+Step 4-D 구조·payoff·패키징 완료. 본편은 `정확히 이해 → 소리만 포착 → 유사음 오매칭 → 귀/문자 비대칭 → 실제 작품 웃음·몰입`으로 발견 기능을 바꾸며 진행한다. payoff는 점수가 아니라 `오랜 취미 시청이 남긴 비대칭적인 청해 형태`다. 당시 패키징은 하나를 미리 버리지 않고 2개 후보를 Step 4-E로 넘겼다. A는 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다` / `뜻은 아는데 일본어는 모름?`, B는 `일본어 안 배웠는데 청해는 중급? 20년 넘게 애니 본 결과` / `청해는 중급?` 계열이었다. `중급`은 확정 결론이 아니라 질문형 훅으로만 사용했다. `뜻은 아는데 일본어는 모르는 귀`는 가장 강한 중간 발견으로 흡수하고, 수영장 웃음·관계 반응·전투 몰입·성우 발화를 재미로 자발적으로 따라 하는 행동은 사용자 캐릭터를 살리는 실제 사건으로 사용했다. `성우를 따라 해서 청해가 늘었다`는 인과관계는 주장하지 않았다. 상세 후보/탈락 이유는 `FIRST_VIDEO.md` Step 4-C가 보존한다.
 
 Step 4-E는 사용자 사전 검수에서 **타임라인 무결성 결함**이 발견돼 한 번 재개방 후 보정했다.
 
 추가로 사용자 사전 검수에서 **Cold open 선정 기준 오류**가 발견돼 Step 4-E를 다시 재개방했다.
 
-사용자 지적에 따라 원인을 EP1 한 편의 Cold open 문제로만 보지 않는다. **윤성원 PD 강의를 EP1 참고자료로만 사용한 것이 공정 결함**이었다. 이미 전사 기반으로 채택된 `A/B→C / 보는 사람 / 콘텐츠 각·핵심 장면 / 실제 푸티지 재기획 / 시청각 판단 / 예상 댓글·공유 문구 / 바이럴 재가공 단위 / 시청자 모드 편집 검수`를 공통 `PIPELINE.yaml`과 `PLAYBOOK.md`의 해당 단계에 통합한다. 새 강의 전사도 반복 적용 가치가 있으면 개별 영상 패치가 아니라 기존 공정 단계에 매핑한다. `결과/발견을 많이 공개하면 안 된다`는 식의 잘못된 제한을 사용했고, 설명이 있어야 의미가 생기는 `지누키?`를 Cold open 핵심으로 올린 것은 planning-quality failure로 기록한다. 수정 원칙은 `결과/payoff 일부 공개 허용 / 제목·썸네일 promise 즉시 확인 / 독립 장면 강도 / 공개 뒤 남는 미해결 질문 / 사실 경계`다. 패키지 A와 B는 promise가 다르므로 Cold open도 별도로 경쟁시킨다. 최종 원칙은 `Cold open만 순서 예외 / 본편은 1차 시청 실제 시간 순서 유지 / 구간 생략은 가능하지만 남긴 사건 순서 뒤집기 금지 / 2·3차 촬영 여부는 내부 provenance에 보존하되 viewer-facing 표시는 강제하지 않음 / 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않음`이다. `정확 이해 → 소리만 포착 → 오매칭 → 문자 비대칭`은 편집 챕터가 아니라 시간순 사건을 해석하는 기능 태그로만 사용한다. 패키지 A는 제작 기본안, 패키지 B는 `중급권`에 대한 제한적 직접 답을 포함할 때만 사용하는 유지 후보다. 보정 후 deterministic validator를 다시 실행해 **PASS**를 확인했다. 이 과거 검수 뒤 현재 Step 5는 아래의 review rough cut 시청 테스트 구조로 교체됐다.
+사용자 지적에 따라 원인을 EP1 한 편의 Cold open 문제로만 보지 않았다. **윤성원 PD 강의를 EP1 참고자료로만 사용한 것이 공정 결함**이었다. 이미 전사 기반으로 채택된 `A/B→C / 보는 사람 / 콘텐츠 각·핵심 장면 / 실제 푸티지 재기획 / 시청각 판단 / 예상 댓글·공유 문구 / 바이럴 재가공 단위 / 시청자 모드 편집 검수`를 공통 `PIPELINE.yaml`과 `PLAYBOOK.md`의 해당 단계에 통합했다. `결과/발견을 많이 공개하면 안 된다`는 식의 잘못된 제한을 사용했고, 설명이 있어야 의미가 생기는 `지누키?`를 Cold open 핵심으로 올린 것은 planning-quality failure로 기록했다. 수정 원칙은 `결과/payoff 일부 공개 허용 / 제목·썸네일 promise 즉시 확인 / 독립 장면 강도 / 공개 뒤 남는 미해결 질문 / 사실 경계`였다. 패키지 A와 B는 promise가 달라 Cold open도 별도로 경쟁시켰다. 당시 원칙은 `Cold open만 순서 예외 / 본편은 1차 시청 실제 시간 순서 유지 / 구간 생략은 가능하지만 남긴 사건 순서 뒤집기 금지 / 2·3차 촬영 여부는 내부 provenance에 보존하되 viewer-facing 표시는 강제하지 않음 / 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않음`이었다. `정확 이해 → 소리만 포착 → 오매칭 → 문자 비대칭`은 편집 챕터가 아니라 시간순 사건을 해석하는 기능 태그로만 사용했다. 패키지 A는 당시 제작 기본안, 패키지 B는 `중급권`에 대한 제한적 직접 답을 포함할 때만 사용하는 유지 후보였다. 보정 후 deterministic validator를 다시 실행해 **PASS**를 확인했다. 이 과거 검수 뒤 Step 5는 review rough cut 시청 테스트 구조로 교체됐다.
 
 Step 5는 문서만 보고 사용자가 전문 기획 판정을 하지 않는다. AI/harness가 구조표와 실제 장면 근거로 전문 판정한 뒤 selected footage로 review rough cut을 만들고, 사용자는 실제 영상을 일반 시청자로 보며 체감 관측을 남긴다. AI가 그 관측을 구조 문제로 해석하고 PASS/FAIL 권고를 정리하며, 최종 제작 진행 여부는 사용자가 확정한다. 세부 계약 owner는 `tools/harness/PIPELINE.yaml`이다.
 
-보정된 공정 재실행 결과:
+당시 보정된 공정 재실행 결과:
 - 기존 `비대칭 귀`는 콘텐츠 각이 아니라 **최종 해석/payoff**로 재배치했다.
 - 새 viewer-facing 콘텐츠 각은 **`일본어 글은 아직 잘 못 읽는데 ‘漢字読めないの？’는 알아듣고 ‘나랑 똑같네’라고 반응하는 사람`**이다.
 - 핵심 장면은 약 32분대 `漢字読めないの？ → 나랑 똑같네 / 한자 못읽는다`로 선택했다.
 - **한자 장면은 실제 증거로 유지하되**, viewer-facing 요약은 `한자`보다 넓은 **일본어 읽기 전반의 약점**으로 표현한다. `전혀 못 읽음`은 과장이므로 `글은 잘 못 읽음/읽기는 약함`으로 제한한다.
 - `次が最後 → 다음이 최고`는 독립 공유성이 강해 **공유 단위/Cold open 보조 후보**로 재배치했다.
 - `지누키?`는 본편의 소리-의미 분리 증거로 유지하고 Cold open 핵심에서는 제외한다.
-- 패키지 A는 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다` / `글은 잘 못 읽는데 들림?`으로 갱신한다.
+- 당시 패키지 A는 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다` / `글은 잘 못 읽는데 들림?`으로 갱신했다.
 - 본편은 Cold open을 제외하고 1차 시청 실제 타임라인을 유지한다.
 
 Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아님): **4-A 재료 복원 → 4-B 경쟁 영상 조사·해부 → 4-C 콘텐츠 각 후보 생성·경쟁 → 4-D 본편 구조·payoff·패키징 → 4-E deterministic 검증 + RED TEAM + 최종 제출**.
@@ -106,7 +110,7 @@ Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아�
 
 - 단일 MP4의 영상 1스트림과 역할이 확인된 오디오 3스트림을 사용한다. 기존 여러 영상 동기화·별도 master 생성은 현재 선행 작업이 아니다.
 - 과거 드라이브의 손상본 조사와 파일 이동 대기는 현재 본 촬영의 상태를 나타내지 않는다.
-- 기존 약 82분 테스트 촬영은 보조·비교 자료다. 테스트 촬영 기반 러프 구조표는 current 입력으로 쓰지 않고, 2026-09-13 본 촬영 장면·타임코드와 AI 전문 판정을 반영한 REVIEW_B를 Step 5 시청 테스트에 사용한다.
+- 기존 약 82분 테스트 촬영은 보조·비교 자료다. 테스트 촬영 기반 러프 구조표와 REVIEW_B는 current 입력으로 쓰지 않는다. current 입력은 독립 감사를 통과한 25 narrative beats / 633 sync rows / 30 candidates이며, `FIRST_VIDEO.md`의 packaging promise 아래 body-first planning을 다시 실행·정렬한다.
 - 2026-09-13 원본을 직접 읽어 스트림·러닝타임을 재확인하고 전체 material-first 분석을 완료했다.
 
 ## 1차 애니 진단·2차 진단 방향
