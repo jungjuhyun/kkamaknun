@@ -23,6 +23,7 @@
 | 저장소 운영 원칙·routing·변경 절차 | root AGENTS.md | 저장소 전체 |
 | subtree 개발 규칙 | 해당 경로의 scoped AGENTS.md | 그 subtree와 하위 경로 |
 | 사람이 읽는 현재 상태·다음 행동 | STATE.md | 현재 프로젝트 상태 |
+| Chat 간 conversation-only decision state·작업 연속성 전달 계약 | continuation/CONTINUATION_SPEC.md | active continuation 생성·검수·진입 |
 | runtime 현재 실행 상태 | tools/harness/STATE.json | 현재 공정·편·lock·입력 경로 |
 | System Evaluation 측정 계약·target boundary·fixture·grader | evals/system/README.md | Planning RED TEAM과 분리된 harness 평가 |
 | 공통 영상 기획 process | tools/harness/PIPELINE.yaml | 모든 영상 기획 공정 |
@@ -63,6 +64,7 @@
 - 큰 기획 판단·반복 원칙: PLAYBOOK.md를 읽고, 안정적 배경이 판단을 바꾸면 PROJECT_CONTEXT.md를 추가한다.
 - 사용자 적합성이 선택을 바꾸는 경우에만 USER_PROFILE.md를 추가한다.
 - 외부 근거가 필요한 경우 관련 references와 최신 원출처를 구분해 확인한다.
+- active continuation을 생성하거나 새 Chat에서 적용할 때는 `continuation/CONTINUATION_SPEC.md`를 기준으로 해당 template·checklist·loader를 사용한다.
 - 실제 영상의 아이디어·각·구조·패키징을 요청받으면 video_planning 공정을 실행한다.
 
 영상 기획 routing은 다음을 고정한다.
