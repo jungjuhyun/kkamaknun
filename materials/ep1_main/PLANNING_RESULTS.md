@@ -1,6 +1,7 @@
 # EP1 본 촬영 material-first 결과
 
 기준 원본: `K:\kkamaknun\source\ep1\2026-09-06 23-54-01-01.mp4`
+경로 분류: 이동식 SSD의 portable external material. Git working repository는 각 PC의 `C:\kkamaknun`이며 `K:\kkamaknun\repo`는 current 실행에 사용하지 않는다.
 원본 기준 러닝타임: `01:45:25.063`
 historical 34/15 분석일: 2026-09-13 KST
 source reconstruction recovery: 2026-09-14 KST

@@ -9,7 +9,14 @@
 - Claude는 CLAUDE.md를 통해 이 파일을 adapter로 읽는다. CLAUDE.md의 protected Karpathy block은 변경하지 않는다.
 - 이 저장소의 운영 규칙을 프로젝트 instruction, Claude adapter, hook, 계획서에 복제해 여러 owner를 만들지 않는다.
 
-## 2. Source owner
+## 2. Repository와 external material 경로 정책
+
+- code와 current truth의 canonical source는 GitHub와 각 PC의 local Git repository다. 집과 회사 모두 local repository는 `C:\kkamaknun`을 사용하고, branch와 commit은 GitHub로 동기화한다.
+- 이동식 SSD `K:`는 대용량 external material 운반용이다. current media, evidence, review artifact는 각각 `K:\kkamaknun\source`, `K:\kkamaknun\transcription`, `K:\kkamaknun\review`에 둔다.
+- `K:\kkamaknun\repo`는 historical/transport repository copy다. canonical working repository나 현재 실행 경로로 사용하지 않는다.
+- media·transcription·review artifact는 local Git repository 안으로 복사하거나 Git에 add·commit하지 않는다.
+
+## 3. Source owner
 
 | 책임 | owner | 범위 |
 |---|---|---|
@@ -33,7 +40,7 @@
 
 같은 사실을 여러 owner에 복제하지 않는다. 기록을 남길 필요가 있으면 사실의 종류에 맞는 owner 하나를 먼저 정한다.
 
-## 3. Bootstrap 이후의 읽기 순서와 retrieval
+## 4. Bootstrap 이후의 읽기 순서와 retrieval
 
 상위 ChatGPT Project instruction이 snapshot을 확정한 뒤 저장소 의존 작업은 다음 순서로 읽는다.
 
@@ -49,7 +56,7 @@
 - 과거 기록이 필요한 경우에도 먼저 현재 owner를 확인하고, 과거 자료는 역사적 근거로만 표시한다.
 - 현재 사실, 사용자 제공 사실, 외부 조사 결과, 가정·시뮬레이션을 문장과 자료에서 구분한다.
 
-## 4. 요청별 routing
+## 5. 요청별 routing
 
 - 현재 상태·다음 행동·진행 요약: STATE.md를 기준으로 답한다. 여기서 `owner`는 세부 사실을 위임받은 문서가 아니라 **질문을 라우팅한 current-truth owner**를 뜻한다. 따라서 현재 상태·현재 owner를 묻는 경우에는 STATE.md를 owner로 보고하고, STATE.md가 지정한 FIRST_VIDEO.md·다른 owner는 그 owner가 보유한 세부 사실의 source로만 구분한다.
 - 첫 콘텐츠의 각·장면·구조·패키징: FIRST_VIDEO.md를 읽는다.
@@ -70,7 +77,7 @@
 
 System Evaluation 구현·감사·실행 요청은 `evals/system/README.md`를 기준으로 하며 영상 기획 결과물 요청이 아니므로 video_planning pipeline을 실행하지 않는다. 하네스 구현·감사·instruction source 수정 요청도 video_planning pipeline을 실행하지 않는다. tools/scene_collector 아래 작업은 해당 scoped AGENTS.md를 함께 따른다.
 
-## 5. 사실·외부 조사·도구 선택
+## 6. 사실·외부 조사·도구 선택
 
 - 실제 footage/material이 사전 기획이나 예상보다 우선한다. 실제 결과가 예상과 다르면 실제 재료 안에서 다시 기획한다.
 - 확보하지 못한 자료, 확인하지 않은 장면, 검증하지 않은 인과·수치·관계·대사를 사실처럼 쓰지 않는다.
@@ -83,7 +90,7 @@ Search → Evaluate → Adopt/Buy → Adapt → Build last
 
 이미 있는 도구나 현재 구조로 목적을 달성할 수 있는지 먼저 확인하고, 새 framework·agent·규칙·문서 계층을 실패 근거 없이 추가하지 않는다.
 
-## 6. 영상 기획 품질과 validator의 경계
+## 7. 영상 기획 품질과 validator의 경계
 
 - A/B→C는 큰 기획 뼈대이며 경쟁 사례 분석을 대체하지 않는다.
 - material_first에서는 실제 사건·반응·시청각 신호에서 A+B가 특별해지는 장면을 찾은 뒤 콘텐츠 각과 구조를 만든다.
@@ -95,7 +102,7 @@ Search → Evaluate → Adopt/Buy → Adapt → Build last
 - 공정과 current truth를 지켰는데 영상이 약하면 planning_quality_failure로 분리해 판단한다. 실패했다고 자동으로 harness layer를 추가하지 않는다.
 - AI/harness는 실제 장면 근거로 전문 기획 판정을 먼저 수행하고 review rough cut을 만든다. 사용자는 문서 기반 전문 evaluator가 아니라 실제 영상을 본 시청자로서 체감 반응을 제공한다. AI는 그 관측을 구조 문제로 해석해 근거·권고·남은 불확실성을 보고하고, 최종 제작 진행 여부의 의사결정은 사용자에게 남긴다.
 
-## 7. Owner별 변경 원칙
+## 8. Owner별 변경 원칙
 
 - 현재 프로젝트 상태와 다음 행동이 바뀌면 STATE.md를 갱신한다.
 - 첫 콘텐츠의 세부 사실·구조·잠금 전제가 바뀌면 FIRST_VIDEO.md와 필요한 lock의 책임을 확인한 뒤 해당 owner만 갱신한다.
@@ -107,7 +114,7 @@ Search → Evaluate → Adopt/Buy → Adapt → Build last
 - 일회성 대화·가상 수치·실패 사례를 자동으로 지속 지식으로 승격하지 않는다.
 - instruction, prompt, config, workflow를 바꿀 때는 부분 문구를 덧붙이지 않는다. 관련 source와 참조 관계를 먼저 전수 조사하고, owner·중복·충돌·stale 규칙을 정리한 뒤 통합 교체하고 검증한다.
 
-## 8. Repository mutation procedure
+## 9. Repository mutation procedure
 
 repo 변경이 승인된 경우 AI가 가능한 수정을 직접 수행한다. 사용자에게 파일 복사·수동 편집·삭제·커밋을 넘기지 않는다.
 

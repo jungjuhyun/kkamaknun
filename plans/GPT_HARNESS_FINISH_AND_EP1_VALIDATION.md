@@ -125,7 +125,7 @@ OpenAI transcription API는 credential 값을 읽거나 노출하지 않고 실�
 
 ## 9. 이번 실행 artifact와 중지점
 
-portable workspace의 repository 밖 `K:\kkamaknun\transcription\`에 다음을 둔다. 2026-09-14 최초 생성 위치 `C:\kkamaknun_transcription\` 및 C: 원본은 historical provenance로만 보존하고 current 실행 입력으로 사용하지 않는다.
+이동식 SSD의 portable external material 영역인 `K:\kkamaknun\transcription\`에 다음을 둔다. Git working repository는 집과 회사 모두 `C:\kkamaknun`이며 GitHub로 동기화한다. `K:\kkamaknun\repo`는 historical/transport copy로만 보존하고 current 실행 경로로 사용하지 않는다. 2026-09-14 최초 생성 위치 `C:\kkamaknun_transcription\` 및 그 C: artifact 원본은 historical provenance로만 보존하고 current 실행 입력으로 사용하지 않는다.
 
 - `EP1_DESKTOP_JA_FULL.jsonl`
 - `EP1_MIC_RAW_FULL.jsonl`

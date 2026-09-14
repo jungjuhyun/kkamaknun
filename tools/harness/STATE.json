@@ -8,13 +8,26 @@
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
   "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 — source reconstruction과 새 evidence layer 생성 완료",
   "다음_실행": "새 evidence layer를 독립 감사한 뒤 본편 구조와 Cold open을 처음부터 다시 설계한다.",
-  "portable_workspace": {
-    "root": "K:\\kkamaknun",
-    "repository": "K:\\kkamaknun\\repo",
-    "primary_source_root": "K:\\kkamaknun\\source",
-    "transcription_root": "K:\\kkamaknun\\transcription",
-    "review_root": "K:\\kkamaknun\\review",
-    "경로_정책": "current local input/output은 portable workspace 아래의 역할별 경로를 사용한다. media·evidence·review artifact는 repository에 commit하지 않는다."
+  "경로_정책": {
+    "code_current_truth": {
+      "sync_source": "GitHub",
+      "집_local_repository": "C:\\kkamaknun",
+      "회사_local_repository": "C:\\kkamaknun",
+      "동기화": "branch와 commit을 GitHub로 동기화한다."
+    },
+    "portable_external_material": {
+      "root": "K:\\kkamaknun",
+      "primary_source_root": "K:\\kkamaknun\\source",
+      "transcription_root": "K:\\kkamaknun\\transcription",
+      "review_root": "K:\\kkamaknun\\review",
+      "용도": "집과 회사 사이에서 대용량 media·evidence·review artifact를 운반한다. external artifact는 local repository에 복사하거나 Git에 add·commit하지 않는다."
+    },
+    "historical_transport_repository_copy": {
+      "path": "K:\\kkamaknun\\repo",
+      "canonical_repository": false,
+      "현재_실행_경로": false,
+      "용도": "2026-09-13 이전 과정에서 만든 historical/transport copy로만 보존한다."
+    }
   },
   "A_B_C": {
     "판정": "유지",
