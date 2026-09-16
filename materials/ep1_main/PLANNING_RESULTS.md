@@ -1,15 +1,80 @@
 # EP1 본 촬영 material-first 결과
 
-기준 원본: `ep1.primary_recording` (object key `source/ep1/2026-09-06 23-54-01-01.mp4`)
-경로 분류: runtime은 `tools/harness/STATE.json`의 logical artifact registry를 사용한다. authenticated cloud material store가 durable bytes를 소유하며 local processing은 materialized cache에서 한다. 최초 physical source와 K SSD copy는 provenance/rollback backup일 뿐 current execution identity가 아니다.
-원본 기준 러닝타임: `01:45:25.063`
-historical 34/15 분석일: 2026-09-13 KST
-source reconstruction recovery: 2026-09-14 KST
-상태: **REVIEW_B planning_quality_failure 종료 — reconstructed planning/Step 9 기록 보존 — user-viewed 44:43 REVIEW_C도 scene-selection·within-scene compression·story-context allocation failure로 거절됨 — selection rebuild 대기**
+기준일: 2026-09-16 KST. 분석 source snapshot: `027ee9d7fa4784483ccc300bb8a7065ee455b24c`.
+이 문서는 EP1 planning evidence·provenance·검증 범위의 상세 owner다. A/B/C·packaging·확정 selection/compression contract는 `FIRST_VIDEO.md`, 사람이 읽는 다음 행동은 `STATE.md`, runtime/registry는 `tools/harness/STATE.json`이 소유한다.
 
-이 문서는 본 촬영 장면 증거의 상세 owner다. 1화 current detail owner는 계속 `FIRST_VIDEO.md`이며, 그 문서는 현재 결과 요약과 이 파일의 연결을 소유한다. 원본·임시 WAV/FLAC·프레임·전사 파일은 저장소에 넣지 않는다.
+## Current checkpoint — contract READY, full rescan BLOCKED
 
-## 1. 사실 경계와 분석 방법
+`ep1.primary_recording` 전체 `00:00:00–01:45:25.063`의 desktop/mic ASR 및 source frame 탐색을 완료했다. 새 candidate universe는 빈 목록에서 생성됐고, old 34/15·reconstruction 30·REVIEW_C 17 scenes/Cold open은 seed가 아니다. REVIEW_C를 축소하는 실행이 아니다.
+
+| 항목 | 보존한 실제 결과 / 한계 |
+|---|---|
+| Contract | CONTRACT_READY; 확정 원 응답과 기존 research를 cloud bundle에 보존, operative 규칙은 FIRST_VIDEO |
+| Coverage | 81개 연속 범위, ledger상 TC hole 없음; TEXT+COARSE_VISUAL이며 full continuous AV coverage 아님 |
+| Visual evidence | 20초 간격 317개 + detail 관측 55개, 중복 제외 366개 frame; 36 contact sheets와 11 time manifests |
+| 새 후보 | 65개 = KEEP 0 + COMPETE 42 + 잠정 탈락 23 |
+| DROP 집계 | 초기 non-event 등 DROP 16개 + 후보 탈락 23개 = DROP 기록 39개; 인접 합산 21 ranges |
+| 후보 경쟁 | 구조·context·중복 기반 2차 경쟁은 기록됨; actual AV가 좌우하는 우열은 미완료 |
+| Body | 39개 후보 / 17개 기능 묶음; 대체 후보 F003/F007/F017 3개 별도; NOT LOCKED |
+| Runtime | 63개 raw source search windows 합계 862초(14:22). 제안 context/bridge 포함. final retained runtime 아님 |
+| 미확정 | verified retained duration, 추가 context/호흡 보정, Cold open, finished total runtime 모두 미정 |
+| Narrative | 필수 후반 chain의 담당 후보는 존재. 압축 후 viewer가 인과·감정을 이해하는지는 AV 미검증 |
+| 제작 gate | 직접 AV 검증 0, body lock false, Cold open 경쟁 NOT STARTED, rough cut 금지, AI 최종 PASS false |
+
+**Modality blocker:** 회사 PC의 해당 Astra/Codex 세션에서 audio probe가 `audio content omitted because you do not support audio input`로 반환됐다. 직접 듣기와 연속 AV perception을 완료하지 못했으며 ASR/정지 frame을 그 대체로 인증하지 않았다. 이 관측을 모든 미래 기기·모델의 고정 능력 제한으로 확대하지 않는다. 새 기기에서도 먼저 실제 입력 perception 경로를 확인해야 한다.
+
+DROP도 표본 사이 강한 비언어 사건이 없다는 인증이 아니다. artifact의 '실제 사건/반응' 서술 중 ASR 기반 항목과 표본 관측을 구분하며, 청해 정확성·웃음·말투·침묵·몰입·comic timing·내부 jump cut 자연스러움은 미검증이다.
+
+## Durable evidence와 복원 순서
+
+Logical ID: **`ep1.full_rescan_checkpoint`**. object key: `planning/ep1/rescan/20260916/EP1_RESCAN_CHECKPOINT.zip`. registry의 size/SHA-256으로 archive 전체를 검증한다. 기존 material registry에 file artifact 하나를 추가한 이유는 candidate 표·전사 탐색 view·contact sheet가 외부 evidence이기 때문이다. Git에는 상세 media/transcript/frame을 넣지 않고 기존 owner와 registry만 유지한다. 별도 permanent owner/manifest는 만들지 않는다.
+
+Checkpoint persistence 검증(2026-09-16): 기존 material helper로 cloud에 publish한 뒤 빈 로컬 위치에 다시 materialize해 registry size/SHA-256 일치를 확인했다. 77개 archive member의 ZIP 무결성, 36개 contact sheet decode, 상대경로 링크와 logical ID resolution, 원 후보/coverage/body/runtime JSON의 의미 동일성, 81개 연속 범위와 63개 window의 862초 합계를 재검산했다. 이는 저장·복원 검증이며 새 selection/AV 검증이 아니다. JSON/YAML/Python parse, material helper 12개 test와 deterministic validator regression 15개 및 확정 계약 검사를 통과했다. A/B/C·packaging·primary truth·공통 pipeline·EP1 lock은 변경하지 않았다.
+
+Bundle의 `INDEX.md`가 entry point다. 다음 파일을 직접 이어 사용한다.
+
+| 파일 | 권한과 용도 |
+|---|---|
+| SELECTION_COMPRESSION_CONTRACT.md, REVIEW_RESEARCH_REPORT.md | 확정 계약 원 응답과 사용했던 research; 계약 응답 말미의 no-rescan/no-commit은 당시 receipt |
+| FULL_RESCAN_CANDIDATES.md/.json, candidates.json | 최종 7-field record 81행; JSON 두 사본은 같은 데이터 |
+| coverage.json, DROP_RANGES.json | 전체 TC/판정 범위와 합산 DROP |
+| FUNCTION_COMPETITION.md | 65개 후보 기능 경쟁과 AV 미확정 비교 |
+| PROVISIONAL_BODY.md, BODY_AFTER_RED_TEAM.json | chronology 가안과 AV search windows; edit lock 아님 |
+| NARRATIVE_COVERAGE_CHECK.md | 인과 담당 후보와 미검증 context |
+| RUNTIME_LEDGER.md/.csv/.json | 862초 window 산술 합계; 검증 runtime 필드는 null |
+| COLD_OPEN_CANDIDATES.md | body gate 미충족으로 미시작 기록 |
+| RED_TEAM_CHANGES.md | 실제 반영했던 제외·축소·경계 보정 |
+| FIRST_PASS_RECORDS.json, SCAN_NOTES_*, BODY_WORKING_HYPOTHESIS.json | 초기 탐색/경쟁 전 이력. 최종 후보와 BODY_AFTER_RED_TEAM보다 우선하지 않음 |
+| transcript_*, coverage_*/detail_* sheets/manifests | 탐색에 사용한 ASR view와 검토한 정지 frame evidence |
+| VALIDATION.json, SNAPSHOT_MATERIAL_VERIFICATION.json | 원 rescan의 검증 receipt; repo mutation/commit=false는 당시 run에 한정. checkpoint 보존 hash/제외 항목도 기록 |
+
+집 PC에서는 fetch한 branch의 owner를 먼저 읽고 machine-local `KKAMAKNUN_MATERIAL_ROOT`, `KKAMAKNUN_MATERIAL_REMOTE` 및 필요 시 `KKAMAKNUN_RCLONE`을 기존 authenticated store에 맞게 설정한다. credential/config는 Git 밖에 둔다. repo root에서:
+
+```text
+python tools/harness/material_store.py materialize ep1.full_rescan_checkpoint
+python tools/harness/material_store.py verify ep1.full_rescan_checkpoint
+python tools/harness/material_store.py path ep1.full_rescan_checkpoint
+```
+
+반환된 ZIP을 같은 local cache의 작업 directory에 풀고 INDEX를 읽는다. 회사 PC 경로를 재현하지 않는다. primary는 `ep1.primary_recording`으로 resolve하고 기존 cache가 있으면 helper verify 후 재사용한다. 없으면 cloud에서 materialize한다. 크기 5,065,619,726 bytes / SHA-256 `7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525` / duration 6325.0625초 / video 0·desktop 2·mic 3을 확인한다. K SSD는 필요 없다. 이번 persistence 작업은 primary를 새 다운로드하거나 AV 분석하지 않는다.
+
+## AV completion — 다음 실행의 정확한 입력과 gate
+
+1. 실제 audio + continuous AV perception이 되는 경로를 확인한다. 안 되면 `FULL_RESCAN_BLOCKED` 유지. 재생 성공이나 전사/프레임 열람만으로 gate를 통과시키지 않는다.
+2. PROVISIONAL_BODY의 39개 후보 search windows를 raw context와 함께 직접 대조하고, F003/F007/F017 대체 후보를 경쟁시킨다. 65개 전체 기록과 DROP 이유를 보존해 필요 시 재개방한다. 기존 30개 pool/REVIEW_C로 universe를 교체하지 않는다.
+3. 실제 사건·발화·reaction timing을 검증해 후보를 재경쟁하고 retained boundaries를 정한다. 가안 source window 자체를 보호하지 않는다. subtitle/나레이션을 가정해 context 공백을 덮지 않는다.
+4. 필수 narrative 인과와 source chronology, listening/reaction/context 비용을 재확인하고 전체 retained runtime을 산출한다. 완성본 ≤15:00에는 Cold open·bridge·엔딩을 포함한다. 14:22를 이미 통과한 runtime으로 사용하지 않는다.
+5. body를 lock한 뒤에만 Cold open 경쟁. 새 rough cut은 AV·selection·internal compression 및 pre-render gate를 완료한 뒤다.
+
+특히 보존해야 할 이번 관찰/수정: F003의 인접 '괜찮'을 血抜き 오답으로 단정하지 않음; F007 source 질문 포함; F020 앞의 읽기 희망→사용자 반응을 뒤의 한자 질문 원인으로 바꾸지 않음; F023 학교 결핍 앞 경계 복원; F036 '걸렸' timing 미확정; F037 피/심장 수정·F056 비유·F060 미이해 청취 필요. B10의 별개 재기를 잇기 위해 F047 패배 창을 복원한 결과 856→862초가 됐다. 이는 새 보정 제안이 아니라 이미 반영된 RED TEAM 기록이다.
+
+기존 `ep1.narrative_map`의 N06(27:45–31:15) 요약은 이번 29분대 source frame과 충돌했다. 새 F018 관찰은 천사악마/부상자 장면이며 map으로 미관측 사건을 추론하지 않는다. hash/parse PASS가 의미 정확성을 인증하지 않는다. 원본 카페 대기 frame 01:44:09/12는 뒤 01:44:15의 죽어가는 레제 frame보다 앞이다. 후반 인과 기능 설명을 핑계로 화면 순서를 바꾸지 않는다.
+
+## Historical/failure evidence boundary
+
+이하 과거 AV/A/V·audit PASS·Step 9 PASS는 각 당시 실행의 주장/receipt다. 이번 65개 후보의 직접 AV 검증으로 전이하지 않는다. REVIEW_B 및 44:43 REVIEW_C는 실패를 배우는 자료이며 새 선택의 base가 아니다. 당시 자세한 표·planned boundary는 재현용으로 보존하되 current 결과는 위 checkpoint와 별개다. A/B/C와 packaging 의미는 FIRST_VIDEO의 current 절을 따른다.
+
+## Historical reconstruction — 당시 분석 방법
 
 - 원본을 이동·개명·수정·재인코딩하지 않고 읽기 전용으로 검사했다.
 - 직접 확인한 컨테이너 값은 영상 `2560×1440 / 48fps / H.264`, 오디오 stream 1 mixed·2 desktop·3 mic, `start_time 0`, 전체 `6325.0625초`다.
@@ -21,7 +86,7 @@ source reconstruction recovery: 2026-09-14 KST
 - `AV`는 분리 오디오 대조와 연속 얼굴/전체 화면 확인, `A`는 분리 오디오 대조, `V`는 연속 얼굴/전체 화면 확인을 뜻한다.
 - Cold open을 제외한 본편은 1차 시청의 실제 시간 순서를 기본적으로 보존한다.
 
-## 2. 현재 A/B/C
+## Historical reconstruction — 당시 A/B/C 해석
 
 - A: 20년 이상 취미로 애니를 봐왔지만 일본어를 제대로 공부해본 적은 없는 사람
 - B: `체인소 맨: 레제편`을 한국어 자막 없이 보고, 자기 귀에 실제로 무엇이 남아 있는지 확인한다.
@@ -30,7 +95,7 @@ source reconstruction recovery: 2026-09-14 KST
 
 실제 본 촬영은 A/B/C를 바꿀 근거를 만들지는 않았다. 다만 `읽기 약점 ↔ 듣기 강점` 한 장면보다, **정확 이해·핵심어 오해·소리 자가수정·서사 몰입이 한 사람 안에서 교차하는 누적**이 C를 더 잘 만든다.
 
-## 3. REVIEW_B 공식 판정과 recovery evidence
+## Historical REVIEW_B 공식 판정과 recovery evidence
 
 REVIEW_B 공식 판정: **planning_quality_failure**
 
@@ -53,7 +118,7 @@ REVIEW_B 공식 판정: **planning_quality_failure**
 - Layer D — visual/nonverbal reaction: 전체 1분 frame map과 과거 AV 로그를 대조하고, transcript만으로 reaction을 확정하지 않았다.
 - synchronized evidence: `ep1.sync_timeline_jsonl`, `ep1.sync_timeline_csv`
 - transcription QA: `ep1.transcription_qa`
-- 새 scene candidate pool: `ep1.new_scene_pool` — historical reconstruction evidence; new selection starts with a full-original rescan, not the 44-minute select.
+- 새 scene candidate pool: `ep1.new_scene_pool` — historical reconstruction evidence; not the seed of the 2026-09-16 65-candidate rescan.
 
 Narrative map은 청해·reaction과 독립적으로 `MUST_KEEP / BRIDGE / OPTIONAL`을 판정한다. 특히 `도망 제안 → 거절 → 폭탄 정체 → 전투 시작 → 동료 개입 → 전투 climax → 해변 관계 회수 → 레제의 배경 → 레제의 귀환 선택 → 죽음 → 덴지의 기다림` 인과 사슬을 다시 세웠다. 레제 죽음은 고립된 충격 컷이 아니라 선택의 결과와 결말의 비극적 아이러니까지 연결해야 한다.
 
@@ -72,7 +137,7 @@ repair 작업과 분리된 새 Codex 세션에서 primary MP4와 raw desktop/mic
 
 EP1 packaging의 semantic owner는 `FIRST_VIDEO.md`다. recovery에서 historical로 격리된 것은 REVIEW_B의 34/15 select, body, scene-specific proof/payoff sequence와 Cold open이지 current packaging promise 자체가 아니다. 이 material/evidence owner는 package를 다시 소유하지 않으며, `予定 → 여정?`를 포함한 개별 scene은 current promise를 증명·보조하는 후보이지 새 top-level 상품이 아니다.
 
-packaging promise가 current constraint로 복원되기 전에 만들어진 별도 body-first draft는 persistent current truth나 Step 9 입력으로 채택하지 않았다. current 30-candidate evidence pool을 `FIRST_VIDEO.md`의 promise 아래 처음부터 다시 경쟁한 current planning과 정확한 장면 범위는 아래에 기록한다. 이 파일은 evidence provenance와 planned boundary를 소유하며 packaging 의미는 계속 `FIRST_VIDEO.md`가 소유한다.
+packaging promise가 current constraint로 복원되기 전에 만들어진 별도 body-first draft는 persistent current truth나 Step 9 입력으로 채택하지 않았다. 당시 30-candidate evidence pool을 `FIRST_VIDEO.md`의 promise 아래 다시 경쟁했던 historical planning과 그 장면 범위는 아래에 기록한다. 이 파일은 evidence provenance와 planned boundary를 소유하며 packaging 의미는 계속 `FIRST_VIDEO.md`가 소유한다.
 
 ## 4. Historical reconstructed planning과 subtitle-assisted Step 9
 
@@ -80,15 +145,15 @@ packaging promise가 current constraint로 복원되기 전에 만들어진 별�
 
 - storytelling 방향: `선택을 따라가는 귀`. 덴지와 레제의 선택을 따라가는 작품 서사를 골격으로 두고, 정확한 일본어 형태는 놓쳐도 들은 말·화면·앞 사건을 합쳐 관계와 감정선에 도착하는 비대칭을 누적한다.
 - 작품 서사 보조 primary subtitle: `ep1.source_subtitles_ko` directory의 `ChainsawMan_Movie_Reze_erai.smi`. `ChainsawMan_Movie_Reze_subsplease.smi`도 함께 확인했으며 두 파일의 줄 수와 대사 내용은 같고 빈 sync marker 하나의 시각만 1초 다르다. 한국어 자막은 작품 사건·대사 의미 확인용이며 user mic evidence를 대체하지 않는다.
-- current Cold open: recording TC `33:26.6~33:38.6` + `53:32.9~53:45.6`, 약 24.7초. body 재등장에는 전체 관계·원인·결과가 추가된다.
-- current package copy: 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다` / 썸네일 `뜻은 아는데 일본어는 모름?`. `내용은 아는데 일본어는 모름?`은 전체 영화 이해를 과장할 위험 때문에 기각했다. exact copy lock은 아니다.
+- 당시 Cold open: recording TC `33:26.6~33:38.6` + `53:32.9~53:45.6`, 약 24.7초. body 재등장에는 전체 관계·원인·결과가 추가된다.
+- 당시 package copy: 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다` / 썸네일 `뜻은 아는데 일본어는 모름?`. `내용은 아는데 일본어는 모름?`은 전체 영화 이해를 과장할 위험 때문에 기각했다. exact copy lock은 아니다.
 - 레제 과거: `100:11.8~100:14.2`의 사용자 `하나도 못 알아듣겠다`와, `100:14.1~100:23.2`·`100:43.3~100:59.2`의 작품 자막 정보, `101:04.1~101:14.0`의 귀환 선택 bridge를 분리한다. 작품 정보는 listening success가 아니다.
 
 ### Rejected REVIEW_C final select — primary recording planned boundaries
 
 아래 범위는 evidence/beat의 넓은 원래 범위가 아니라 review rough cut에 사용할 planned in/out이다. Cold open 뒤 S01~S17은 recording TC 오름차순이다.
 
-| scene | planned in/out | current function |
+| scene | planned in/out | 당시 function |
 |---|---|---|
 | Cold open | `33:26.6~33:38.6`; `53:32.9~53:45.6` | 글자·정확한 형태의 약점과 실제 의미 추적의 대비 |
 | S01 | `05:17~05:31`; `06:41~07:08`; `09:50~10:31` | 시작 조건, 작품 진입, 첫 listening state |
@@ -114,12 +179,12 @@ S11~S13의 hard continuity는 `레제가 차량을 추격 → 덴지가 다시 �
 ### Step 10 review rough cut artifact
 
 - artifact: `ep1.review_c`
-- provenance: REVIEW_B를 source로 쓰지 않고 current planned boundaries를 primary MP4에서 직접 추출했다.
+- provenance: REVIEW_B를 source로 쓰지 않고 당시 planned boundaries를 primary MP4에서 직접 추출했다.
 - 구성: Cold open 2구간 + 4초 context slate + chronology body 72구간.
 - 실제 검사값: `44:43.021`, 1280×720 / 30fps / H.264, AAC 48kHz stereo, 파일 크기 245,559,398 bytes.
 - 검증: ffprobe 정상, 영상·오디오 stream 정상, 시작·중간·끝 decode 정상, Cold open/context/N22 표시 frame 확인.
 - 레제 과거 표시: `내가 실제로 들은 것`과 `작품 자막 정보 — 내가 들은 내용 아님`을 화면에서 분리했다.
-- current status: **`REVIEW_C_REJECTED_REBUILD_SELECTION_PENDING`**. 사용자는 이미 이 artifact를 시청했고, scene-selection·within-scene compression·story-context allocation failure evidence로 판정했다. 현 cut을 축소해 고치지 않으며 full original rescan부터 다시 시작한다.
+- historical artifact 판정: **REVIEW_C_REJECTED**. 사용자가 시청한 scene-selection·within-scene compression·story-context allocation failure evidence다. 현재 새 rescan 상태는 이 문서 상단을 따르며 현 cut은 축소 수정의 base가 아니다.
 
 # Historical evidence — REVIEW_B 이전 분석
 

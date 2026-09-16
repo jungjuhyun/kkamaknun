@@ -1,13 +1,13 @@
 {
-  "상태": "REVIEW_C_REJECTED_REBUILD_SELECTION_PENDING",
+  "상태": "EP1_FULL_RESCAN_BLOCKED_AV_VERIFICATION_PENDING",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 뒤 reconstruction·independent evidence audit·Step 9 planning을 거쳤으나, user-viewed 44:43 REVIEW_C도 scene selection·within-scene compression·story-context allocation failure evidence로 거절됐다.",
-  "다음_실행": "현재 research와 user failure evidence를 사용해 selection/compression contract를 먼저 확정한 뒤 ep1.primary_recording 전체를 다시 rescan한다. 44분 REVIEW_C를 축소해 수정하지 않으며 subtitle/typography는 selection/internal compression lock 뒤에 한다.",
+  "현재_계획_단계": "CONTRACT_READY; full-original TEXT+COARSE_VISUAL coverage 완료; 직접 audio/continuous AV 검증 미완료로 FULL_RESCAN_BLOCKED",
+  "다음_실행": "ep1.full_rescan_checkpoint를 materialize/verify해 INDEX에서 재개한다. 실제 audio+continuous AV perception 경로 확인 → 직접 AV verification → 후보 재경쟁 → retained boundaries → 전체 runtime 재검증 → body lock → Cold open 경쟁. AV gate 전 rough cut 금지.",
   "경로_정책": {
     "code_current_truth": {
       "sync_source": "GitHub",
@@ -16,27 +16,80 @@
     }
   },
   "external_material": {
-      "durable_store": "authenticated cloud material store",
-      "transport_adapter": "rclone",
-      "provider": "Google Drive (initial; core contract is provider-neutral)",
-      "local_cache_root_env": "KKAMAKNUN_MATERIAL_ROOT",
-      "remote_root_env": "KKAMAKNUN_MATERIAL_REMOTE",
-      "rclone_env_optional": "KKAMAKNUN_RCLONE",
-      "credential_boundary": "rclone config and credentials are outside the repository",
-      "offline_backup": "K SSD is an optional offline backup, not a current execution, transport, or rollback dependency.",
-      "artifacts": {
-        "ep1.primary_recording": {"object_key": "source/ep1/2026-09-06 23-54-01-01.mp4", "kind": "file", "size": 5065619726, "sha256": "7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525", "publish": false},
-        "ep1.source_subtitles_ko": {"object_key": "source/ep1/subtitles", "kind": "directory", "publish": false},
-        "ep1.desktop_transcript": {"object_key": "transcription/EP1_DESKTOP_JA_FULL.jsonl", "kind": "file", "publish": true},
-        "ep1.mic_transcript": {"object_key": "transcription/EP1_MIC_RAW_FULL.jsonl", "kind": "file", "publish": true},
-        "ep1.sync_timeline_jsonl": {"object_key": "transcription/EP1_SYNC_TIMELINE.jsonl", "kind": "file", "publish": true},
-        "ep1.sync_timeline_csv": {"object_key": "transcription/EP1_SYNC_TIMELINE.csv", "kind": "file", "publish": true},
-        "ep1.narrative_map": {"object_key": "transcription/EP1_NARRATIVE_MAP.md", "kind": "file", "publish": true},
-        "ep1.transcription_qa": {"object_key": "transcription/EP1_TRANSCRIPTION_QA.md", "kind": "file", "publish": true},
-        "ep1.new_scene_pool": {"object_key": "transcription/EP1_NEW_SCENE_POOL.md", "kind": "file", "publish": true},
-        "ep1.review_b": {"object_key": "review/EP1_STEP5_REVIEW_B.mp4", "kind": "file", "publish": true},
-        "ep1.review_c": {"object_key": "review/EP1_STEP10_REVIEW_C.mp4", "kind": "file", "publish": true}
+    "durable_store": "authenticated cloud material store",
+    "transport_adapter": "rclone",
+    "provider": "Google Drive (initial; core contract is provider-neutral)",
+    "local_cache_root_env": "KKAMAKNUN_MATERIAL_ROOT",
+    "remote_root_env": "KKAMAKNUN_MATERIAL_REMOTE",
+    "rclone_env_optional": "KKAMAKNUN_RCLONE",
+    "credential_boundary": "rclone config and credentials are outside the repository",
+    "offline_backup": "K SSD is an optional offline backup, not a current execution, transport, or rollback dependency.",
+    "artifacts": {
+      "ep1.primary_recording": {
+        "object_key": "source/ep1/2026-09-06 23-54-01-01.mp4",
+        "kind": "file",
+        "size": 5065619726,
+        "sha256": "7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525",
+        "publish": false
+      },
+      "ep1.source_subtitles_ko": {
+        "object_key": "source/ep1/subtitles",
+        "kind": "directory",
+        "publish": false
+      },
+      "ep1.desktop_transcript": {
+        "object_key": "transcription/EP1_DESKTOP_JA_FULL.jsonl",
+        "kind": "file",
+        "publish": true
+      },
+      "ep1.mic_transcript": {
+        "object_key": "transcription/EP1_MIC_RAW_FULL.jsonl",
+        "kind": "file",
+        "publish": true
+      },
+      "ep1.sync_timeline_jsonl": {
+        "object_key": "transcription/EP1_SYNC_TIMELINE.jsonl",
+        "kind": "file",
+        "publish": true
+      },
+      "ep1.sync_timeline_csv": {
+        "object_key": "transcription/EP1_SYNC_TIMELINE.csv",
+        "kind": "file",
+        "publish": true
+      },
+      "ep1.narrative_map": {
+        "object_key": "transcription/EP1_NARRATIVE_MAP.md",
+        "kind": "file",
+        "publish": true
+      },
+      "ep1.transcription_qa": {
+        "object_key": "transcription/EP1_TRANSCRIPTION_QA.md",
+        "kind": "file",
+        "publish": true
+      },
+      "ep1.new_scene_pool": {
+        "object_key": "transcription/EP1_NEW_SCENE_POOL.md",
+        "kind": "file",
+        "publish": true
+      },
+      "ep1.review_b": {
+        "object_key": "review/EP1_STEP5_REVIEW_B.mp4",
+        "kind": "file",
+        "publish": true
+      },
+      "ep1.review_c": {
+        "object_key": "review/EP1_STEP10_REVIEW_C.mp4",
+        "kind": "file",
+        "publish": true
+      },
+      "ep1.full_rescan_checkpoint": {
+        "object_key": "planning/ep1/rescan/20260916/EP1_RESCAN_CHECKPOINT.zip",
+        "kind": "file",
+        "size": 10619345,
+        "sha256": "5062ea0d2f3b4afb07c6289071fd72899d4df76adfb3e697930728f045f38684",
+        "publish": true
       }
+    }
   },
   "A_B_C": {
     "판정": "유지",
@@ -92,7 +145,8 @@
     "final_select": "REJECTED_REVIEW_C_HISTORY — detailed boundaries are failure evidence only",
     "body_structure": "REJECTED_REVIEW_C_HISTORY — S01~S17 chronology body is not current input",
     "cold_open": "REJECTED_REVIEW_C_HISTORY — 33:26.6~33:38.6 + 53:32.9~53:45.6 is not current input",
-    "REVIEW_C": "REJECTED — ep1.review_c is user-viewed failure evidence, not current planning input"
+    "REVIEW_C": "REJECTED — ep1.review_c is user-viewed failure evidence, not current planning input",
+    "scope": "HISTORICAL_RECONSTRUCTION; counts and audit belong to that run, not the current 65-candidate universe or its AV gate"
   },
   "independent_evidence_audit": {
     "결과": "EVIDENCE_GATE_PASS",
@@ -105,12 +159,12 @@
       "JSONL/CSV 633행 대응, TC 순서, 25 beats, 30 candidates, stale regression scan PASS"
     ],
     "post_credit_power": "current primary recording 범위 밖이며 사용자 reaction도 없는 구간이라 captured-material blocker가 아님",
-    "scope_limit": "evidence source fidelity gate 통과만 의미한다. 이후 current planning의 Step 9는 별도로 통과했지만 사용자 시청과 최종 Step 5는 아직 완료되지 않았다."
+    "scope_limit": "Historical reconstruction source-fidelity gate only. Later Step 9 PASS led to user-viewed REVIEW_C quality failure. Does not certify the current rescan AV gate or the narrative map semantics at every TC."
   },
   "historical_package_constraint_missing_body_first_draft": {
     "persistent_current_truth": false,
     "Step_9_input": false,
-    "처리": "packaging promise가 current constraint로 복원되기 전 별도 실행에서 만들어졌으므로 채택하지 않았다. current planning은 promise 아래 30 candidates를 다시 경쟁한 별도 결과다."
+    "처리": "packaging promise 복원 전 draft는 채택하지 않았다. 이후 30-candidate planning도 REVIEW_C failure history이며 current rescan seed가 아니다."
   },
   "rejected_review_c_planning": {
     "상태": "HISTORICAL_STEP9_PASS_REVIEW_C_REJECTED",
@@ -142,12 +196,14 @@
     "new_scene_pool": "ep1.new_scene_pool",
     "source_subtitles": "ep1.source_subtitles_ko",
     "review_c": "ep1.review_c",
-    "repository_commit_금지": true
+    "repository_commit_금지": true,
+    "full_rescan_checkpoint": "ep1.full_rescan_checkpoint",
+    "new_scene_pool_scope": "historical reconstruction only; not current selection seed"
   },
   "Step_10": {
-    "rough_cut_status": "REJECTED_REBUILD_SELECTION_PENDING",
+    "rough_cut_status": "HISTORICAL_REVIEW_C_REJECTED",
     "artifact": "ep1.review_c",
-    "source_provenance": "REVIEW_B를 사용하지 않고 primary MP4에서 current planned boundaries를 직접 추출",
+    "source_provenance": "REVIEW_B를 사용하지 않고 primary MP4에서 당시 planned boundaries를 직접 추출",
     "duration_seconds": 2683.021333,
     "duration": "00:44:43.021",
     "video": "1280x720 30fps H.264",
@@ -155,7 +211,7 @@
     "technical_validation": "ffprobe PASS; video/audio streams PASS; start/middle/end decode PASS; Cold open/context/N22 frame check PASS",
     "user_view": "COMPLETED — 44:43 rough cut quality failure",
     "AI_post_interpretation": "REJECTED — scene-selection, within-scene compression, story-context allocation failure",
-    "final_Step_5": "REBUILD_SELECTION_PENDING"
+    "final_Step_5": "NOT_PASSED; current AV completion gate is selection_rescan"
   },
   "narrative_recovery": {
     "chronology_integrity": "남긴 사건의 순서를 뒤집지 않는다.",
@@ -169,5 +225,62 @@
     "근거": "plans/EP1_PLANNING_RELIABILITY_POC.md 10절"
   },
   "다음_할_일_owner": "STATE.md",
-  "AI_최종_PASS": false
+  "AI_최종_PASS": false,
+  "selection_rescan": {
+    "contract_status": "CONTRACT_READY",
+    "contract_owner": "FIRST_VIDEO.md",
+    "evidence_owner": "materials/ep1_main/PLANNING_RESULTS.md",
+    "checkpoint_artifact": "ep1.full_rescan_checkpoint",
+    "checkpoint_entrypoint": "INDEX.md",
+    "source_snapshot": "027ee9d7fa4784483ccc300bb8a7065ee455b24c",
+    "source_material": "ep1.primary_recording",
+    "status": "FULL_RESCAN_BLOCKED",
+    "coverage": {
+      "start_seconds": 0,
+      "end_seconds": 6325.0625,
+      "display_range": "00:00:00–01:45:25.063",
+      "modality": "TEXT+COARSE_VISUAL",
+      "complete_at_this_density": true,
+      "records": 81,
+      "ledger_holes": [],
+      "continuous_AV_complete": false
+    },
+    "candidates": {
+      "new_universe": 65,
+      "KEEP": 0,
+      "COMPETE": 42,
+      "provisionally_dropped": 23,
+      "initial_drop_records": 16,
+      "total_drop_records": 39,
+      "merged_drop_ranges": 21,
+      "body_candidates": 39,
+      "alternates": [
+        "F003",
+        "F007",
+        "F017"
+      ],
+      "old_selection_used_as_seed": false
+    },
+    "body": {
+      "functional_groups": 17,
+      "source_search_windows": 63,
+      "source_search_windows_seconds": 862,
+      "verified_retained_seconds": null,
+      "finished_runtime_seconds": null,
+      "runtime_verified": false,
+      "locked": false,
+      "chronology": "source order"
+    },
+    "AV_validation": {
+      "status": "INCOMPLETE",
+      "direct_audio_verified_candidates": 0,
+      "blocker": "Observed company-session Astra/Codex tool path did not deliver audio input or continuous AV perception. ASR/still frames are not direct AV validation.",
+      "probe_result": "audio content omitted because you do not support audio input",
+      "scope": "session/tool-path observation; recheck capability on next device"
+    },
+    "cold_open_competition": "NOT_STARTED_BODY_NOT_LOCKED",
+    "rough_cut_allowed": false,
+    "finished_runtime_ceiling_seconds": 900,
+    "historical_boundary": "34/15, reconstruction 30, rejected Step 9 and REVIEW_C 17 scenes/Cold open are failure evidence, not seeds or a shrink target."
+  }
 }

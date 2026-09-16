@@ -1,6 +1,6 @@
 # CLOUD_MATERIAL_STORAGE_MIGRATION
 
-상태: COMPLETE — Phase E K-less recovery test PASS; Phase F cutover validation PASS; next action is Phase G production return
+상태: COMPLETE — Phase E K-less recovery test PASS; Phase F cutover validation PASS; Phase G production return executed; current production next action is owned by STATE.md
 승인일: 2026-09-16 KST
 
 ## 1. 목적
@@ -181,10 +181,10 @@ K:를 current execution dependency로 사용하지 않는 recovery가 검증됐�
 - current video-planning validator regression PASS
 - final ref/reference scan PASS
 
-### Phase G — production return (next action)
+### Phase G — production return (executed)
 
 migration을 별도 플랫폼 프로젝트로 확장하지 않는다.
-cutover 완료 후 즉시 EP1 selection/compression contract와 original-source rescan으로 복귀한다.
+cutover 뒤 EP1 selection/compression contract와 original-source rescan으로 복귀했다. 결과와 남은 AV completion은 STATE.md 및 EP1 evidence owner를 따르며 migration을 다시 선행 작업으로 삼지 않는다.
 
 이 migration 완료는 Google Drive를 영구 provider로 lock하거나 macOS 전체 workflow를 실기 검증했다는 뜻이 아니며, EP1 production 완료·REVIEW_C failure 해결·video-planning 최종 PASS도 뜻하지 않는다.
 

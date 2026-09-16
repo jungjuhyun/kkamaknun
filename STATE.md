@@ -1,6 +1,6 @@
 # STATE.md — 현재 상태
 
-기준 시각: 2026-09-15 KST
+기준 시각: 2026-09-16 KST
 
 ## 현재 상태
 
@@ -29,20 +29,25 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** **REVIEW_B planning_quality_failure 종료 → reconstruction·independent evidence audit·Step 9 planning을 거쳤으나, 사용자가 이미 시청한 44:43 REVIEW_C가 품질 실패 evidence로 거절됨 → selection rebuild 대기**.
-**다음 실행:** **현재 research와 사용자 failure evidence를 이용해 selection/compression contract를 확정한 뒤 `ep1.primary_recording` 전체를 다시 rescan한다. 현 REVIEW_C를 축소해 고치지 않으며, subtitle/typography는 selection/internal compression lock 뒤에 한다.**
+**현재 실행 위치:** `CONTRACT_READY` → `ep1.primary_recording` 전체 text/frame coverage 완료 → **`FULL_RESCAN_BLOCKED` — 직접 audio + continuous AV 검증 대기**. 확정 계약은 `FIRST_VIDEO.md`, 상세 evidence와 복구 절차는 `materials/ep1_main/PLANNING_RESULTS.md`가 소유한다.
 
-사용자의 실제 REVIEW_B 시청 결과를 근거로 Step 5를 공식 FAIL로 닫았다. 핵심 원인은 chronology만 대략 보존하고 narrative continuity를 보존하지 못한 것, 청해 증거를 작품의 핵심 사건·감정·payoff보다 우선한 것, listening과 reaction을 작품 감상 흐름 안에서 결합하지 못한 것, Cold open/body의 `사메노 마진/상어 마인` 및 `漢字読めないの？` 단순 반복, historical large-v3 결과에 과도하게 의존한 것이다. 레제의 최종 선택·죽음·덴지가 모른 채 기다리는 결말 인과가 끊긴 것은 planning_quality_failure의 핵심 evidence다.
+이번 rescan은 빈 목록에서 전체 `00:00:00–01:45:25.063`을 시간순 탐색해 새 후보 65개를 만들었다. KEEP 0 / COMPETE 42 / 잠정 탈락 후보 23개다. KEEP 0은 실제 AV 검증 미완료를 반영한다. 81개 연속 기록의 text/coarse-frame coverage에 시간 구멍은 없지만 모든 순간의 소리·동작·reaction을 직접 확인한 것은 아니다.
 
-기존 REVIEW_B를 고치거나 그 기반으로 REVIEW_C를 만들지 않는다. 2026-09-13의 34 candidates / 15 selects는 `materials/ep1_main/PLANNING_RESULTS.md`에 historical evidence로 보존하지만 authoritative select set이 아니다. A/B/C와 primary material, 내부 provenance 사실은 변경하지 않았다.
+본문은 39개 후보를 17개 기능 구간으로 묶은 검증 가안이며, 대체 후보 3개가 남아 있다. source search window 합계 **862초(14:22)는 final retained runtime이 아니다**. 검증된 retained boundaries·전체 runtime·body lock은 미확정이고 Cold open 경쟁은 미실행이다. **rough cut 생성은 아직 금지**하며 subtitle/typography/burn-in은 selection과 internal compression lock 이후다. `AI_최종_PASS`는 false다.
 
-EP1 packaging의 semantic owner는 `FIRST_VIDEO.md`다. 유지하는 current promise는 `일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람이 실제 레제편을 한국어 자막 없이 보며 드러낸, 듣기·의미/흐름 이해와 정확한 단어·문장 형태·문자 사이의 비대칭`이다. 그 owner에 기록된 title/thumbnail baseline은 개선 가능하며 exact-copy lock이 아니다. 개별 listening scene은 이 전체 promise의 proof/supporting evidence이며 새 top-level 상품으로 대체하지 않는다.
+blocker는 회사 PC의 해당 Astra/Codex 도구 경로에서 audio 입력이 모델에 전달되지 않아 직접 audio/연속 AV perception을 완료하지 못한 것이다. 파일 재생·ASR·정지 프레임만으로 대체하지 않는다. 이는 관측된 세션/도구 경로의 제한이며 모든 기기·모델의 영구적 불가능을 뜻하지 않는다.
 
-packaging promise가 current constraint로 복원되기 전에 만들어진 별도 body-first draft는 persistent current truth나 Step 9 입력으로 채택하지 않았다. 그 뒤 current promise 아래에서 30 candidates를 다시 경쟁해 Step 9 planning을 만들었지만, 그 planning의 REVIEW_C가 사용자 시청 후 거절됐다. `선택을 따라가는 귀`와 해당 final select·body·Cold open은 historical failure evidence이지 current base가 아니다. semantic promise와 exact-copy 개선 가능성은 유지한다.
+**다음 실행:** GitHub의 이 checkpoint와 cloud logical artifact **`ep1.full_rescan_checkpoint`**를 materialize/verify하고 `INDEX.md`에서 이어간다. primary의 검증된 cache를 재사용하거나 logical ID로 복원한 뒤, 먼저 실제 audio+continuous AV를 지각할 수 있는 경로를 확인한다. **직접 AV verification → 42개 후보 재경쟁 → retained boundaries → context/bridge 포함 runtime 재검증 → body lock → Cold open 경쟁** 순서다. AV gate가 계속 막히면 BLOCKED를 유지한다. 완성본 전체 ≤15:00이되 padding 목표가 아니며, 새 rough cut은 이 gate들을 통과한 뒤의 단계다.
 
-recovery 실행에서는 stream 2 desktop과 stream 3 mic 전체 `01:45:25`를 별도 재전사하고, source narrative / desktop dialogue·audio / user mic raw / visual·nonverbal reaction 네 layer를 복원했다. 25개 narrative beat map, 633행 synchronized timeline, 30개 새 scene candidate pool을 생성했다. current external evidence는 `tools/harness/STATE.json`의 logical artifact registry(`ep1.desktop_transcript` 등)로 참조하고, 작품 서사 보조 source는 `ep1.source_subtitles_ko`다. 자막의 작품 정보와 사용자 mic의 실제 청해는 합치지 않는다.
+계약 결과 원문, 기존 research report, 7-field 후보/coverage, 기능 경쟁, 본문 가안, narrative check, runtime ledger, RED TEAM, 탐색 이력과 검토 contact sheet는 위 cloud checkpoint에 보존한다. 회사 PC의 Codex visualization 경로는 재개 의존성이 아니다. registry/size/SHA-256은 `tools/harness/STATE.json`이 소유한다.
 
-repair 뒤 새 Codex 세션에서 primary MP4와 raw desktop/mic을 기준으로 reconstructed evidence를 read-only 독립 재감사했고 **`EVIDENCE_GATE_PASS`**를 확인했다. 그 evidence로 만든 Step 9 planning은 **`STEP9_PASS`**를 받았지만, primary MP4에서 직접 만든 `ep1.review_c` (`44:43.021`, 1280×720 H.264 + AAC stereo)은 사용자가 이미 시청했고 품질 실패 evidence로 판정했다. 실패는 **scene-selection, within-scene compression, story-context allocation**이며 현 44분 cut을 줄여 고치지 않는다. 최종 영상은 약 15분 이하(더 짧을 수 있음)로 다시 선택하며, 긴 발화 자체를 중요도로 취급하지 않고 반복·필러·thinking pause는 내부 jump cut할 수 있다. Cold open 외 작품 chronology는 보존한다. **`AI_최종_PASS`는 false**다.
+### 실패 이력과 current 입력 경계
+
+REVIEW_B는 narrative continuity·후반 payoff·listening/reaction 결합·Cold open 반복 실패였다. reconstruction의 25 beats / 633 sync rows / 30 candidates와 당시 `EVIDENCE_GATE_PASS`, `STEP9_PASS`는 해당 과거 실행 기록이다. 그 planning에서 만든 44:43 REVIEW_C도 사용자가 시청한 뒤 **scene-selection, within-scene compression, story-context allocation failure**로 거절했다. 이 PASS들은 이번 후보의 AV 검증이나 품질을 인증하지 않는다.
+
+과거 34 candidates / 15 selects, reconstruction 30 candidates, rejected Step 9 body/Cold open, REVIEW_C 17 scenes는 failure/provenance evidence만 담당한다. 이번 65개 universe의 seed·범위·축소 대상이 아니며, REVIEW_C를 줄여 고치지 않는다. 기존 transcript/timeline/narrative map은 원본 대조 보조로 사용하되 새 관찰과 충돌한 지점은 상세 evidence owner의 제한을 따른다.
+
+A/B/C, primary material, 내부 재시청 provenance와 packaging promise는 유지한다. EP1 packaging의 semantic owner는 `FIRST_VIDEO.md`이고, title/thumbnail baseline은 exact-copy lock이 아니다. 개별 listening scene이 top-level 상품을 대체하지 않는다.
 
 Cloud material migration은 **COMPLETE**다. Phase E K-less recovery와 Phase F cutover validation을 통과했다. 현재 code와 current truth의 canonical sync source는 GitHub이며 checkout 위치와 Windows drive letter는 machine-local detail이다. external material의 durable bytes는 authenticated cloud material store에 두고, runtime은 `tools/harness/STATE.json`의 logical artifact ID를 사용한다. local processing은 `KKAMAKNUN_MATERIAL_ROOT` 아래 fully materialized cache에서만 수행하며 rclone remote는 `KKAMAKNUN_MATERIAL_REMOTE`으로 주입한다. credential/rclone config는 repository 밖에 둔다. K SSD는 optional offline backup일 뿐 current execution·transport·rollback dependency가 아니며 external artifact는 Git에 add·commit하지 않는다. 이 완료는 provider 영구 고정, macOS 전체 workflow 실기 검증, EP1 production 완료, REVIEW_C 해결, 또는 video-planning 최종 PASS를 뜻하지 않는다.
 
@@ -110,7 +115,7 @@ Step 4는 양이 크므로 실행 배치만 나눈다(새 공정 추가가 아�
 
 - 단일 MP4의 영상 1스트림과 역할이 확인된 오디오 3스트림을 사용한다. 기존 여러 영상 동기화·별도 master 생성은 현재 선행 작업이 아니다.
 - 과거 드라이브의 손상본 조사와 파일 이동 대기는 현재 본 촬영의 상태를 나타내지 않는다.
-- 기존 약 82분 테스트 촬영은 보조·비교 자료다. 테스트 촬영 기반 러프 구조표와 REVIEW_B는 current 입력으로 쓰지 않는다. current 입력은 독립 감사를 통과한 25 narrative beats / 633 sync rows / 30 candidates이며, `FIRST_VIDEO.md`의 packaging promise 아래 body-first planning을 다시 실행·정렬한다.
+- 기존 약 82분 테스트 촬영은 보조·비교 자료다. 테스트 촬영 기반 러프 구조표와 REVIEW_B는 current 입력으로 쓰지 않는다. current 선택 작업은 `ep1.full_rescan_checkpoint`의 새 65개 후보 기록에서 이어간다. 과거 30개 pool은 seed가 아니며, 25 beats / 633 sync rows도 새 후보의 AV 검증을 대신하지 않는 보조 evidence다.
 - 2026-09-13 원본을 직접 읽어 스트림·러닝타임을 재확인하고 전체 material-first 분석을 완료했다.
 
 ## 1차 애니 진단·2차 진단 방향
