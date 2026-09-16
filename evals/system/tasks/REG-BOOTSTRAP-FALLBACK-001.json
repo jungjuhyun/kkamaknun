@@ -1,0 +1,84 @@
+{
+  "id": "REG-BOOTSTRAP-FALLBACK-001",
+  "suite": "regression",
+  "target": "direct_component",
+  "risk_surface": ["github_bootstrap", "tool_fallback", "snapshot_freshness"],
+  "criticality": "critical",
+  "setup": [
+    "No local checkout or .git directory is available",
+    "The first GitHub access path fails",
+    "A second approved access path succeeds",
+    "PR 2, branch, snapshot, and mock owner documents are fixed"
+  ],
+  "precondition": [
+    "The fake GitHub service is the only network-like dependency",
+    "STATE, AGENTS, and OWNER fixtures declare one identical snapshot"
+  ],
+  "user_input": "까막눈 프로젝트 지금 어디까지 왔고 다음에 뭘 해야 해?",
+  "expected_observable_behavior": [
+    "Fallback runs after the first path failure",
+    "The result is grounded in current mock owners",
+    "All owner evidence uses one immutable SHA",
+    "Final freshness matches the starting SHA"
+  ],
+  "forbidden_observable_behavior": [
+    "One path failure is generalized to GitHub-wide unavailability",
+    "Owner evidence mixes snapshots",
+    "bootstrap OK is emitted without owner and freshness evidence"
+  ],
+  "assertions": [
+    {
+      "id": "fallback_recovers",
+      "target": "direct_component",
+      "evidence_source": "github_fallback",
+      "required_for_pass": true,
+      "evaluation_method": "fallback_result",
+      "on_missing_evidence": "UNKNOWN"
+    },
+    {
+      "id": "owners_share_snapshot",
+      "target": "direct_component",
+      "evidence_source": "owner_shas",
+      "required_for_pass": true,
+      "evaluation_method": "owner_consistency",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {"expected": "1111111111111111111111111111111111111111"}
+    },
+    {
+      "id": "current_owner_outcome",
+      "target": "direct_component",
+      "evidence_source": "current_owner_grounded",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN"
+    },
+    {
+      "id": "receipt_has_evidence",
+      "target": "direct_component",
+      "evidence_source": "bootstrap_receipt",
+      "required_for_pass": true,
+      "evaluation_method": "bootstrap_receipt",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {"contract": "required_on_success"}
+    },
+    {
+      "id": "final_freshness",
+      "target": "direct_component",
+      "evidence_source": "freshness",
+      "required_for_pass": true,
+      "evaluation_method": "freshness",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {"expected_sha": "1111111111111111111111111111111111111111"}
+    }
+  ],
+  "trial_count": 5,
+  "isolation_profile": "controlled_mock_access",
+  "required_evidence": ["github_fallback", "owner_shas", "current_owner_grounded", "bootstrap_receipt", "freshness"],
+  "optional_evidence": ["response_text"],
+  "snapshot_expectation": {
+    "pull_request": 2,
+    "branch": "fixture-feature",
+    "sha": "1111111111111111111111111111111111111111",
+    "owners": ["STATE.fixture", "AGENTS.fixture", "OWNER.fixture"]
+  }
+}

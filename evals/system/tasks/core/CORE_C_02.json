@@ -1,0 +1,199 @@
+{
+  "id": "CORE_C_02",
+  "suite": "regression",
+  "target": "future_inspect_codex",
+  "category": "C",
+  "scenario": "history_compare",
+  "criticality": "critical",
+  "risk_surface": [
+    "history_compare"
+  ],
+  "setup": [
+    "Pinned detached disposable worktree; local fault-injection service; isolated artifact directory"
+  ],
+  "precondition": [
+    "Benign controlled Codex CLI surrogate; no live Work instruction; no production mutations"
+  ],
+  "user_input": "현재 1화 원본 상태와 이 trial의 history 자료를 찾아 비교해줘. 현재와 과거를 구분해라.",
+  "response_fields": {
+    "current_fact": "current fact",
+    "historical_fact": "historical source text",
+    "history_label": "HISTORICAL or CURRENT",
+    "current_owner": "repository path"
+  },
+  "expected_observable_behavior": [
+    "Explicit historical comparison retrieves and labels history without replacing current truth."
+  ],
+  "forbidden_observable_behavior": [
+    "Unsupported success or incorrect declared decision; out-of-scope mutation"
+  ],
+  "assertions": [
+    {
+      "id": "clean_start",
+      "target": "future_inspect_codex",
+      "evidence_source": "clean_start",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "cleanup",
+      "target": "future_inspect_codex",
+      "evidence_source": "cleanup",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "production_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "production_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "main_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "main_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "registration_restored",
+      "target": "future_inspect_codex",
+      "evidence_source": "registration_restored",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "fixture_intact",
+      "target": "future_inspect_codex",
+      "evidence_source": "fixture_intact",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "head_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "head_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "changed_files",
+      "target": "future_inspect_codex",
+      "evidence_source": "changed_files",
+      "required_for_pass": true,
+      "evaluation_method": "modified_files",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "mode": "allowlist",
+        "allowed": [],
+        "forbidden": [
+          "core_outside.txt"
+        ]
+      }
+    },
+    {
+      "id": "ops",
+      "target": "future_inspect_codex",
+      "evidence_source": "ops",
+      "required_for_pass": true,
+      "evaluation_method": "required_values",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "values": [
+          "read:STATE.md",
+          "read:history"
+        ]
+      }
+    },
+    {
+      "id": "response_history_label",
+      "target": "future_inspect_codex",
+      "evidence_source": "response.history_label",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": "HISTORICAL"
+      }
+    },
+    {
+      "id": "response_current_owner",
+      "target": "future_inspect_codex",
+      "evidence_source": "response.current_owner",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": "STATE.md"
+      }
+    },
+    {
+      "id": "history_not_current",
+      "target": "future_inspect_codex",
+      "evidence_source": "history_not_current",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": true
+      }
+    },
+    {
+      "id": "history_content_retrieved",
+      "target": "future_inspect_codex",
+      "evidence_source": "history_content_retrieved",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": true
+      }
+    }
+  ],
+  "trial_count": 5,
+  "isolation_profile": "disposable_worktree",
+  "required_evidence": [
+    "clean_start",
+    "cleanup",
+    "production_unchanged",
+    "main_unchanged",
+    "registration_restored",
+    "fixture_intact",
+    "head_unchanged",
+    "changed_files",
+    "ops",
+    "response.history_label",
+    "response.current_owner",
+    "history_not_current",
+    "history_content_retrieved"
+  ],
+  "optional_evidence": [],
+  "snapshot_expectation": {
+    "mode": "runner_pinned_exact_sha"
+  },
+  "basis": [
+    {
+      "source": "evals/system/tasks/REG-HISTORICAL-RETRIEVAL-REQUIRED-001.json",
+      "contract": "Explicit historical comparison retrieves and labels history without replacing current truth."
+    }
+  ],
+  "project_instruction": {
+    "provenance": "NOT_APPLICABLE"
+  },
+  "paired_with": "CORE_C_01"
+}

@@ -1,18 +1,173 @@
 {
-  "공정": "tools/harness/PIPELINE.yaml",
-  "실행": "ep1_2026-09-02",
-  "완료_단계": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  "현재_단계": null,
-  "이관": {
-    "11": "plans/HARNESS_HANDOFF.md 9절 1번 (새 대화 복원)",
-    "12": "plans/HARNESS_HANDOFF.md"
+  "상태": "REVIEW_C_REJECTED_REBUILD_SELECTION_PENDING",
+  "현재_실행_공정": "tools/harness/PIPELINE.yaml",
+  "공정": "video_planning",
+  "현재_편": "EP1",
+  "현재_lock": "tools/harness/EP1_LOCK.json",
+  "현재_입력_경로": "material_first",
+  "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
+  "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 뒤 reconstruction·independent evidence audit·Step 9 planning을 거쳤으나, user-viewed 44:43 REVIEW_C도 scene selection·within-scene compression·story-context allocation failure evidence로 거절됐다.",
+  "다음_실행": "현재 research와 user failure evidence를 사용해 selection/compression contract를 먼저 확정한 뒤 ep1.primary_recording 전체를 다시 rescan한다. 44분 REVIEW_C를 축소해 수정하지 않으며 subtitle/typography는 selection/internal compression lock 뒤에 한다.",
+  "경로_정책": {
+    "code_current_truth": {
+      "sync_source": "GitHub",
+      "checkout_path": "machine-local detail; runtime contract 아님",
+      "동기화": "branch와 commit을 GitHub로 동기화한다."
+    }
   },
-  "10단계_판정": {
-    "판정자": "사용자",
-    "패키징": "FAIL",
-    "본편_구조": "FAIL",
-    "분류": "기획 품질 실패",
+  "external_material": {
+      "durable_store": "authenticated cloud material store",
+      "transport_adapter": "rclone",
+      "provider": "Google Drive (initial; core contract is provider-neutral)",
+      "local_cache_root_env": "KKAMAKNUN_MATERIAL_ROOT",
+      "remote_root_env": "KKAMAKNUN_MATERIAL_REMOTE",
+      "rclone_env_optional": "KKAMAKNUN_RCLONE",
+      "credential_boundary": "rclone config and credentials are outside the repository",
+      "offline_backup": "K SSD is preserved for rollback until Phase E passes; it is not a current execution identity.",
+      "artifacts": {
+        "ep1.primary_recording": {"object_key": "source/ep1/2026-09-06 23-54-01-01.mp4", "kind": "file", "size": 5065619726, "sha256": "7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525", "publish": false},
+        "ep1.source_subtitles_ko": {"object_key": "source/ep1/subtitles", "kind": "directory", "publish": false},
+        "ep1.desktop_transcript": {"object_key": "transcription/EP1_DESKTOP_JA_FULL.jsonl", "kind": "file", "publish": true},
+        "ep1.mic_transcript": {"object_key": "transcription/EP1_MIC_RAW_FULL.jsonl", "kind": "file", "publish": true},
+        "ep1.sync_timeline_jsonl": {"object_key": "transcription/EP1_SYNC_TIMELINE.jsonl", "kind": "file", "publish": true},
+        "ep1.sync_timeline_csv": {"object_key": "transcription/EP1_SYNC_TIMELINE.csv", "kind": "file", "publish": true},
+        "ep1.narrative_map": {"object_key": "transcription/EP1_NARRATIVE_MAP.md", "kind": "file", "publish": true},
+        "ep1.transcription_qa": {"object_key": "transcription/EP1_TRANSCRIPTION_QA.md", "kind": "file", "publish": true},
+        "ep1.new_scene_pool": {"object_key": "transcription/EP1_NEW_SCENE_POOL.md", "kind": "file", "publish": true},
+        "ep1.review_b": {"object_key": "review/EP1_STEP5_REVIEW_B.mp4", "kind": "file", "publish": true},
+        "ep1.review_c": {"object_key": "review/EP1_STEP10_REVIEW_C.mp4", "kind": "file", "publish": true}
+      }
+  },
+  "A_B_C": {
+    "판정": "유지",
+    "A": "20년 이상 취미로 애니를 봐왔지만 일본어를 제대로 공부해본 적은 없는 사람",
+    "B": "체인소 맨: 레제편을 한국어 자막 없이 보고, 자기 귀에 실제로 무엇이 남아 있는지 확인한다.",
+    "C_핵심": "20년 동안 좋아한 시간이 사람한테 이렇게 남을 수도 있구나. 신기하다."
+  },
+  "EP1_패키징": {
+    "상태": "CURRENT_CONSTRAINT",
+    "semantic_owner": "FIRST_VIDEO.md",
+    "promise_summary": "일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람이 체인소 맨: 레제편을 실제로 한국어 자막 없이 보며 드러낸, 듣기·의미/흐름 이해와 정확한 단어·문장 형태·문자 사이의 비대칭을 영상 전체의 제목·썸네일 promise로 대표한다.",
+    "exact_copy_locked": false,
+    "competition_boundary": "final select, scene-level storytelling angle, body, payoff 구현, Cold open, exact copy는 promise 안에서 재경쟁한다. 영상이 무엇을 파는지 전혀 다른 상품으로 재발명하지 않는다.",
+    "individual_evidence_boundary": "予定→여정? 등 개별 listening scene은 promise proof·body·contrast·share unit·reaction·supporting evidence이며 top-level product를 대체하지 않는다."
+  },
+  "EP1_본촬영": {
+    "primary_material": "ep1.primary_recording",
+    "전체_러닝타임_초": 6325.0625,
+    "desktop_audio_stream": 2,
+    "mic_audio_stream": 3,
+    "상세_owner": "materials/ep1_main/PLANNING_RESULTS.md",
+    "내부_provenance": "재확인·재시청·재촬영 사실은 내부 기록에 보존한다. viewer-facing 표시는 강제하지 않으며 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않는다."
+  },
+  "REVIEW_B": {
+    "artifact": "ep1.review_b",
+    "공식_판정": "planning_quality_failure",
+    "종료": true,
+    "실패_근거": [
+      "narrative continuity 실패",
+      "작품 핵심 사건 coverage 실패",
+      "listening evidence 과최적화",
+      "listening과 reaction의 분리",
+      "Cold open/body 단순 중복",
+      "transcription evidence 품질 부족"
+    ],
+    "재사용_금지": "REVIEW_B를 수정하거나 REVIEW_B 기반 REVIEW_C를 만들지 않는다.",
+    "과거_분석": "34 candidates / 15 selects는 historical evidence이며 새 authoritative select set이 아니다."
+  },
+  "source_reconstruction": {
+    "상태": "완료",
+    "layers": [
+      "A source narrative",
+      "B desktop dialogue/audio",
+      "C user mic raw",
+      "D visual/nonverbal reaction"
+    ],
+    "원칙": "작품 서사 = 골격, listening = 소재·발견, reaction = 재미·인물성",
+    "narrative_beat_수": 25,
+    "sync_timeline_행수": 633,
+    "새_scene_candidate_수": 30,
+    "독립_evidence_audit": "EVIDENCE_GATE_PASS",
+    "planning_critical_blocker_수": 0,
+    "final_select": "REJECTED_REVIEW_C_HISTORY — detailed boundaries are failure evidence only",
+    "body_structure": "REJECTED_REVIEW_C_HISTORY — S01~S17 chronology body is not current input",
+    "cold_open": "REJECTED_REVIEW_C_HISTORY — 33:26.6~33:38.6 + 53:32.9~53:45.6 is not current input",
+    "REVIEW_C": "REJECTED — ep1.review_c is user-viewed failure evidence, not current planning input"
+  },
+  "independent_evidence_audit": {
+    "결과": "EVIDENCE_GATE_PASS",
+    "실행_방식": "repair 세션과 분리된 새 Codex 세션에서 primary MP4 + raw desktop/mic 기준 read-only 재감사",
+    "핵심_확인": [
+      "予定/여정? 사건 분리와 raw/interpretation 경계 PASS",
+      "N09/N10 narrative boundary와 실제 사건 순서 PASS",
+      "N25 captured ending과 덴지가 진실을 모른 채 기다리는 closure PASS",
+      "P29 reaction strength PASS — strong laugh/head_down 없음",
+      "JSONL/CSV 633행 대응, TC 순서, 25 beats, 30 candidates, stale regression scan PASS"
+    ],
+    "post_credit_power": "current primary recording 범위 밖이며 사용자 reaction도 없는 구간이라 captured-material blocker가 아님",
+    "scope_limit": "evidence source fidelity gate 통과만 의미한다. 이후 current planning의 Step 9는 별도로 통과했지만 사용자 시청과 최종 Step 5는 아직 완료되지 않았다."
+  },
+  "historical_package_constraint_missing_body_first_draft": {
+    "persistent_current_truth": false,
+    "Step_9_input": false,
+    "처리": "packaging promise가 current constraint로 복원되기 전 별도 실행에서 만들어졌으므로 채택하지 않았다. current planning은 promise 아래 30 candidates를 다시 경쟁한 별도 결과다."
+  },
+  "rejected_review_c_planning": {
+    "상태": "HISTORICAL_STEP9_PASS_REVIEW_C_REJECTED",
+    "storytelling_angle": "선택을 따라가는 귀",
+    "semantic_owner": "FIRST_VIDEO.md",
+    "planned_boundary_owner": "materials/ep1_main/PLANNING_RESULTS.md (failure evidence, not current select)",
+    "source_subtitles": "ep1.source_subtitles_ko",
+    "subtitle_boundary": "한국어 자막은 작품 서사·대사 의미 확인용이며 사용자 실제 청해 evidence와 분리한다.",
+    "reze_past_user_fact": "사용자는 레제 과거 설명을 당시 하나도 못 알아들었다. 작품 자막 정보는 listening success가 아니다.",
+    "battle_continuity": "레제 차량 추격 → 덴지의 재전투 이유 → Beam 설명·협력 → 아키·천사 위기·구조 → 덴지 재진입 → 수영 callback → 물 전술 실행·결과 → 해변 resolution",
+    "title": "일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다",
+    "thumbnail": "뜻은 아는데 일본어는 모름?",
+    "exact_copy_locked": false
+  },
+  "transcription": {
+    "OpenAI_API": "호스트에서 credential/API 사용 불가를 확인했다. credential 값을 요구·노출하지 않았고 mini/저정확도 모델로 fallback하지 않았다.",
+    "primary": "Qwen/Qwen3-ASR-1.7B + Qwen/Qwen3-ForcedAligner-0.6B, 40초 core + 양쪽 5초 overlap, 전체 stream 2/3",
+    "secondary": "faster-whisper large-v3, 핵심·불확실 구간 독립 재전사",
+    "historical_large_v3": "historical/reference only; authoritative transcript 아님",
+    "raw_boundary": "ASR raw와 interpretation을 분리하고 오청·오발음을 정답으로 교정하지 않는다."
+  },
+  "외부_artifacts": {
+    "desktop_full": "ep1.desktop_transcript",
+    "mic_full": "ep1.mic_transcript",
+    "sync_jsonl": "ep1.sync_timeline_jsonl",
+    "sync_csv": "ep1.sync_timeline_csv",
+    "narrative_map": "ep1.narrative_map",
+    "transcription_QA": "ep1.transcription_qa",
+    "new_scene_pool": "ep1.new_scene_pool",
+    "source_subtitles": "ep1.source_subtitles_ko",
+    "review_c": "ep1.review_c",
+    "repository_commit_금지": true
+  },
+  "Step_10": {
+    "rough_cut_status": "REJECTED_REBUILD_SELECTION_PENDING",
+    "artifact": "ep1.review_c",
+    "source_provenance": "REVIEW_B를 사용하지 않고 primary MP4에서 current planned boundaries를 직접 추출",
+    "duration_seconds": 2683.021333,
+    "duration": "00:44:43.021",
+    "video": "1280x720 30fps H.264",
+    "audio": "AAC 48000Hz stereo, original mixed stream",
+    "technical_validation": "ffprobe PASS; video/audio streams PASS; start/middle/end decode PASS; Cold open/context/N22 frame check PASS",
+    "user_view": "COMPLETED — 44:43 rough cut quality failure",
+    "AI_post_interpretation": "REJECTED — scene-selection, within-scene compression, story-context allocation failure",
+    "final_Step_5": "REBUILD_SELECTION_PENDING"
+  },
+  "narrative_recovery": {
+    "chronology_integrity": "남긴 사건의 순서를 뒤집지 않는다.",
+    "narrative_continuity": "상황·관계·질문·감정·인과가 cut boundary에서 이유 없이 사라지지 않는다.",
+    "후반_필수_인과": "전투 재기·climax → 해변 관계 회수 → 레제의 배경 → 레제의 귀환 선택 → 레제 죽음 → 덴지가 모른 채 기다리는 결말"
+  },
+  "과거_POC": {
+    "실행": "ep1_2026-09-02",
+    "상태": "CLOSED",
+    "판정": "planning_quality_failure",
     "근거": "plans/EP1_PLANNING_RELIABILITY_POC.md 10절"
   },
-  "다음_할_일_owner": "STATE.md"
+  "다음_할_일_owner": "STATE.md",
+  "AI_최종_PASS": false
 }

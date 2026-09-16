@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "phase": 3,
+  "kind": "measurement_integrity_audit",
+  "checkpoint_commit": "0904140a5b8177a0a3f66b92baeeb59978928fda",
+  "checkpoint_snapshot": "476bc226433efc95c0b546948c2c7160ff97616c",
+  "target_calls_during_audit": 0,
+  "calibration": {
+    "checkpoint_controls": [
+      {"task_id": "CORE_E_01", "control": "fallback_seed", "expected": "FAIL", "observed": "PASS"},
+      {"task_id": "CORE_C_01", "control": "history_seed", "expected": "FAIL", "observed": "PASS"}
+    ],
+    "root_cause": "The old controls appended an instruction asking the target to behave incorrectly to the normal target prompt. Both saved prompts contain that instruction, but their completed envelopes show normal common-guide behavior: fallback was invoked and globally_unavailable was false; history was not read and history_used was false. The grader therefore correctly returned PASS. This is an invalid target-driven calibration design, not a grader false negative and not a changed known-bad fixture.",
+    "remediation": "Calibration is now a deterministic fixture/scorer control with actual_target_calls=0. It constructs each known-bad evidence condition, requires grade_envelope to return FAIL, and remains excluded from baseline aggregation and findings. It does not claim target behavior."
+  },
+  "progress_reconciliation": {
+    "durable_summary_sha256": "bf7f2a43dd6abbf9945a81319e43f3b7595e9845c247f48528c62b46ca6ea79f",
+    "durable_progress_sha256": "4a674b6693b9f7965a181cfc25c08bda3304c8e2de844297350e28fda7a6021c",
+    "baseline_envelope_records": 152,
+    "baseline_status_counts": {"PASS": 61, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 91, "INVALID_FIXTURE": 0},
+    "first_infra_record_index_1_based": 59,
+    "valid_before_first_infra": 58,
+    "initial_batch_records": 112,
+    "initial_batch_valid": 58,
+    "bounded_replacement_records": 40,
+    "bounded_replacement_valid": 3,
+    "final_valid": 61,
+    "root_cause": "No durable progress report or envelope sequence contains 69 valid trials. The reported 69 was a conversational manual cumulative-count error: at that point the envelope sequence had 58 valid trials, and the later final checkpoint added three valid bounded replacements for 61. Therefore 69 minus 61 is not eight lost or merged records.",
+    "remediation": "progress_snapshot is now the sole writer for live progress and final summary. Its durable receipt derives baseline record count, status counts, valid count, required count, remaining count, and excluded controls from the same summarize output, with mismatch assertions."
+  },
+  "checkpoint_merge_and_reuse": {
+    "old_checkpoint_has_merge_implementation": false,
+    "remediation": "load_resume_checkpoint imports the archive only after verifying the exact snapshot and lane, every non-runner manifest member, every baseline prompt artifact after line-ending normalization, trial uniqueness, task identity, and all 44 inherited Inspect log records. run_suite --resume-archive then schedules only each task's missing valid count.",
+    "baseline_prompt_contract_changed": false,
+    "fixture_scorer_schema_changed": false,
+    "re_score": "Existing checkpoint re-score was 44/44 Inspect logs and 154/154 samples identical with zero target re-executions.",
+    "decision": "The 61 PASS envelopes remain preserved, correctly classified, and reusable. The new archive-import proof accepted all 152 baseline envelopes, derived 61 valid PASS and 51 remaining, and imported 44 existing Inspect log records without target calls. A future continuation must use --resume-archive with this archive; it will schedule only the 51 missing valid trials."
+  },
+  "evidence": {
+    "archive": "evals/system/evidence/phase3_final_full_baseline_checkpoint_476bc22.zip",
+    "archive_sha256": "614af4424a8174bfd576dd7b5d6056e22b2d2c875a90664aba17313a940f1ae4",
+    "archive_members": 782
+  }
+}

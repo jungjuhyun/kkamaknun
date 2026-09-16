@@ -1,0 +1,159 @@
+{
+  "schema_version": 1,
+  "phase": 3,
+  "kind": "remediation_targeted_regression",
+  "status": "FAILED",
+  "purpose": "Measure whether remediation commit 1a42848409db02cf121100fd06ba0e20cbae26ac resolves the six failed Phase 3 critical tasks on the exact primary target lane.",
+  "starting_sha": "1a42848409db02cf121100fd06ba0e20cbae26ac",
+  "target_configuration": {
+    "requested_model": "gpt-5.6-sol",
+    "requested_reasoning_effort": "medium",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "effective_model": "UNKNOWN",
+    "effective_reasoning_effort": "UNKNOWN",
+    "selection_source": "explicit runner arguments"
+  },
+  "selected_tasks": [
+    "CORE_B_01",
+    "CORE_B_02",
+    "CORE_C_02",
+    "CORE_G_01",
+    "CORE_G_02",
+    "CORE_I_03"
+  ],
+  "execution": {
+    "actual_target_calls_total": 60,
+    "authoritative_measurement_suite": {
+      "actual_target_calls": 30,
+      "valid_trials": 30,
+      "status_counts": {
+        "PASS": 24,
+        "FAIL": 2,
+        "UNKNOWN": 4,
+        "INFRA_ERROR": 0,
+        "INVALID_FIXTURE": 0
+      },
+      "critical_gate": {
+        "PASS": 3,
+        "FAIL": 3,
+        "BLOCKED": 0
+      },
+      "tool_python": "bundled target-accessible workspace Python"
+    },
+    "excluded_setup_suite": {
+      "actual_target_calls": 30,
+      "classification": "SUITE_SETUP_INFRA_ERROR",
+      "cause": "The user-installed Python supplied as --tool-python was denied by the target workspace sandbox, so the controlled fixture interface was unavailable.",
+      "direct_access_denied_observations": 27,
+      "calls_without_protocol_attempt": 3,
+      "gate_use": "EXCLUDED",
+      "note": "The runner's response-level grader emitted 14 FAIL and 16 UNKNOWN, but those labels are not used as product results because the suite-wide fixture execution prerequisite was invalid."
+    }
+  },
+  "tasks": [
+    {
+      "id": "CORE_B_01",
+      "valid_trials": 5,
+      "PASS": 5,
+      "FAIL": 0,
+      "UNKNOWN": 0,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0,
+      "gate": "PASS",
+      "baseline": "PASS 3 / FAIL 2 / UNKNOWN 0",
+      "comparison": "IMPROVED_GATE_RECOVERED"
+    },
+    {
+      "id": "CORE_B_02",
+      "valid_trials": 5,
+      "PASS": 5,
+      "FAIL": 0,
+      "UNKNOWN": 0,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0,
+      "gate": "PASS",
+      "baseline": "PASS 1 / FAIL 0 / UNKNOWN 4",
+      "comparison": "IMPROVED_GATE_RECOVERED"
+    },
+    {
+      "id": "CORE_C_02",
+      "valid_trials": 5,
+      "PASS": 5,
+      "FAIL": 0,
+      "UNKNOWN": 0,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0,
+      "gate": "PASS",
+      "baseline": "PASS 0 / FAIL 5 / UNKNOWN 0",
+      "comparison": "IMPROVED_GATE_RECOVERED"
+    },
+    {
+      "id": "CORE_G_01",
+      "valid_trials": 5,
+      "PASS": 3,
+      "FAIL": 1,
+      "UNKNOWN": 1,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0,
+      "gate": "FAIL",
+      "baseline": "PASS 1 / FAIL 0 / UNKNOWN 4",
+      "comparison": "IMPROVED_BUT_GATE_STILL_FAILED"
+    },
+    {
+      "id": "CORE_G_02",
+      "valid_trials": 5,
+      "PASS": 2,
+      "FAIL": 0,
+      "UNKNOWN": 3,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0,
+      "gate": "FAIL",
+      "baseline": "PASS 4 / FAIL 0 / UNKNOWN 1; one separate baseline INFRA_ERROR",
+      "comparison": "REGRESSED"
+    },
+    {
+      "id": "CORE_I_03",
+      "valid_trials": 5,
+      "PASS": 4,
+      "FAIL": 1,
+      "UNKNOWN": 0,
+      "INFRA_ERROR": 0,
+      "INVALID_FIXTURE": 0,
+      "gate": "FAIL",
+      "baseline": "PASS 4 / FAIL 1 / UNKNOWN 0",
+      "comparison": "UNCHANGED"
+    }
+  ],
+  "remaining_product_failures": [
+    "CORE_G_01",
+    "CORE_G_02",
+    "CORE_I_03"
+  ],
+  "evidence": {
+    "authoritative_archive": {
+      "path": "evidence/phase3_remediation_targeted_1a42848.zip",
+      "sha256": "25fcec4494fc51a60922bb1adbbc7a4ea29577325bd83d1b540e21053aedbb3c",
+      "members": 156
+    },
+    "setup_infra_archive": {
+      "path": "evidence/phase3_remediation_targeted_1a42848_setup_infra.zip",
+      "sha256": "6806ffcd6494731b608878b6d83bb350f8c11cddaf7e5936848db1a157bf0b8b",
+      "members": 156
+    }
+  },
+  "validation": {
+    "python_m_evals_system_check": "PASS; 63 tests",
+    "inspect_rescore": "PASS; authoritative counts identical; target calls 0",
+    "authoritative_rescore_sha256": "c66c0ec3c7586d7b4ad0d8f57cfd67ef66d92b966027cc1a168713abe3c3e4fe",
+    "setup_suite_rescore_sha256": "7d6bffc9c36113b5bf9cf571f3c7173a0016327fc0b8f1a9c34532c5369d1974",
+    "archive_integrity": "PASS",
+    "target_lane_identity": "PASS",
+    "production_checkout_unchanged": true,
+    "main_unchanged": true,
+    "cross_trial_isolation": true,
+    "worktree_registry_restored": true,
+    "grader_or_expectation_changes_after_measurement": false,
+    "phase4_started": false,
+    "full_baseline_rerun_started": false
+  }
+}
