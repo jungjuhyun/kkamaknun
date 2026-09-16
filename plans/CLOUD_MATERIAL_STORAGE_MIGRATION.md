@@ -1,6 +1,6 @@
 # CLOUD_MATERIAL_STORAGE_MIGRATION
 
-상태: Phase D logical-ID cutover complete; Phase E K-less recovery test and Phase F validation remain
+상태: COMPLETE — Phase E K-less recovery test PASS; Phase F cutover validation PASS; next action is Phase G production return
 승인일: 2026-09-16 KST
 
 ## 1. 목적
@@ -18,9 +18,9 @@
 
 이 계획은 video-planning 하네스를 대체하지 않는다. Cloud migration은 EP1 selection rebuild와 이후 하네스 검증을 더 안정적으로 실행하기 위한 지원 인프라 작업이다.
 
-## 2. 현재 snapshot에서 확인된 문제
+## 2. Phase A snapshot에서 확인된 문제
 
-2026-09-16 read-only audit에서 다음을 확인했다.
+2026-09-16 Phase A read-only audit에서 다음 historical conditions를 확인했다.
 
 - canonical local repository가 `C:\kkamaknun`으로 고정돼 있다.
 - current external material identity가 `K:\kkamaknun\...` 절대경로와 결합돼 있다.
@@ -150,7 +150,9 @@ cloud round-trip이 검증된 뒤에만 instruction/current-truth/runtime owner�
 
 instruction/config/workflow 변경은 부분 패치하지 않고 관련 owner·중복·stale reference를 한 번에 정리한다.
 
-### Phase E — K-less recovery test (remaining)
+### Phase E — K-less recovery test
+
+**PASS (2026-09-16).** K:가 물리적으로 분리된 상태에서 첫 clean cache와 두 번째 clean cache를 사용했다. `ep1.primary_recording`을 cloud에서 materialize해 size `5,065,619,726` 및 SHA-256 `7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525`를 확인했고, ffprobe와 start/middle/end decode를 통과했다. 필요한 evidence logical artifact도 materialize했다. 5초 H.264/AAC probe (`3,340,960` bytes, SHA-256 `3c9f3452e6b27bb2a3cf1081baa6f4749df212af19e843df41cc49db72e86777`)를 `migration_validation/phase_e/005d74f1/probe.mp4`에 publish한 뒤 두 번째 clean cache에 rematerialize해 SHA 일치를 확인했다. credential contamination은 0이었다.
 
 K:를 사용하지 않는 상태에서:
 
@@ -165,9 +167,11 @@ K:를 사용하지 않는 상태에서:
 9. cloud publish
 10. 다른 빈 local 위치에 다시 materialize해 동일성 확인
 
-이 테스트를 통과하기 전에는 K:를 필수 실행 의존성에서 제거했다고 주장하지 않는다.
+K:를 current execution dependency로 사용하지 않는 recovery가 검증됐다. K SSD는 optional offline backup으로만 보존한다.
 
-### Phase F — cutover validation (remaining)
+### Phase F — cutover validation
+
+**PASS (2026-09-16).** Active current-state/runtime/instruction contract에서 K: hard dependency, `C:\kkamaknun` hard dependency, checkout drive-letter dependency는 모두 0이다. historical provenance와 example은 active dependency가 아니다. JSON/YAML/Python parse, material helper unit tests·registry resolution·source publish protection, video-planning deterministic validator regression, `git diff --check`, credential scan을 통과했다. Phase E cache primary SHA와 derived probe 두 copy SHA를 재검증했고 published probe object 존재도 확인했다.
 
 - active current source에서 K: hard dependency 0
 - active current source에서 C:\kkamaknun hard dependency 0
@@ -177,10 +181,12 @@ K:를 사용하지 않는 상태에서:
 - current video-planning validator regression PASS
 - final ref/reference scan PASS
 
-### Phase G — production return (after Phase E/F)
+### Phase G — production return (next action)
 
 migration을 별도 플랫폼 프로젝트로 확장하지 않는다.
 cutover 완료 후 즉시 EP1 selection/compression contract와 original-source rescan으로 복귀한다.
+
+이 migration 완료는 Google Drive를 영구 provider로 lock하거나 macOS 전체 workflow를 실기 검증했다는 뜻이 아니며, EP1 production 완료·REVIEW_C failure 해결·video-planning 최종 PASS도 뜻하지 않는다.
 
 ## 5. rclone 사용 경계
 

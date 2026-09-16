@@ -14,7 +14,7 @@
 - code와 current truth의 canonical sync source는 GitHub다. checkout의 실제 위치는 machine-local detail이며 repository instruction/runtime은 특정 drive letter를 요구하지 않는다.
 - external material의 durable bytes는 authenticated cloud material store에 둔다. runtime은 `tools/harness/STATE.json`의 logical artifact ID를 사용하고, local processing은 `KKAMAKNUN_MATERIAL_ROOT`의 fully materialized cache에서 수행한다.
 - 초기 transport adapter는 rclone이고 remote root는 `KKAMAKNUN_MATERIAL_REMOTE`으로 주입한다. credential과 rclone config는 repository 밖의 machine-local secret/config이며 current truth가 아니다.
-- 이동식 SSD는 Phase E가 통과할 때까지 migration rollback/offline backup으로 보존한다. current execution identity나 required path가 아니며, historical transport repository copy도 canonical working repository나 현재 실행 경로가 아니다.
+- 이동식 SSD는 optional offline backup일 뿐 current execution identity, required transport, 또는 required rollback dependency가 아니다. historical transport repository copy도 canonical working repository나 현재 실행 경로가 아니다.
 - media·transcription·review artifact는 Git에 add·commit하지 않는다.
 
 ## 3. Source owner

@@ -23,7 +23,7 @@
       "remote_root_env": "KKAMAKNUN_MATERIAL_REMOTE",
       "rclone_env_optional": "KKAMAKNUN_RCLONE",
       "credential_boundary": "rclone config and credentials are outside the repository",
-      "offline_backup": "K SSD is preserved for rollback until Phase E passes; it is not a current execution identity.",
+      "offline_backup": "K SSD is an optional offline backup, not a current execution, transport, or rollback dependency.",
       "artifacts": {
         "ep1.primary_recording": {"object_key": "source/ep1/2026-09-06 23-54-01-01.mp4", "kind": "file", "size": 5065619726, "sha256": "7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525", "publish": false},
         "ep1.source_subtitles_ko": {"object_key": "source/ep1/subtitles", "kind": "directory", "publish": false},
