@@ -1,8 +1,8 @@
 # GPT 하네스 마무리 + EP1 실전 검증·recovery 계획
 
-기준일: 2026-09-14
+기준일: 2026-09-16
 
-상태: 진행 중 — REVIEW_B planning_quality_failure 종료, source reconstruction·독립 evidence audit 통과, EP1 packaging promise ownership 복원, body-first 재실행 대기
+상태: 진행 중 — REVIEW_B planning_quality_failure 종료, source reconstruction·독립 evidence audit 통과 뒤 만든 44:43 REVIEW_C도 user-viewed quality failure로 거절됨; selection/compression contract와 full-original rescan 대기
 
 현재 상태 owner: `STATE.md`
 
@@ -18,7 +18,7 @@
 2. 외부 source narrative가 있는 material-first 영상은 source reconstruction을 거쳐 narrative continuity와 핵심 사건 coverage를 보존한다.
 3. AI/harness의 pre-render 품질 gate와 실제 review rough cut 시청 테스트 뒤 사용자가 제작 진행을 결정할 수 있다.
 
-REVIEW_B는 2번을 충족하지 못해 **planning_quality_failure**다. recovery는 evidence layer를 재구축했고 독립 evidence audit도 통과했다. final select·body·Cold open·REVIEW_C는 current packaging promise 아래에서 진행할 다음 planning 실행으로 남긴다.
+REVIEW_B는 2번을 충족하지 못해 **planning_quality_failure**다. recovery는 evidence layer를 재구축했고 독립 evidence audit도 통과했다. 그 뒤의 44:43 REVIEW_C는 사용자가 이미 시청했고 scene-selection, within-scene compression, story-context allocation failure evidence로 거절됐다. 새 production action은 research와 failure evidence를 반영한 selection/compression contract 확정 후 full original rescan이다. 현 cut을 축소해 고치지 않으며 subtitle/typography는 selection/internal compression lock 뒤에 한다.
 
 ## 2. 고정 범위
 
@@ -126,17 +126,17 @@ OpenAI transcription API는 credential 값을 읽거나 노출하지 않고 실�
 
 ## 9. 이번 실행 artifact와 중지점
 
-이동식 SSD의 portable external material 영역인 `K:\kkamaknun\transcription\`에 다음을 둔다. Git working repository는 집과 회사 모두 `C:\kkamaknun`이며 GitHub로 동기화한다. `K:\kkamaknun\repo`는 historical/transport copy로만 보존하고 current 실행 경로로 사용하지 않는다. 2026-09-14 최초 생성 위치 `C:\kkamaknun_transcription\` 및 그 C: artifact 원본은 historical provenance로만 보존하고 current 실행 입력으로 사용하지 않는다.
+다음 artifact는 `tools/harness/STATE.json`의 `external_material.artifacts` registry에서 logical ID로 참조한다. durable bytes는 authenticated cloud material store에 있고 processing은 fully materialized local cache에서 수행한다. checkout/cache/credential의 physical location은 current contract가 아니다. 2026-09-14 최초 생성 위치 `C:\kkamaknun_transcription\` 및 그 C: artifact 원본은 historical provenance로만 보존하고 current 실행 입력으로 사용하지 않는다.
 
-- `EP1_DESKTOP_JA_FULL.jsonl`
-- `EP1_MIC_RAW_FULL.jsonl`
-- `EP1_SYNC_TIMELINE.jsonl`
-- `EP1_SYNC_TIMELINE.csv`
-- `EP1_NARRATIVE_MAP.md`
-- `EP1_TRANSCRIPTION_QA.md`
-- `EP1_NEW_SCENE_POOL.md`
+- `ep1.desktop_transcript`
+- `ep1.mic_transcript`
+- `ep1.sync_timeline_jsonl`
+- `ep1.sync_timeline_csv`
+- `ep1.narrative_map`
+- `ep1.transcription_qa`
+- `ep1.new_scene_pool`
 
-이번 실행은 source audit, workflow refactor, 전체 전사, narrative map, synchronized evidence timeline, 새 scene pool에서 멈춘다. final select, body, Cold open, REVIEW_C는 만들지 않는다.
+historical recovery 실행은 source audit, workflow refactor, 전체 전사, narrative map, synchronized evidence timeline, 새 scene pool을 만들었다. 그 뒤 REVIEW_C까지 생성·시청됐으나 quality failure였다. 다음 실행은 selection/compression contract와 full original rescan이며, 현 44분 select를 출발점으로 쓰지 않는다.
 
 ## 10. Owner 반영
 

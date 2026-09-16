@@ -1,6 +1,6 @@
 # CLOUD_MATERIAL_STORAGE_MIGRATION
 
-상태: APPROVED — PREPARATION
+상태: Phase D logical-ID cutover complete; Phase E K-less recovery test and Phase F validation remain
 승인일: 2026-09-16 KST
 
 ## 1. 목적
@@ -93,16 +93,17 @@ cloud remote root는 `KKAMAKNUN_MATERIAL_REMOTE` 환경변수로 주입한다.
 
 active dependency, historical provenance, fixture/example을 분리했고 결과는 `SAFE_TO_DESIGN`이다.
 
-### Phase B — preparation
+### Phase B — preparation (complete)
 
 이 계획과 최소 cross-platform material helper를 repository에 추가한다.
 
-이 단계에서는 current K: path contract를 아직 cutover하지 않는다.
-Google Drive upload도 아직 authoritative 전환으로 취급하지 않는다.
+At that stage, the current K: path contract was not yet cut over and the Google Drive upload was not authoritative.
 
 목적은 다음 단계에서 copy-first migration과 검증을 안전하게 실행할 도구·경계를 준비하는 것이다.
 
 ### Phase C — cloud bootstrap / copy-first migration
+
+**PASS (2026-09-16).** rclone `v1.75.1` copied 146 files to the cloud material hierarchy (source 3, transcription 141, review 2), totaling 5,639,409,226 bytes. Hierarchy/count/total-size matched; source/transcription/review `rclone check` passed. The primary recording round-tripped to a clean local cache with SHA-256 `7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525`. K originals were not deleted, moved, or renamed; no credential contamination was found.
 
 local 실행 환경에서:
 
@@ -123,6 +124,8 @@ review/...
 ```
 
 ### Phase D — logical-ID cutover
+
+**Complete (2026-09-16).** Runtime registry ownership remains in `tools/harness/STATE.json`; active instruction/current-state/runtime references use logical artifact IDs, and the material helper resolves those IDs through local environment configuration.
 
 cloud round-trip이 검증된 뒤에만 instruction/current-truth/runtime owner를 통합 리팩터링한다.
 
@@ -147,7 +150,7 @@ cloud round-trip이 검증된 뒤에만 instruction/current-truth/runtime owner�
 
 instruction/config/workflow 변경은 부분 패치하지 않고 관련 owner·중복·stale reference를 한 번에 정리한다.
 
-### Phase E — K-less recovery test
+### Phase E — K-less recovery test (remaining)
 
 K:를 사용하지 않는 상태에서:
 
@@ -164,7 +167,7 @@ K:를 사용하지 않는 상태에서:
 
 이 테스트를 통과하기 전에는 K:를 필수 실행 의존성에서 제거했다고 주장하지 않는다.
 
-### Phase F — cutover validation
+### Phase F — cutover validation (remaining)
 
 - active current source에서 K: hard dependency 0
 - active current source에서 C:\kkamaknun hard dependency 0
@@ -174,7 +177,7 @@ K:를 사용하지 않는 상태에서:
 - current video-planning validator regression PASS
 - final ref/reference scan PASS
 
-### Phase G — production return
+### Phase G — production return (after Phase E/F)
 
 migration을 별도 플랫폼 프로젝트로 확장하지 않는다.
 cutover 완료 후 즉시 EP1 selection/compression contract와 original-source rescan으로 복귀한다.

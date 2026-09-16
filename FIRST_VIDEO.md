@@ -129,11 +129,7 @@ proxy 6개의 실제 합계 길이는 약 **82분 25.6초**로 확인됐다.
 
 2026-09-07 사용자가 제공한 로컬 검사·오디오 역할 확인 결과를 material truth로 채택했고, 2026-09-13에는 같은 원본을 직접 읽어 스트림·러닝타임을 재확인한 뒤 전체 material-first 분석을 완료했다.
 
-현재 이동식 SSD의 external material 영역에서 사용하는 primary material은 다음 **파일 1개**다.
-
-```text
-K:\kkamaknun\source\ep1\2026-09-06 23-54-01-01.mp4
-```
+현재 primary material은 runtime registry의 logical ID **`ep1.primary_recording`** 한 파일이다. immutable object key는 `source/ep1/2026-09-06 23-54-01-01.mp4`이며 local processing은 material store가 materialize한 cache에서만 수행한다.
 
 | 항목 | 확정 내용 |
 |---|---|
@@ -149,7 +145,7 @@ K:\kkamaknun\source\ep1\2026-09-06 23-54-01-01.mp4
 
 영상은 1스트림이며 별도 camera/window 영상 세트나 독립 화면 소스가 확보됐다고 가정하지 않는다. 화면 크롭·배치 가능 범위는 이 영상에 실제로 담긴 화면을 보고 판단한다. 분리된 것은 같은 파일 안의 desktop/mic 오디오다.
 
-최초 확보 위치 `C:\OBS\체인소맨_레제편\2026-09-06 23-54-01-01.mp4`는 historical provenance다. K: 사본과 크기·SHA-256·ffprobe 명세가 일치함을 확인했으며 current media 입력은 K:의 external material 경로를 사용한다. Git working repository는 별도의 local `C:\kkamaknun`이고 `K:\kkamaknun\repo`를 실행 경로로 사용하지 않는다. J: 드라이브의 과거 경로·손상본은 현재 primary material이 아니며, 그 복구나 파일 이동 완료를 현재 작업의 선행 조건으로 두지 않는다. 어떤 원본도 수정·이동·이름 변경·재인코딩하지 않는다.
+최초 확보 위치 `C:\OBS\체인소맨_레제편\2026-09-06 23-54-01-01.mp4`는 historical provenance다. Phase C에서 cloud object의 size·SHA-256·ffprobe 명세와 clean-local round trip을 검증했으며 current media 입력은 `ep1.primary_recording`이다. checkout 위치와 historical transport copy는 runtime contract가 아니다. J: 드라이브의 과거 경로·손상본은 현재 primary material이 아니며, 그 복구나 파일 이동 완료를 현재 작업의 선행 조건으로 두지 않는다. 어떤 원본도 수정·이동·이름 변경·재인코딩하지 않는다.
 
 ### 본 촬영 recovery 실행 계약
 
@@ -195,17 +191,17 @@ A/B/C와 **EP1의 packaging promise / product positioning**은 변경하지 않�
 
 historical로 격리하는 것은 REVIEW_B의 34 candidates / 15 selects, authoritative scene select, body와 scene ordering, scene-specific promise proof sequence, payoff 구현 순서, Cold open과 그 반복 구조다. packaging promise 자체는 recovery에서 폐기하지 않는다. `予定 → 여정?`, `漢字読めないの？`, `血抜き？`와 그 밖의 current scene은 promise proof·body·contrast·share unit·reaction·supporting evidence이지 단일 사례가 top-level 상품을 대체하지 않는다.
 
-current promise 아래에서 30 candidates를 다시 경쟁해 본편을 먼저 설계하고, 한국어 SAMI로 작품 서사와 사용자 실제 청해를 분리해 실패 범위만 재검증한 결과는 **`STEP9_PASS`**다. current storytelling 방향은 **`선택을 따라가는 귀`**다. 마키마를 선택하던 덴지, 레제를 선택하게 된 덴지, 결국 카페로 돌아가기로 한 레제를 실제 작품 인과로 따라가면서, 정확한 일본어는 군데군데 놓치지만 들은 말·화면·앞 사건을 합쳐 관계와 감정선에는 끝내 도착하는 비대칭을 경험시킨다. 작품 서사가 골격이고 listening은 발견, reaction은 인물성이다.
+current promise 아래에서 30 candidates를 다시 경쟁해 본편을 먼저 설계하고, 한국어 SAMI로 작품 서사와 사용자 실제 청해를 분리해 실패 범위만 재검증한 결과는 **`STEP9_PASS`**였다. 당시 storytelling 방향은 **`선택을 따라가는 귀`**였다. 그러나 그 planning에서 만든 REVIEW_C는 사용자 시청 뒤 quality failure로 거절됐으므로 아래 select/body/Cold open은 현재 production base가 아니라 failure evidence다. 새 선택은 research와 failure evidence로 selection/compression contract를 확정한 후 full original rescan에서 시작한다.
 
-current body는 Cold open 뒤 primary recording chronology를 보존한다. 초반의 읽기·듣기 비대칭과 관계 형성에서 시작해 도망 제안·거절·배신, 전투 재기와 Beam 협력, 아키·천사 위기, 수영 callback과 물 전술, 해변 resolution, 카페 약속, 레제 과거, 귀환 선택, 피습·죽음, 덴지가 진실을 모른 채 기다리는 결말까지 연결한다. 특히 S11~S13은 `레제의 차량 추격 → 덴지가 다시 나서는 이유 → Beam의 설명과 협력 → 아키·천사의 위기와 구조 → 덴지의 재진입 → 수영 callback → 물 전술 실행·결과 → 해변` 인과를 보존한다.
+거절된 REVIEW_C body는 Cold open 뒤 primary recording chronology를 보존했다. 초반의 읽기·듣기 비대칭과 관계 형성에서 시작해 도망 제안·거절·배신, 전투 재기와 Beam 협력, 아키·천사 위기, 수영 callback과 물 전술, 해변 resolution, 카페 약속, 레제 과거, 귀환 선택, 피습·죽음, 덴지가 진실을 모른 채 기다리는 결말까지 연결하려 했다. 이 detailed boundary는 새 select의 출발점이 아니다.
 
 레제 과거는 작품 자막이 알려 주는 `자유 박탈·실험·소련이 만든 병사` 정보와 사용자가 실제로 말한 `하나도 못 알아듣겠다`를 분리한다. 작품 설명을 listening success로 쓰지 않고, 중요한 작품 정보가 귀에서는 완전히 비어 있던 current 비대칭 evidence로 사용한 뒤 화면과 앞 사건으로 귀환 선택을 잇는다.
 
-current Cold open 1순위는 `33:26.6~33:38.6` + `53:32.9~53:45.6` 약 24.7초다. `漢字読めないの？`의 의미를 잡는 장면과 레제의 도주 제안 핵심을 따라가는 장면을 짧게 대비하며 긴 진단 설명은 붙이지 않는다. body 재등장 때는 각각 전체 장면의 관계·원인·결과가 추가된다.
+거절된 REVIEW_C의 Cold open 1순위는 `33:26.6~33:38.6` + `53:32.9~53:45.6` 약 24.7초였다. 새 selection/compression lock 전에는 이를 current Cold open으로 채택하지 않는다.
 
 current exact copy는 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다`, 썸네일 `뜻은 아는데 일본어는 모름?`이다. `내용은 아는데 일본어는 모름?`은 영화 전체 이해를 과장할 위험 때문에 기각했다. exact copy는 여전히 개선 가능하지만 current promise 밖의 다른 상품으로 바꾸지 않는다.
 
-이 planning의 selected footage를 REVIEW_B와 분리해 primary MP4에서 직접 만든 Step 10 artifact는 `K:\kkamaknun\review\EP1_STEP10_REVIEW_C.mp4`다. 실제 길이는 `44:43.021`, 1280×720 H.264 + AAC stereo이며 ffprobe와 시작·중간·끝 decode를 통과했다. 사용자는 아직 보지 않았으므로 **Step 10 사용자 시청은 `PENDING_EXTERNAL`이고 최종 Step 5는 미판정**이다. 다음 행동은 사용자가 이 rough cut을 일반 시청자 모드로 보고 체감 관측을 남기는 것이다.
+이 planning의 selected footage를 REVIEW_B와 분리해 primary MP4에서 직접 만든 Step 10 artifact는 `ep1.review_c`다. 실제 길이는 `44:43.021`, 1280×720 H.264 + AAC stereo이며 ffprobe와 시작·중간·끝 decode를 통과했다. 사용자는 이미 시청했고, 이 artifact는 **scene-selection, within-scene compression, story-context allocation failure** evidence로 거절됐다. current base나 축소 수정의 입력으로 쓰지 않는다. 다음 행동은 research와 이 failure evidence를 반영한 selection/compression contract 확정 뒤 `ep1.primary_recording` full rescan이며 subtitle/typography는 selection/internal compression lock 뒤에 한다.
 
 ## 촬영 protocol과 과거 기획 기록
 

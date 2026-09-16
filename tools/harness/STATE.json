@@ -1,33 +1,42 @@
 {
-  "상태": "STEP9_PASS_STEP10_ROUGH_CUT_READY_USER_VIEW_PENDING",
+  "상태": "REVIEW_C_REJECTED_REBUILD_SELECTION_PENDING",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 — source reconstruction·repair·독립 evidence audit 통과 — packaging promise 아래 body-first replanning·subtitle-assisted Step 9 재검증 통과 — Step 10 review rough cut 준비 완료, 사용자 시청 대기",
-  "다음_실행": "사용자가 K:\\kkamaknun\\review\\EP1_STEP10_REVIEW_C.mp4를 일반 시청자 모드로 보고 체감 관측을 남긴다. 그 뒤 AI가 관측을 구조 원인과 최소 수정 필요 여부로 해석한다.",
+  "현재_계획_단계": "REVIEW_B planning_quality_failure 종료 뒤 reconstruction·independent evidence audit·Step 9 planning을 거쳤으나, user-viewed 44:43 REVIEW_C도 scene selection·within-scene compression·story-context allocation failure evidence로 거절됐다.",
+  "다음_실행": "현재 research와 user failure evidence를 사용해 selection/compression contract를 먼저 확정한 뒤 ep1.primary_recording 전체를 다시 rescan한다. 44분 REVIEW_C를 축소해 수정하지 않으며 subtitle/typography는 selection/internal compression lock 뒤에 한다.",
   "경로_정책": {
     "code_current_truth": {
       "sync_source": "GitHub",
-      "집_local_repository": "C:\\kkamaknun",
-      "회사_local_repository": "C:\\kkamaknun",
+      "checkout_path": "machine-local detail; runtime contract 아님",
       "동기화": "branch와 commit을 GitHub로 동기화한다."
-    },
-    "portable_external_material": {
-      "root": "K:\\kkamaknun",
-      "primary_source_root": "K:\\kkamaknun\\source",
-      "transcription_root": "K:\\kkamaknun\\transcription",
-      "review_root": "K:\\kkamaknun\\review",
-      "용도": "집과 회사 사이에서 대용량 media·evidence·review artifact를 운반한다. external artifact는 local repository에 복사하거나 Git에 add·commit하지 않는다."
-    },
-    "historical_transport_repository_copy": {
-      "path": "K:\\kkamaknun\\repo",
-      "canonical_repository": false,
-      "현재_실행_경로": false,
-      "용도": "2026-09-13 이전 과정에서 만든 historical/transport copy로만 보존한다."
     }
+  },
+  "external_material": {
+      "durable_store": "authenticated cloud material store",
+      "transport_adapter": "rclone",
+      "provider": "Google Drive (initial; core contract is provider-neutral)",
+      "local_cache_root_env": "KKAMAKNUN_MATERIAL_ROOT",
+      "remote_root_env": "KKAMAKNUN_MATERIAL_REMOTE",
+      "rclone_env_optional": "KKAMAKNUN_RCLONE",
+      "credential_boundary": "rclone config and credentials are outside the repository",
+      "offline_backup": "K SSD is preserved for rollback until Phase E passes; it is not a current execution identity.",
+      "artifacts": {
+        "ep1.primary_recording": {"object_key": "source/ep1/2026-09-06 23-54-01-01.mp4", "kind": "file", "size": 5065619726, "sha256": "7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525", "publish": false},
+        "ep1.source_subtitles_ko": {"object_key": "source/ep1/subtitles", "kind": "directory", "publish": false},
+        "ep1.desktop_transcript": {"object_key": "transcription/EP1_DESKTOP_JA_FULL.jsonl", "kind": "file", "publish": true},
+        "ep1.mic_transcript": {"object_key": "transcription/EP1_MIC_RAW_FULL.jsonl", "kind": "file", "publish": true},
+        "ep1.sync_timeline_jsonl": {"object_key": "transcription/EP1_SYNC_TIMELINE.jsonl", "kind": "file", "publish": true},
+        "ep1.sync_timeline_csv": {"object_key": "transcription/EP1_SYNC_TIMELINE.csv", "kind": "file", "publish": true},
+        "ep1.narrative_map": {"object_key": "transcription/EP1_NARRATIVE_MAP.md", "kind": "file", "publish": true},
+        "ep1.transcription_qa": {"object_key": "transcription/EP1_TRANSCRIPTION_QA.md", "kind": "file", "publish": true},
+        "ep1.new_scene_pool": {"object_key": "transcription/EP1_NEW_SCENE_POOL.md", "kind": "file", "publish": true},
+        "ep1.review_b": {"object_key": "review/EP1_STEP5_REVIEW_B.mp4", "kind": "file", "publish": true},
+        "ep1.review_c": {"object_key": "review/EP1_STEP10_REVIEW_C.mp4", "kind": "file", "publish": true}
+      }
   },
   "A_B_C": {
     "판정": "유지",
@@ -44,7 +53,7 @@
     "individual_evidence_boundary": "予定→여정? 등 개별 listening scene은 promise proof·body·contrast·share unit·reaction·supporting evidence이며 top-level product를 대체하지 않는다."
   },
   "EP1_본촬영": {
-    "primary_material": "K:\\kkamaknun\\source\\ep1\\2026-09-06 23-54-01-01.mp4",
+    "primary_material": "ep1.primary_recording",
     "전체_러닝타임_초": 6325.0625,
     "desktop_audio_stream": 2,
     "mic_audio_stream": 3,
@@ -52,7 +61,7 @@
     "내부_provenance": "재확인·재시청·재촬영 사실은 내부 기록에 보존한다. viewer-facing 표시는 강제하지 않으며 최초가 아닌 장면을 최초라고 명시적으로 주장하지 않는다."
   },
   "REVIEW_B": {
-    "artifact": "K:\\kkamaknun\\review\\EP1_STEP5_REVIEW_B.mp4",
+    "artifact": "ep1.review_b",
     "공식_판정": "planning_quality_failure",
     "종료": true,
     "실패_근거": [
@@ -80,10 +89,10 @@
     "새_scene_candidate_수": 30,
     "독립_evidence_audit": "EVIDENCE_GATE_PASS",
     "planning_critical_blocker_수": 0,
-    "final_select": "CURRENT — 상세 planned boundary는 materials/ep1_main/PLANNING_RESULTS.md",
-    "body_structure": "CURRENT — 작품 서사를 골격으로 한 S01~S17 chronology body",
-    "cold_open": "CURRENT — 33:26.6~33:38.6 + 53:32.9~53:45.6, 약 24.7초",
-    "REVIEW_C": "READY — K:\\kkamaknun\\review\\EP1_STEP10_REVIEW_C.mp4"
+    "final_select": "REJECTED_REVIEW_C_HISTORY — detailed boundaries are failure evidence only",
+    "body_structure": "REJECTED_REVIEW_C_HISTORY — S01~S17 chronology body is not current input",
+    "cold_open": "REJECTED_REVIEW_C_HISTORY — 33:26.6~33:38.6 + 53:32.9~53:45.6 is not current input",
+    "REVIEW_C": "REJECTED — ep1.review_c is user-viewed failure evidence, not current planning input"
   },
   "independent_evidence_audit": {
     "결과": "EVIDENCE_GATE_PASS",
@@ -103,12 +112,12 @@
     "Step_9_input": false,
     "처리": "packaging promise가 current constraint로 복원되기 전 별도 실행에서 만들어졌으므로 채택하지 않았다. current planning은 promise 아래 30 candidates를 다시 경쟁한 별도 결과다."
   },
-  "current_body_first_planning": {
-    "상태": "STEP9_PASS",
+  "rejected_review_c_planning": {
+    "상태": "HISTORICAL_STEP9_PASS_REVIEW_C_REJECTED",
     "storytelling_angle": "선택을 따라가는 귀",
     "semantic_owner": "FIRST_VIDEO.md",
-    "planned_boundary_owner": "materials/ep1_main/PLANNING_RESULTS.md",
-    "source_subtitles": "K:\\kkamaknun\\source\\ep1\\subtitles\\",
+    "planned_boundary_owner": "materials/ep1_main/PLANNING_RESULTS.md (failure evidence, not current select)",
+    "source_subtitles": "ep1.source_subtitles_ko",
     "subtitle_boundary": "한국어 자막은 작품 서사·대사 의미 확인용이며 사용자 실제 청해 evidence와 분리한다.",
     "reze_past_user_fact": "사용자는 레제 과거 설명을 당시 하나도 못 알아들었다. 작품 자막 정보는 listening success가 아니다.",
     "battle_continuity": "레제 차량 추격 → 덴지의 재전투 이유 → Beam 설명·협력 → 아키·천사 위기·구조 → 덴지 재진입 → 수영 callback → 물 전술 실행·결과 → 해변 resolution",
@@ -124,29 +133,29 @@
     "raw_boundary": "ASR raw와 interpretation을 분리하고 오청·오발음을 정답으로 교정하지 않는다."
   },
   "외부_artifacts": {
-    "desktop_full": "K:\\kkamaknun\\transcription\\EP1_DESKTOP_JA_FULL.jsonl",
-    "mic_full": "K:\\kkamaknun\\transcription\\EP1_MIC_RAW_FULL.jsonl",
-    "sync_jsonl": "K:\\kkamaknun\\transcription\\EP1_SYNC_TIMELINE.jsonl",
-    "sync_csv": "K:\\kkamaknun\\transcription\\EP1_SYNC_TIMELINE.csv",
-    "narrative_map": "K:\\kkamaknun\\transcription\\EP1_NARRATIVE_MAP.md",
-    "transcription_QA": "K:\\kkamaknun\\transcription\\EP1_TRANSCRIPTION_QA.md",
-    "new_scene_pool": "K:\\kkamaknun\\transcription\\EP1_NEW_SCENE_POOL.md",
-    "source_subtitles": "K:\\kkamaknun\\source\\ep1\\subtitles\\",
-    "review_c": "K:\\kkamaknun\\review\\EP1_STEP10_REVIEW_C.mp4",
+    "desktop_full": "ep1.desktop_transcript",
+    "mic_full": "ep1.mic_transcript",
+    "sync_jsonl": "ep1.sync_timeline_jsonl",
+    "sync_csv": "ep1.sync_timeline_csv",
+    "narrative_map": "ep1.narrative_map",
+    "transcription_QA": "ep1.transcription_qa",
+    "new_scene_pool": "ep1.new_scene_pool",
+    "source_subtitles": "ep1.source_subtitles_ko",
+    "review_c": "ep1.review_c",
     "repository_commit_금지": true
   },
   "Step_10": {
-    "rough_cut_status": "STEP10_ROUGH_CUT_READY",
-    "artifact": "K:\\kkamaknun\\review\\EP1_STEP10_REVIEW_C.mp4",
+    "rough_cut_status": "REJECTED_REBUILD_SELECTION_PENDING",
+    "artifact": "ep1.review_c",
     "source_provenance": "REVIEW_B를 사용하지 않고 primary MP4에서 current planned boundaries를 직접 추출",
     "duration_seconds": 2683.021333,
     "duration": "00:44:43.021",
     "video": "1280x720 30fps H.264",
     "audio": "AAC 48000Hz stereo, original mixed stream",
     "technical_validation": "ffprobe PASS; video/audio streams PASS; start/middle/end decode PASS; Cold open/context/N22 frame check PASS",
-    "user_view": "PENDING_EXTERNAL",
-    "AI_post_interpretation": "PENDING_EXTERNAL",
-    "final_Step_5": "UNDECIDED"
+    "user_view": "COMPLETED — 44:43 rough cut quality failure",
+    "AI_post_interpretation": "REJECTED — scene-selection, within-scene compression, story-context allocation failure",
+    "final_Step_5": "REBUILD_SELECTION_PENDING"
   },
   "narrative_recovery": {
     "chronology_integrity": "남긴 사건의 순서를 뒤집지 않는다.",

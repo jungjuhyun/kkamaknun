@@ -54,6 +54,66 @@ class MaterialStoreTests(unittest.TestCase):
             artifacts = material_store.load_artifacts(state)
             self.assertIn("ep1.primary_recording", artifacts)
 
+    def test_runtime_registry_has_required_ep1_logical_ids(self):
+        artifacts = material_store.load_artifacts()
+        expected = {
+            "ep1.primary_recording",
+            "ep1.source_subtitles_ko",
+            "ep1.desktop_transcript",
+            "ep1.mic_transcript",
+            "ep1.sync_timeline_jsonl",
+            "ep1.sync_timeline_csv",
+            "ep1.narrative_map",
+            "ep1.transcription_qa",
+            "ep1.new_scene_pool",
+            "ep1.review_b",
+            "ep1.review_c",
+        }
+        self.assertTrue(expected.issubset(artifacts))
+
+    def test_primary_record_uses_verified_immutable_facts(self):
+        record = material_store.artifact_record("ep1.primary_recording")
+        self.assertEqual(record["object_key"], "source/ep1/2026-09-06 23-54-01-01.mp4")
+        self.assertEqual(record["size"], 5_065_619_726)
+        self.assertEqual(
+            record["sha256"],
+            "7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525",
+        )
+        self.assertFalse(record["publish"])
+
+    def test_registry_resolves_primary_to_local_cache_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.dict(
+                os.environ,
+                {material_store.ENV_LOCAL_ROOT: tmp},
+                clear=False,
+            ):
+                key, local, record = material_store.resolve_inputs(
+                    type("Args", (), {
+                        "object_key": None,
+                        "artifact_id": "ep1.primary_recording",
+                        "state": str(material_store.DEFAULT_STATE),
+                        "local": None,
+                        "kind": "file",
+                    })()
+                )
+            self.assertEqual(key, "source/ep1/2026-09-06 23-54-01-01.mp4")
+            self.assertEqual(local, Path(tmp) / "source" / "ep1" / "2026-09-06 23-54-01-01.mp4")
+            self.assertFalse(record["publish"])
+
+    def test_registry_derived_artifact_publish_uses_its_object_key(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            local = Path(tmp) / "EP1_NARRATIVE_MAP.md"
+            local.write_text("evidence", encoding="utf-8")
+            record = material_store.artifact_record("ep1.narrative_map")
+            with patch.object(material_store, "remote_path_for_key", return_value="remote:root/transcription/EP1_NARRATIVE_MAP.md"), patch.object(material_store, "_run_rclone") as run:
+                material_store.publish(
+                    object_key=record["object_key"], local_path=local, record=record
+                )
+            run.assert_called_once_with([
+                "copyto", str(local), "remote:root/transcription/EP1_NARRATIVE_MAP.md", "--check-first", "--checksum"
+            ])
+
     def test_verify_file_size_and_sha256(self):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "x.bin"

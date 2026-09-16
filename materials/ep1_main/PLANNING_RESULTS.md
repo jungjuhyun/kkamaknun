@@ -1,11 +1,11 @@
 # EP1 본 촬영 material-first 결과
 
-기준 원본: `K:\kkamaknun\source\ep1\2026-09-06 23-54-01-01.mp4`
-경로 분류: 이동식 SSD의 portable external material. Git working repository는 각 PC의 `C:\kkamaknun`이며 `K:\kkamaknun\repo`는 current 실행에 사용하지 않는다.
+기준 원본: `ep1.primary_recording` (object key `source/ep1/2026-09-06 23-54-01-01.mp4`)
+경로 분류: runtime은 `tools/harness/STATE.json`의 logical artifact registry를 사용한다. authenticated cloud material store가 durable bytes를 소유하며 local processing은 materialized cache에서 한다. 최초 physical source와 K SSD copy는 provenance/rollback backup일 뿐 current execution identity가 아니다.
 원본 기준 러닝타임: `01:45:25.063`
 historical 34/15 분석일: 2026-09-13 KST
 source reconstruction recovery: 2026-09-14 KST
-상태: **REVIEW_B planning_quality_failure 종료 — current body-first replanning·subtitle-assisted Step 9 재검증 `STEP9_PASS` — Step 10 review rough cut 준비 완료, 사용자 시청 대기**
+상태: **REVIEW_B planning_quality_failure 종료 — reconstructed planning/Step 9 기록 보존 — user-viewed 44:43 REVIEW_C도 scene-selection·within-scene compression·story-context allocation failure로 거절됨 — selection rebuild 대기**
 
 이 문서는 본 촬영 장면 증거의 상세 owner다. 1화 current detail owner는 계속 `FIRST_VIDEO.md`이며, 그 문서는 현재 결과 요약과 이 파일의 연결을 소유한다. 원본·임시 WAV/FLAC·프레임·전사 파일은 저장소에 넣지 않는다.
 
@@ -47,13 +47,13 @@ REVIEW_B 공식 판정: **planning_quality_failure**
 
 ### Recovery source layers
 
-- Layer A — source narrative: `K:\kkamaknun\transcription\EP1_NARRATIVE_MAP.md`
-- Layer B — desktop dialogue/audio: `K:\kkamaknun\transcription\EP1_DESKTOP_JA_FULL.jsonl`
-- Layer C — user mic raw: `K:\kkamaknun\transcription\EP1_MIC_RAW_FULL.jsonl`
+- Layer A — source narrative: `ep1.narrative_map`
+- Layer B — desktop dialogue/audio: `ep1.desktop_transcript`
+- Layer C — user mic raw: `ep1.mic_transcript`
 - Layer D — visual/nonverbal reaction: 전체 1분 frame map과 과거 AV 로그를 대조하고, transcript만으로 reaction을 확정하지 않았다.
-- synchronized evidence: `K:\kkamaknun\transcription\EP1_SYNC_TIMELINE.jsonl`, `K:\kkamaknun\transcription\EP1_SYNC_TIMELINE.csv`
-- transcription QA: `K:\kkamaknun\transcription\EP1_TRANSCRIPTION_QA.md`
-- 새 scene candidate pool: `K:\kkamaknun\transcription\EP1_NEW_SCENE_POOL.md` — **30 candidates, current body-first replanning의 경쟁 입력**
+- synchronized evidence: `ep1.sync_timeline_jsonl`, `ep1.sync_timeline_csv`
+- transcription QA: `ep1.transcription_qa`
+- 새 scene candidate pool: `ep1.new_scene_pool` — historical reconstruction evidence; new selection starts with a full-original rescan, not the 44-minute select.
 
 Narrative map은 청해·reaction과 독립적으로 `MUST_KEEP / BRIDGE / OPTIONAL`을 판정한다. 특히 `도망 제안 → 거절 → 폭탄 정체 → 전투 시작 → 동료 개입 → 전투 climax → 해변 관계 회수 → 레제의 배경 → 레제의 귀환 선택 → 죽음 → 덴지의 기다림` 인과 사슬을 다시 세웠다. 레제 죽음은 고립된 충격 컷이 아니라 선택의 결과와 결말의 비극적 아이러니까지 연결해야 한다.
 
@@ -74,17 +74,17 @@ EP1 packaging의 semantic owner는 `FIRST_VIDEO.md`다. recovery에서 historica
 
 packaging promise가 current constraint로 복원되기 전에 만들어진 별도 body-first draft는 persistent current truth나 Step 9 입력으로 채택하지 않았다. current 30-candidate evidence pool을 `FIRST_VIDEO.md`의 promise 아래 처음부터 다시 경쟁한 current planning과 정확한 장면 범위는 아래에 기록한다. 이 파일은 evidence provenance와 planned boundary를 소유하며 packaging 의미는 계속 `FIRST_VIDEO.md`가 소유한다.
 
-## 4. Current body-first planning과 subtitle-assisted Step 9
+## 4. Historical reconstructed planning과 subtitle-assisted Step 9
 
-최종 verdict: **`STEP9_PASS`**. 이는 review rough cut 생성용 planning gate 통과이며 사용자 시청을 포함한 Step 10이나 최종 Step 5 PASS가 아니다.
+당시 최종 verdict: **`STEP9_PASS`**. 이는 review rough cut 생성용 planning gate 통과였지만, 이후 사용자가 REVIEW_C를 시청해 quality failure로 거절했다. 아래 select/body/Cold open은 failure analysis와 provenance를 위한 기록이지 현재 selection input이 아니다.
 
 - storytelling 방향: `선택을 따라가는 귀`. 덴지와 레제의 선택을 따라가는 작품 서사를 골격으로 두고, 정확한 일본어 형태는 놓쳐도 들은 말·화면·앞 사건을 합쳐 관계와 감정선에 도착하는 비대칭을 누적한다.
-- 작품 서사 보조 primary subtitle: `K:\kkamaknun\source\ep1\subtitles\ChainsawMan_Movie_Reze_erai.smi`. `ChainsawMan_Movie_Reze_subsplease.smi`도 함께 확인했으며 두 파일의 줄 수와 대사 내용은 같고 빈 sync marker 하나의 시각만 1초 다르다. 한국어 자막은 작품 사건·대사 의미 확인용이며 user mic evidence를 대체하지 않는다.
+- 작품 서사 보조 primary subtitle: `ep1.source_subtitles_ko` directory의 `ChainsawMan_Movie_Reze_erai.smi`. `ChainsawMan_Movie_Reze_subsplease.smi`도 함께 확인했으며 두 파일의 줄 수와 대사 내용은 같고 빈 sync marker 하나의 시각만 1초 다르다. 한국어 자막은 작품 사건·대사 의미 확인용이며 user mic evidence를 대체하지 않는다.
 - current Cold open: recording TC `33:26.6~33:38.6` + `53:32.9~53:45.6`, 약 24.7초. body 재등장에는 전체 관계·원인·결과가 추가된다.
 - current package copy: 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다` / 썸네일 `뜻은 아는데 일본어는 모름?`. `내용은 아는데 일본어는 모름?`은 전체 영화 이해를 과장할 위험 때문에 기각했다. exact copy lock은 아니다.
 - 레제 과거: `100:11.8~100:14.2`의 사용자 `하나도 못 알아듣겠다`와, `100:14.1~100:23.2`·`100:43.3~100:59.2`의 작품 자막 정보, `101:04.1~101:14.0`의 귀환 선택 bridge를 분리한다. 작품 정보는 listening success가 아니다.
 
-### Current final select — primary recording planned boundaries
+### Rejected REVIEW_C final select — primary recording planned boundaries
 
 아래 범위는 evidence/beat의 넓은 원래 범위가 아니라 review rough cut에 사용할 planned in/out이다. Cold open 뒤 S01~S17은 recording TC 오름차순이다.
 
@@ -113,13 +113,13 @@ S11~S13의 hard continuity는 `레제가 차량을 추격 → 덴지가 다시 �
 
 ### Step 10 review rough cut artifact
 
-- artifact: `K:\kkamaknun\review\EP1_STEP10_REVIEW_C.mp4`
+- artifact: `ep1.review_c`
 - provenance: REVIEW_B를 source로 쓰지 않고 current planned boundaries를 primary MP4에서 직접 추출했다.
 - 구성: Cold open 2구간 + 4초 context slate + chronology body 72구간.
 - 실제 검사값: `44:43.021`, 1280×720 / 30fps / H.264, AAC 48kHz stereo, 파일 크기 245,559,398 bytes.
 - 검증: ffprobe 정상, 영상·오디오 stream 정상, 시작·중간·끝 decode 정상, Cold open/context/N22 표시 frame 확인.
 - 레제 과거 표시: `내가 실제로 들은 것`과 `작품 자막 정보 — 내가 들은 내용 아님`을 화면에서 분리했다.
-- current status: **`STEP10_ROUGH_CUT_READY` / `USER_VIEW_PENDING` / `FINAL_STEP5_UNDECIDED`**. 사용자는 아직 이 artifact를 보지 않았다.
+- current status: **`REVIEW_C_REJECTED_REBUILD_SELECTION_PENDING`**. 사용자는 이미 이 artifact를 시청했고, scene-selection·within-scene compression·story-context allocation failure evidence로 판정했다. 현 cut을 축소해 고치지 않으며 full original rescan부터 다시 시작한다.
 
 # Historical evidence — REVIEW_B 이전 분석
 
