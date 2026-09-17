@@ -1,6 +1,6 @@
 # DURABLE_MEDIA_EXECUTION_RECOVERY
 
-Status: APPROVED_FOR_IMPLEMENTATION_AFTER_RED_TEAM
+Status: COMPLETE — durable-media implementation and synthetic cloud crash/recovery qualification PASS; EP1 production AV gate unchanged
 Starting snapshot: `ebde17b5f5abd6b3a1b22b7fe3186bc5442450c4` (`gpt-harness-finish-plan`)
 Date: 2026-09-17 KST
 
@@ -70,7 +70,7 @@ The Project instruction is not copied or changed in this repository. It should o
 4. Integrate only the necessary durable-run registry fields in `STATE.json`; do not add volatile run state to Git. Update `STATE.md` with the implemented capability without falsely advancing the blocked EP1 planning gate.
 5. Refactor the relevant AGENTS design/research section as one integrated replacement after its source/owner/reference audit. It will require a web-first hard gate for architecture, workflow, tool, recovery, storage, and execution-contract changes: research current official sources; compare existing implementation and external alternatives; record Adopt/Adapt/Build decision, evidence, and rollback/validation before implementation. Routine local bug fixes and tasks with no design choice do not need artificial research.
 6. Determine System Evaluation scope from its observable-evidence contract. Do not grade hidden browsing/tool calls. Add only a static regression if it can inspect required plan/source evidence and repo/external/inference separation; otherwise document no change.
-7. Run the crash-injection matrix and technical EP1 workload pilot only after Steps 1-6 pass. Production rough-cut creation remains prohibited until the existing AV gate is separately cleared.
+7. Run the synthetic cloud crash-injection matrix only after Steps 1-6 pass. Production rough-cut creation remains prohibited until the existing AV gate is separately cleared.
 
 Each step requires implementation, focused tests, deterministic validation, reference scan, and an update to this plan’s execution record before the next step.
 
@@ -94,7 +94,7 @@ Completion requires: immutable source and lock identities preserved; checkpoint 
 
 ## Plan RED TEAM result
 
-The plan rejects rebuilding `material_store.py`, framework adoption without need, provider-specific core semantics, Git/external-artifact mixing, and uploading all temporary bytes. Checkpoint granularity is independent segments only. Lease generations protect concurrent/stale writers. A final MP4 without manifest/marker is never authoritative. Rollback is deliberately non-destructive. The System Evaluation boundary remains observable evidence only. The remaining external blocker is existing EP1 AV gate and any unavailable cloud credentials; neither is silently bypassed.
+The plan rejects rebuilding `material_store.py`, framework adoption without need, provider-specific core semantics, Git/external-artifact mixing, and uploading all temporary bytes. Checkpoint granularity is independent segments only. Lease generations protect concurrent/stale writers. A final MP4 without manifest/marker is never authoritative. Rollback is deliberately non-destructive. The System Evaluation boundary remains observable evidence only. The remaining production blocker is the existing EP1 direct audio/continuous-AV verification gate. Cloud credentials were confirmed for the synthetic qualification and remain machine-local configuration, not repository truth.
 
 ## Execution record
 
@@ -105,3 +105,4 @@ The plan rejects rebuilding `material_store.py`, framework adoption without need
 - 2026-09-17: Existing machine-local rclone was present with an existing authenticated `kkamaknun` material remote; ambient `KKAMAKNUN_MATERIAL_REMOTE` was absent, so a process-local synthetic validation root was injected without exposing its value. The synthetic cloud pilot PASSed A–E with separate-process recovery: render interruption rerendered only the missing unit; interrupted checkpoint publish left an unreferenced object that was not reused; mux failure left no marker while checkpoints restored; pre-validation failure published neither final nor marker; and post-validation/pre-marker recovery explicitly revalidated then published the marker. Cloud checkpoint/final bytes were round-trip SHA-256 verified; a clean cache recovered without K; final ffprobe/full decode, manifest, and marker-last semantics PASSed. No EP1 production source, lock, or rough cut was used or created.
 - 2026-09-17: Implementation RED TEAM reconfirmed that incomplete staging, unreferenced checkpoint uploads, and a final object without a manifest/marker have no committed authority; lease observers are read-only and stale mutation requires explicit takeover. Focused material-store + durable-media tests: 24/24 PASS.
 - 2026-09-17: `python -m evals.system.check` ran 218 tests and produced 217 PASS plus one existing immutable historical-release-manifest mismatch (`test_interpretation_receipts_distinguish_status_change_and_keep_v1_importable`). It compares preserved System Evaluation release evidence and is not caused by, loosened for, or repaired by this durable-media change. The System Evaluation release remains unchanged; this is recorded as historical authentication mismatch, not a substantive durable-media regression.
+- 2026-09-17: All required durable-media qualification gates passed; implementation was committed and pushed as `9faf2d7ab2c7d362935186918cd7c80c172146f6` with remote verification. This plan is complete. EP1 production remains blocked at the existing direct audio/continuous-AV verification gate.
