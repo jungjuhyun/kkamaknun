@@ -1,13 +1,13 @@
 {
-  "상태": "EP1_STEP9_STRUCTURAL_PASS_ROUGH_CUT_NOT_CREATED",
+  "상태": "EP1_STEP10_REVIEW_ROUGH_CUT_DURABLE_USER_VIEW_REQUIRED",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "fresh mixed-audio Gemini capability probe PASS; direct MP4 AV 42/42, cloud-published durable checkpoint and clean round-trip PASS; independent recompetition, retained boundaries, runtime, body lock, Cold open competition and Step 9 AI professional planning judgement COMPLETE; no rough cut was created.",
-  "다음_실행": "별도 Step 10 실행 범위에서만 locked exact ranges로 review rough cut을 만들어 실제 시청 테스트를 수행한다. This runtime state does not itself authorize a rough cut.",
+  "현재_계획_단계": "fresh mixed-audio Gemini capability probe PASS; direct MP4 AV 42/42, cloud-published durable checkpoint and clean round-trip PASS; independent recompetition, retained boundaries, runtime, body lock, Cold open competition, Step 9 AI professional planning judgement and Step 10 review rough cut creation COMPLETE; user viewing remains required.",
+  "다음_실행": "사용자가 durable review rough cut을 일반 시청자 모드로 본 뒤 체감 관측을 남긴다. AI는 그 관측이 생긴 뒤에만 Step 10 사후 해석과 PASS/FAIL 권고를 수행한다.",
   "경로_정책": {
     "code_current_truth": {
       "sync_source": "GitHub",
@@ -95,6 +95,13 @@
         "size": 684526179,
         "sha256": "ad614a416aabc12de169ae6b108c915395ea0ca4011602349d75d6d415dbf3bc",
         "publish": true
+      },
+      "ep1.review_step10": {
+        "object_key": "runs/ep1-step10-review-20260917-029a52d/committed/f9b2b045d446a470f498b2da41bb60247516383544830f55d66b16c04882d12f.mp4",
+        "kind": "file",
+        "size": 94642658,
+        "sha256": "f9b2b045d446a470f498b2da41bb60247516383544830f55d66b16c04882d12f",
+        "publish": false
       }
     }
   },
@@ -249,7 +256,7 @@
     "checkpoint_entrypoint": "INDEX.md",
     "source_snapshot": "027ee9d7fa4784483ccc300bb8a7065ee455b24c",
     "source_material": "ep1.primary_recording",
-    "status": "STEP9_STRUCTURAL_PASS_ROUGH_CUT_NOT_CREATED",
+    "status": "STEP10_REVIEW_ROUGH_CUT_DURABLE_USER_VIEW_REQUIRED",
     "coverage": {
       "start_seconds": 0,
       "end_seconds": 6325.0625,
@@ -303,6 +310,7 @@
     "recompetition": {"RETAIN": 32, "ALTERNATE": 5, "DROP": 5},
     "cold_open_competition": {"status": "PASS", "ranges_seconds": [[2020,2029],[755.7,759.2]], "runtime_seconds": 12.5, "reason": "reading/hearing contradiction followed by concrete mishearing; F002 and F025 are alternatives, F037 is excluded to avoid payoff pre-disclosure."},
     "Step_9": {"deterministic_validation": "PASS", "render_forbidden_gate": "PASS_AFTER_MINIMAL_BOUNDARY_REPAIR", "AI_professional_planning_judgement": "PASS_WITH_ROUGH_CUT_HYPOTHESES", "repair": "Removed exact F020 Cold open range from body and split F007 body into source-question and later-mishearing ranges; no AV receipt, candidate decision, or Cold open competition was rerun.", "remaining_risk": "Actual pacing, context clarity, late narrative legibility and reaction density require a viewer-mode review rough cut; this Step 9 result is not final production approval."},
+    "Step_10_review_rough_cut": {"status": "DURABLE_REVIEW_READY_USER_VIEW_PENDING", "logical_artifact_id": "ep1.review_step10", "durable_run_id": "ep1-step10-review-20260917-029a52d", "duration_seconds": 641.3505, "expected_locked_footage_seconds": 641.3, "cold_open_ranges_seconds": [[2020,2029],[755.7,759.2]], "body_range_count": 52, "body_chronology": "PASS", "cold_open_to_body_order": "PASS", "ffprobe": "PASS", "full_decode": "PASS", "clean_materialize_hash_decode": "PASS", "user_view": "PENDING", "AI_post_interpretation": "NOT_STARTED", "AI_final_pass": false},
     "rough_cut_allowed": false,
     "finished_runtime_ceiling_seconds": 900,
     "historical_boundary": "34/15, reconstruction 30, rejected Step 9 and REVIEW_C 17 scenes/Cold open are failure evidence, not seeds or a shrink target."

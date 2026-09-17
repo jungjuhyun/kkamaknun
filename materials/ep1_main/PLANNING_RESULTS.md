@@ -17,9 +17,9 @@
 | 후보 경쟁 | fresh probe + direct MP4 42/42 evidence만으로 독립 재경쟁 완료: RETAIN 32 / ALTERNATE 5 / DROP 5 |
 | Body | `tools/harness/EP1_LOCK.json`의 body_lock에 32 candidate / 52 retained range를 source order로 잠금. Step 9에서 Cold open의 exact duplicate를 본편에서 제거했다. |
 | Runtime | retained footage 628.8초. Cold open 12.5초, transition 17.85초, ending allowance 20초를 더한 planned envelope 679.15초(11:19.15) |
-| 미확정 | Step 10 review rough cut 및 사용자 시청 테스트만 남음; 이번 checkpoint는 그 artifact를 자동으로 허가하지 않음 |
+| 미확정 | Step 10 review rough cut은 durable 생성 완료; 사용자 시청 테스트와 그 뒤 사후 해석만 남음 |
 | Narrative | 관계 형성→도주 제안/거절→공격/전투→해변 관계 회수→귀환/차단→죽음/기다림 순서를 retained bridge로 보존 |
-| 제작 gate | durable direct AV 42/42, body lock, Cold open competition PASS; rough cut 금지, AI 최종 PASS false |
+| 제작 gate | durable direct AV 42/42, body lock, Cold open competition, Step 9 PASS; `ep1.review_step10` durable 생성 완료, 사용자 시청 전 AI 최종 PASS false |
 
 **Modality blocker:** 회사 PC의 해당 Astra/Codex 세션에서 audio probe가 `audio content omitted because you do not support audio input`로 반환됐다. 직접 듣기와 연속 AV perception을 완료하지 못했으며 ASR/정지 frame을 그 대체로 인증하지 않았다. 이 관측을 모든 미래 기기·모델의 고정 능력 제한으로 확대하지 않는다. 새 기기에서도 먼저 실제 입력 perception 경로를 확인해야 한다.
 
@@ -57,6 +57,19 @@ Step 9은 Cold open의 F020 `2020.0–2029.0`와 F007 `755.7–759.2`가 본편�
 - PASS — 동일 reaction/listening의 직접 중복은 위 최소 보정으로 제거했고, A/B→C 증명보다 source narrative의 관계·전환·결말 coverage를 우선한다.
 
 남은 위험은 실제 호흡과 context의 체감이다. Step 10 review rough cut에서는 (1) F007의 source question→mishearing 재도입이 teaser를 보지 않은 시청자에게도 즉시 명료한지, (2) 초기 사례가 진단표처럼 느껴지기 전 F014/F015의 관계 서사로 넘어가는지, (3) F034/F035/F037의 관계 반전과 F056/F060/F064의 후반 인과·감정이 축소 후에도 읽히는지, (4) 679.15초 envelope가 실제로 느슨하지 않은지를 viewer mode로 검증한다. 이번 Step 9에서 rough cut·subtitle·burn-in·typography는 만들지 않았다.
+
+## Step 10 — review rough cut 생성 완료, 사용자 시청 대기
+
+logical artifact `ep1.review_step10`은 durable run `ep1-step10-review-20260917-029a52d`로 marker-last commit했다. source는 immutable `ep1.primary_recording`이고, Cold open F020 `2020.0–2029.0` → F007 `755.7–759.2` 뒤에 current lock의 52 body ranges를 source TC 오름차순으로 연결했다. Step 9에서 제거한 F020/F007 exact duplicate는 복원하지 않았다.
+
+- actual duration: `641.3505s` (locked footage 합계 `641.3s`; AAC concat frame 정렬 차이 `0.0505s`)
+- streams: video 1 / source mixed audio 1
+- validation: ffprobe PASS, full decode PASS, body chronology PASS, Cold open→body order PASS
+- SHA-256: `f9b2b045d446a470f498b2da41bb60247516383544830f55d66b16c04882d12f`
+- durable: publish, manifest, marker-last commit, clean materialize/hash/decode PASS
+- treatment boundary: source TC/provenance overlay, subtitle, burn-in, typography, added narration, added music/effects 없음
+
+이 artifact는 actual 시청을 위한 review rough cut일 뿐이다. 사용자 체감 관측이 없으므로 Step 10 전체 PASS/FAIL, planning_quality PASS/FAIL, `AI_최종_PASS`는 판정하지 않는다.
 
 ## Historical 2026-09-17 partial direct-AV receipt — superseded, not current input
 
