@@ -3,7 +3,7 @@
 기준일: 2026-09-17 KST. 분석 source snapshot: `027ee9d7fa4784483ccc300bb8a7065ee455b24c`.
 이 문서는 EP1 planning evidence·provenance·검증 범위의 상세 owner다. A/B/C·packaging·확정 selection/compression contract는 `FIRST_VIDEO.md`, 사람이 읽는 다음 행동은 `STATE.md`, runtime/registry는 `tools/harness/STATE.json`이 소유한다.
 
-## Current checkpoint — contract READY, full rescan BLOCKED
+## Current checkpoint — direct AV complete, body locked; rough cut still forbidden
 
 `ep1.primary_recording` 전체 `00:00:00–01:45:25.063`의 desktop/mic ASR 및 source frame 탐색을 완료했다. 새 candidate universe는 빈 목록에서 생성됐고, old 34/15·reconstruction 30·REVIEW_C 17 scenes/Cold open은 seed가 아니다. REVIEW_C를 축소하는 실행이 아니다.
 
@@ -14,16 +14,26 @@
 | Visual evidence | 20초 간격 317개 + detail 관측 55개, 중복 제외 366개 frame; 36 contact sheets와 11 time manifests |
 | 새 후보 | 65개 = KEEP 0 + COMPETE 42 + 잠정 탈락 23 |
 | DROP 집계 | 초기 non-event 등 DROP 16개 + 후보 탈락 23개 = DROP 기록 39개; 인접 합산 21 ranges |
-| 후보 경쟁 | 구조·context·중복 기반 2차 경쟁은 기록됨; direct AV receipt 38/42은 대조됐으나 complete 42개 set이 아니므로 actual AV가 좌우하는 우열은 미확정 |
-| Body | 39개 후보 / 17개 기능 묶음; 대체 후보 F003/F007/F017 3개 별도; NOT LOCKED |
-| Runtime | 63개 raw source search windows 합계 862초(14:22). 제안 context/bridge 포함. final retained runtime 아님 |
-| 미확정 | verified retained duration, 추가 context/호흡 보정, Cold open, finished total runtime 모두 미정 |
-| Narrative | 필수 후반 chain의 담당 후보는 존재. 압축 후 viewer가 인과·감정을 이해하는지는 AV 미검증 |
-| 제작 gate | direct AV receipt 검증 38/42, body lock false, Cold open 경쟁 NOT STARTED, rough cut 금지, AI 최종 PASS false |
+| 후보 경쟁 | fresh probe + direct MP4 42/42 evidence만으로 독립 재경쟁 완료: RETAIN 32 / ALTERNATE 5 / DROP 5 |
+| Body | `tools/harness/EP1_LOCK.json`의 body_lock에 32 candidate / 52 retained range를 source order로 잠금 |
+| Runtime | retained footage 639.3초. Cold open 12.5초, transition 17.85초, ending allowance 20초를 더한 planned envelope 689.65초(11:29.65) |
+| 미확정 | review rough cut 및 사용자 시청 테스트만 남음; 이번 checkpoint는 그 artifact를 허가하지 않음 |
+| Narrative | 관계 형성→도주 제안/거절→공격/전투→해변 관계 회수→귀환/차단→죽음/기다림 순서를 retained bridge로 보존 |
+| 제작 gate | durable direct AV 42/42, body lock, Cold open competition PASS; rough cut 금지, AI 최종 PASS false |
 
 **Modality blocker:** 회사 PC의 해당 Astra/Codex 세션에서 audio probe가 `audio content omitted because you do not support audio input`로 반환됐다. 직접 듣기와 연속 AV perception을 완료하지 못했으며 ASR/정지 frame을 그 대체로 인증하지 않았다. 이 관측을 모든 미래 기기·모델의 고정 능력 제한으로 확대하지 않는다. 새 기기에서도 먼저 실제 입력 perception 경로를 확인해야 한다.
 
-## 2026-09-17 direct-AV 재개 receipt — partial, not a selection result
+## Final direct-AV receipt, recompetition, body lock, and Cold open
+
+Fresh `gemini-3.8-flash` capability probe used source `3400.000–3416.000` as an actual H.264/AAC mixed-audio MP4. ffprobe and full decode passed; the raw response independently described the user voice, source crunch/splatter sound, visual stomp/blood-drop events, their synchronous relation, and uncertainty. F002/F017/F037/F064 then completed by the same direct-MP4 route. The prior 38 receipts were reused without re-inference.
+
+All 42 candidate records, clips, stream/decode receipts and raw responses are in durable logical artifact `ep1.direct_av_42_checkpoint` (`planning/ep1/direct_av/20260917/EP1_DIRECT_AV_42_CHECKPOINT.zip`, SHA-256 `ad614a416aabc12de169ae6b108c915395ea0ca4011602349d75d6d415dbf3bc`). Cloud publish and clean materialize/hash round-trip passed. No credential is in the artifact or repository.
+
+Independent results: **RETAIN** F002/F003/F007/F014/F015/F020/F025/F027/F031/F032/F034/F035/F037/F042/F043/F045/F047/F049/F050/F052/F054/F055/F056/F057/F058/F059/F060/F061/F062/F063/F064/F065; **ALTERNATE** F005/F010/F023/F036/F038; **DROP** F017/F033/F041/F048/F053. The recheck preserved F003's ambiguity boundary, F007's source question, F020's causal order, F037's correction, F056/F060 limits, the N06 conflict boundary, and late source chronology.
+
+The locked body is the existing lock's `body_lock` field. It retains source context, event and reaction endings rather than treating the 862-second search windows as final runtime. Ranges are non-overlapping and chronological. The selected Cold open is F020 `2020.0–2029.0` followed by F007 `755.7–759.2` (12.5 seconds): immediate reading/hearing contradiction then concrete mishearing. F002 and F025 were alternatives; F037 was excluded to avoid pre-disclosing the later relationship/action payoff.
+
+## Historical 2026-09-17 partial direct-AV receipt — superseded, not current input
 
 Web-first receipt: 현재 Google Gemini API 공식 video-understanding 문서는 `gemini-3.8-flash`의 video input을 지원하며, static mode가 frame과 audio를 함께 처리하고 agentic mode가 frame/audio/transcript를 요청에 따라 탐색한다고 명시한다. 이 작업은 short candidate clip의 reaction timing과 context boundary를 확인하는 용도이므로, completion 때는 actual `video/mp4` Files API input을 사용하고 static clip/subclip route를 기본으로 한다. transcript·still-only surrogate는 금지한다.
 

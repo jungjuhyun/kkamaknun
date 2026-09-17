@@ -1,13 +1,13 @@
 {
-  "상태": "EP1_FULL_RESCAN_BLOCKED_PARTIAL_DIRECT_AV_RECEIPTS",
+  "상태": "EP1_BODY_LOCKED_COLD_OPEN_SELECTED_ROUGH_CUT_FORBIDDEN",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "CONTRACT_READY; full-original TEXT+COARSE_VISUAL coverage 완료; direct MP4 AV receipt 38/42는 local hash/stream/decode/raw-response 대조 완료, F002/F017/F037/F064 raw response와 current capability probe가 없어 FULL_RESCAN_BLOCKED",
-  "다음_실행": "사용 가능한 기존 Gemini credential/API path를 복원한 뒤 10–20초 mixed-audio MP4 capability probe의 upload/state/raw-response/deterministic AV receipt를 새로 만든다. 이어 F002/F017/F037/F064를 보완하고 42개 complete record를 durable checkpoint로 보존한다. 그 뒤에만 후보 재경쟁 → retained boundaries → 전체 runtime 재검증 → body lock → Cold open 경쟁. AV gate 전 rough cut 금지.",
+  "현재_계획_단계": "fresh mixed-audio Gemini capability probe PASS; direct MP4 AV 42/42, cloud-published durable checkpoint and clean round-trip PASS; independent recompetition, retained boundaries, runtime, body lock and Cold open competition COMPLETE; rough cut remains forbidden.",
+  "다음_실행": "body lock의 exact ranges를 source로 삼아 review rough cut 전 AI 전문 기획 판정과 deterministic validation을 수행한다. This runtime state does not authorize a rough cut.",
   "경로_정책": {
     "code_current_truth": {
       "sync_source": "GitHub",
@@ -87,6 +87,13 @@
         "kind": "file",
         "size": 10619345,
         "sha256": "5062ea0d2f3b4afb07c6289071fd72899d4df76adfb3e697930728f045f38684",
+        "publish": true
+      },
+      "ep1.direct_av_42_checkpoint": {
+        "object_key": "planning/ep1/direct_av/20260917/EP1_DIRECT_AV_42_CHECKPOINT.zip",
+        "kind": "file",
+        "size": 684526179,
+        "sha256": "ad614a416aabc12de169ae6b108c915395ea0ca4011602349d75d6d415dbf3bc",
         "publish": true
       }
     }
@@ -238,10 +245,11 @@
     "contract_owner": "FIRST_VIDEO.md",
     "evidence_owner": "materials/ep1_main/PLANNING_RESULTS.md",
     "checkpoint_artifact": "ep1.full_rescan_checkpoint",
+    "direct_av_checkpoint_artifact": "ep1.direct_av_42_checkpoint",
     "checkpoint_entrypoint": "INDEX.md",
     "source_snapshot": "027ee9d7fa4784483ccc300bb8a7065ee455b24c",
     "source_material": "ep1.primary_recording",
-    "status": "FULL_RESCAN_BLOCKED",
+    "status": "BODY_LOCKED_COLD_OPEN_SELECTED",
     "coverage": {
       "start_seconds": 0,
       "end_seconds": 6325.0625,
@@ -272,26 +280,28 @@
       "functional_groups": 17,
       "source_search_windows": 63,
       "source_search_windows_seconds": 862,
-      "verified_retained_seconds": null,
+      "verified_retained_seconds": 639.3,
       "finished_runtime_seconds": null,
-      "runtime_verified": false,
-      "locked": false,
+      "planned_finished_runtime_seconds": 689.65,
+      "runtime_verified": true,
+      "locked": true,
       "chronology": "source order"
     },
     "AV_validation": {
-      "status": "PARTIAL_DIRECT_AV_RECEIPTS_BLOCKED",
-      "direct_audio_verified_candidates": 38,
+      "status": "COMPLETE_DURABLE_DIRECT_AV_42",
+      "direct_audio_verified_candidates": 42,
       "complete_candidate_records_required": 42,
       "receipt_verified_candidates": [
-        "F003", "F005", "F007", "F010", "F014", "F015", "F020", "F023", "F025", "F027", "F031", "F032", "F033", "F034", "F035", "F036", "F038", "F041", "F042", "F043", "F045", "F047", "F048", "F049", "F050", "F052", "F053", "F054", "F055", "F056", "F057", "F058", "F059", "F060", "F061", "F062", "F063", "F065"
+        "F002", "F003", "F005", "F007", "F010", "F014", "F015", "F017", "F020", "F023", "F025", "F027", "F031", "F032", "F033", "F034", "F035", "F036", "F037", "F038", "F041", "F042", "F043", "F045", "F047", "F048", "F049", "F050", "F052", "F053", "F054", "F055", "F056", "F057", "F058", "F059", "F060", "F061", "F062", "F063", "F064", "F065"
       ],
-      "missing_raw_response_receipts": ["F002", "F017", "F037", "F064"],
-      "receipt_validation": "38 local mixed-audio MP4s matched recorded SHA-256, contained video and audio streams, full-decoded with ffmpeg, and had non-empty Gemini raw responses. This is partial evidence, not a durable complete competition.",
-      "blocker": "No Gemini API credential in current process/user/machine environment; no gcloud auth or runnable existing venv. Four candidate clips retain upload IDs but no raw model responses, so they cannot be treated as completed direct AV records.",
-      "probe_result": "Historical Astra/Codex tool-path probe omitted audio. Gemini official video documentation and an existing F036 direct-MP4 Files API receipt demonstrate an alternate route, but a dedicated current 10–20-second capability probe was not reproducible without credentials.",
-      "scope": "Do not use local recompetition/body/cold-open/rough-cut artifacts derived from the partial set as current truth. Re-probe and complete all 42 receipts before selection work resumes."
+      "missing_raw_response_receipts": [],
+      "receipt_validation": "38 reused receipts plus F002/F017/F037/F064 fresh direct-MP4 records have clip SHA, video/audio streams, full ffmpeg decode and non-empty Gemini raw response. The 42-record archive and fresh capability probe passed cloud publish and clean hash round-trip.",
+      "blocker": null,
+      "probe_result": "PASS — 3400.000–3416.000 mixed-audio MP4, H.264/AAC/full-decode; Gemini gemini-3.8-flash described source/user sound, visual events and synchronous AV relationships.",
+      "scope": "The complete durable 42-record set is the only recompetition input; historical local selection/body/Cold-open results remain excluded."
     },
-    "cold_open_competition": "NOT_STARTED_BODY_NOT_LOCKED",
+    "recompetition": {"RETAIN": 32, "ALTERNATE": 5, "DROP": 5},
+    "cold_open_competition": {"status": "PASS", "ranges_seconds": [[2020,2029],[755.7,759.2]], "runtime_seconds": 12.5, "reason": "reading/hearing contradiction followed by concrete mishearing; F002 and F025 are alternatives, F037 is excluded to avoid payoff pre-disclosure."},
     "rough_cut_allowed": false,
     "finished_runtime_ceiling_seconds": 900,
     "historical_boundary": "34/15, reconstruction 30, rejected Step 9 and REVIEW_C 17 scenes/Cold open are failure evidence, not seeds or a shrink target."
