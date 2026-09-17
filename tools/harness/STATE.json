@@ -1,13 +1,13 @@
 {
-  "상태": "EP1_STEP10_REVIEW_ROUGH_CUT_DURABLE_USER_VIEW_REQUIRED",
+  "상태": "EP1_STEP10_PLANNING_QUALITY_FAILURE_NARRATIVE_PILOT_USER_VIEW_REQUIRED",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "fresh mixed-audio Gemini capability probe PASS; direct MP4 AV 42/42, cloud-published durable checkpoint and clean round-trip PASS; independent recompetition, retained boundaries, runtime, body lock, Cold open competition, Step 9 AI professional planning judgement and Step 10 review rough cut creation COMPLETE; user viewing remains required.",
-  "다음_실행": "사용자가 durable review rough cut을 일반 시청자 모드로 본 뒤 체감 관측을 남긴다. AI는 그 관측이 생긴 뒤에만 Step 10 사후 해석과 PASS/FAIL 권고를 수행한다.",
+  "현재_계획_단계": "direct AV 42/42 durable evidence reused; ep1.review_step10 user UAT = planning_quality_failure; prior selection/body lock/Cold open/Step 9 reopened; narrative-first spine and competitive application trace integrated; 2–3 minute durable review pilot ready for user viewing.",
+  "다음_실행": "사용자가 ep1.review_pilot_narrative_v1만 일반 시청자 모드로 본다. F002 opening 길이, F005→F010 Makima attachment 연결, F014 내부 생략 뒤 Reze meeting 감정의 연속성을 관측한 뒤 AI가 full body relock 범위를 결정한다.",
   "경로_정책": {
     "code_current_truth": {
       "sync_source": "GitHub",
@@ -101,6 +101,14 @@
         "kind": "file",
         "size": 94642658,
         "sha256": "f9b2b045d446a470f498b2da41bb60247516383544830f55d66b16c04882d12f",
+        "publish": false,
+        "current_usage": "historical planning_quality_failure; do not ask user to view again"
+      },
+      "ep1.review_pilot_narrative_v1": {
+        "object_key": "runs/ep1-narrative-pilot-20260917-57dd48e/committed/79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3.mp4",
+        "kind": "file",
+        "size": 15244624,
+        "sha256": "79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3",
         "publish": false
       }
     }
@@ -256,7 +264,7 @@
     "checkpoint_entrypoint": "INDEX.md",
     "source_snapshot": "027ee9d7fa4784483ccc300bb8a7065ee455b24c",
     "source_material": "ep1.primary_recording",
-    "status": "STEP10_REVIEW_ROUGH_CUT_DURABLE_USER_VIEW_REQUIRED",
+    "status": "STEP10_NARRATIVE_PILOT_DURABLE_USER_VIEW_REQUIRED",
     "coverage": {
       "start_seconds": 0,
       "end_seconds": 6325.0625,
@@ -268,6 +276,7 @@
       "continuous_AV_complete": false
     },
     "candidates": {
+      "stage": "FULL_RESCAN_PRE_DIRECT_AV_HISTORY",
       "new_universe": 65,
       "KEEP": 0,
       "COMPETE": 42,
@@ -284,14 +293,15 @@
       "old_selection_used_as_seed": false
     },
     "body": {
+      "stage": "FULL_RESCAN_SEARCH_WINDOW_HISTORY_WITH_CURRENT_LOCK_FIELDS",
       "functional_groups": 17,
       "source_search_windows": 63,
       "source_search_windows_seconds": 862,
-      "verified_retained_seconds": 628.8,
+      "verified_retained_seconds": null,
       "finished_runtime_seconds": null,
-      "planned_finished_runtime_seconds": 679.15,
-      "runtime_verified": true,
-      "locked": true,
+      "planned_finished_runtime_seconds": null,
+      "runtime_verified": false,
+      "locked": false,
       "chronology": "source order"
     },
     "AV_validation": {
@@ -307,10 +317,11 @@
       "probe_result": "PASS — 3400.000–3416.000 mixed-audio MP4, H.264/AAC/full-decode; Gemini gemini-3.8-flash described source/user sound, visual events and synchronous AV relationships.",
       "scope": "The complete durable 42-record set is the only recompetition input; historical local selection/body/Cold-open results remain excluded."
     },
-    "recompetition": {"RETAIN": 32, "ALTERNATE": 5, "DROP": 5},
-    "cold_open_competition": {"status": "PASS", "ranges_seconds": [[2020,2029],[755.7,759.2]], "runtime_seconds": 12.5, "reason": "reading/hearing contradiction followed by concrete mishearing; F002 and F025 are alternatives, F037 is excluded to avoid payoff pre-disclosure."},
-    "Step_9": {"deterministic_validation": "PASS", "render_forbidden_gate": "PASS_AFTER_MINIMAL_BOUNDARY_REPAIR", "AI_professional_planning_judgement": "PASS_WITH_ROUGH_CUT_HYPOTHESES", "repair": "Removed exact F020 Cold open range from body and split F007 body into source-question and later-mishearing ranges; no AV receipt, candidate decision, or Cold open competition was rerun.", "remaining_risk": "Actual pacing, context clarity, late narrative legibility and reaction density require a viewer-mode review rough cut; this Step 9 result is not final production approval."},
-    "Step_10_review_rough_cut": {"status": "DURABLE_REVIEW_READY_USER_VIEW_PENDING", "logical_artifact_id": "ep1.review_step10", "durable_run_id": "ep1-step10-review-20260917-029a52d", "duration_seconds": 641.3505, "expected_locked_footage_seconds": 641.3, "cold_open_ranges_seconds": [[2020,2029],[755.7,759.2]], "body_range_count": 52, "body_chronology": "PASS", "cold_open_to_body_order": "PASS", "ffprobe": "PASS", "full_decode": "PASS", "clean_materialize_hash_decode": "PASS", "user_view": "PENDING", "AI_post_interpretation": "NOT_STARTED", "AI_final_pass": false},
+    "recompetition": {"status": "REOPENED_NARRATIVE_FIRST", "RETAIN": 36, "DROP": 6, "total": 42, "body_lock": "PENDING_PILOT_UAT"},
+    "cold_open_competition": {"status": "REOPENED", "ranges_seconds": null, "runtime_seconds": null, "reason": "The prior F020→F007 evidence montage was invalidated by user UAT; F007 is now DROP."},
+    "Step_9": {"deterministic_validation": "REOPENED_AFTER_USER_UAT", "render_forbidden_gate": "REOPENED_AFTER_USER_UAT", "AI_professional_planning_judgement": "SUPERSEDED_BY_PLANNING_QUALITY_FAILURE", "remaining_risk": "Pilot must validate the complete-event opening, Makima attachment bridge, and Reze meeting continuity before full body relock."},
+    "Step_10_review_rough_cut": {"status": "PLANNING_QUALITY_FAILURE", "logical_artifact_id": "ep1.review_step10", "durable_run_id": "ep1-step10-review-20260917-029a52d", "duration_seconds": 641.3505, "body_range_count": 52, "user_view": "COMPLETED", "failure": "competitive analysis did not bind selection; evidence montage displaced source narrative; incomplete utterance/action/reaction boundaries made review unreliable", "further_user_view": "FORBIDDEN", "AI_final_pass": false},
+    "Step_10_review_pilot": {"status": "DURABLE_PILOT_READY_USER_VIEW_PENDING", "logical_artifact_id": "ep1.review_pilot_narrative_v1", "durable_run_id": "ep1-narrative-pilot-20260917-57dd48e", "duration_seconds": 161.921333, "range_count": 7, "cold_open": "NOT_USED", "source_chronology": "PASS", "ffprobe": "PASS", "full_decode": "PASS", "clean_materialize_hash_decode": "PASS", "user_view": "PENDING", "full_rough_cut": "NOT_CREATED", "AI_final_pass": false},
     "rough_cut_allowed": false,
     "finished_runtime_ceiling_seconds": 900,
     "historical_boundary": "34/15, reconstruction 30, rejected Step 9 and REVIEW_C 17 scenes/Cold open are failure evidence, not seeds or a shrink target."

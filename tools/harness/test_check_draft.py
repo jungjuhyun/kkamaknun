@@ -114,6 +114,21 @@ def test_pre_render_quality_gate_blocks_known_review_b_failure_modes():
     assert "하나라도 FAIL이면 review rough cut으로 넘기지 않고" in PIPELINE_TEXT
 
 
+def test_source_narrative_precedes_evidence_and_has_application_trace():
+    assert "source narrative → 그 위의 A/B→C → 장면 재미·감정·관계 변화·명장면성·reaction → listening/reading evidence" in PIPELINE_TEXT
+    assert "source narrative와 A/B→C가 충돌하면 source narrative를 우선한다" in PIPELINE_TEXT
+    assert "application contract" in PIPELINE_TEXT
+    assert "구조 원리 → narrative beat/scene → 변경된 RETAIN·ALTERNATE·DROP 또는 boundary → 회피한 Failure Pattern" in PIPELINE_TEXT
+
+
+def test_review_boundary_and_uat_failure_branch_are_explicit():
+    assert "setup → 필요한 작품 사건/대사 → 사용자 발언 → reaction → 자연스러운 완료" in PIPELINE_TEXT
+    assert "말 중간, 문장 끝 직전, 행동·reaction 진행 중 절단은 금지한다" in PIPELINE_TEXT
+    assert "planning_quality_failure이면 실패 artifact의 추가 사용자 시청을 중단" in PIPELINE_TEXT
+    assert "2~3분 review pilot" in PIPELINE_TEXT
+    assert "pilot UAT 전에는 새 전편 rough cut이나 AI 최종 PASS를 만들지 않는다" in PIPELINE_TEXT
+
+
 if __name__ == "__main__":
     failures = 0
     for name, fn in sorted(globals().items()):

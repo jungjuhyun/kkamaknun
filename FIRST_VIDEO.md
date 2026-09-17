@@ -151,11 +151,24 @@ proxy 6개의 실제 합계 길이는 약 **82분 25.6초**로 확인됐다.
 
 ### EP1 packaging promise — current semantic owner
 
-A/B/C와 **EP1의 packaging promise / product positioning**은 변경하지 않는다. 제목·썸네일은 `일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람(A)이 실제로 체인소 맨: 레제편을 한국어 자막 없이 보고(B), 듣고 의미·흐름을 따라가는 부분과 정확한 단어·문장 형태·문자를 잡지 못하는 부분이 비대칭적으로 드러난 결과`를 영상 전체의 promise로 대표해야 한다. 여기서 `20년`은 작품 수·덕후성·학습 기간이 아니라 취미 시청 기간이다.
+A/B/C와 **EP1의 packaging promise / product positioning**은 변경하지 않는다. 제목·썸네일은 일본어를 제대로 공부하지 않고 20년 이상 취미로 애니를 본 사람이 체인소 맨: 레제편을 실제로 한국어 자막 없이 보며 드러낸, 듣기와 정확한 단어·문장 형태·문자 사이의 비대칭을 영상 전체의 약속으로 대표한다. 여기서 `20년`은 작품 수·덕후성·학습 기간이 아니라 취미 시청 기간이다.
 
 현재 editable baseline/reference는 제목 `일본어 제대로 안 배우고 20년 넘게 애니 본 사람, 자막을 꺼봤습니다`, 썸네일 `뜻은 아는데 일본어는 모름?`이다. exact copy는 immutable lock이 아니므로 더 좋은 문구로 개선할 수 있지만, 같은 A + 실제 자막 없는 레제편 시청 + 듣기와 정확한 형태·문자 사이의 비대칭 promise를 유지해야 한다. 전혀 다른 영상 상품으로 재발명하지 않는다.
 
 개별 listening scene은 영상 전체 promise의 proof/supporting evidence다. `내용은 아는데 일본어는 모름?`은 전체 영화 이해를 과장할 위험으로 기각했던 문구이며, 본 checkpoint에서 패키징을 재설계하지 않았다.
+
+### Step 10 UAT 이후 EP1 기획 우선순위 — current
+
+`ep1.review_step10`은 사용자의 실제 시청에서 **`planning_quality_failure`**로 판정됐다. 이 artifact는 더 이상 사용자에게 시청시키지 않는다. 이전 32 RETAIN / 52 body ranges / Cold open / Step 9 전문 판정은 current selection lock이 아니며, durable direct-AV 42/42와 full-rescan evidence만 재사용한다.
+
+EP1의 selection·body 판단 순서는 다음과 같다.
+
+1. **레제편의 작품 서사** — 사건·인과·관계·목표·위험·감정 변화와 climax·resolution·emotional closure.
+2. **그 서사 위에서 작동하는 A/B→C** — source narrative와 충돌하면 작품 서사가 우선한다.
+3. **장면 자체의 재미·감정·관계 변화·명장면성·사용자 reaction.**
+4. **listening / reading / mishearing evidence.** evidence 가치만 높고 작품 흐름이나 시청 재미를 해치면 제거한다.
+
+고정 UAT 판정은 `여정` F007과 `지누키` F003의 DROP이다. F002는 `가타카나 한번 읽어보자`부터 실제 읽기 결과와 자연스러운 종료까지, F020은 덴지가 한자를 못 읽는 setup부터 레제의 가르침·농담·덴지의 읽기 결과·레제의 웃음까지 하나의 사건으로 검토한다. 새 narrative spine·candidate 판정·pilot boundary와 competitive application trace의 상세 owner는 `materials/ep1_main/PLANNING_RESULTS.md`, 실행 lock은 `tools/harness/EP1_LOCK.json`이다.
 
 ### SELECTION_COMPRESSION_CONTRACT — CONTRACT_READY
 
@@ -183,14 +196,14 @@ A/B/C와 **EP1의 packaging promise / product positioning**은 변경하지 않�
 
 #### 2. Scene admission rule
 
-후보 admission에는 다음 두 가지가 필요하다.
+외부 작품 서사가 있는 EP1은 먼저 narrative spine의 beat를 확정하고, 그 beat를 전달할 footage를 경쟁한다. 작품상 중요한 beat는 coverage 의무가 되지만 특정 긴 원본 구간을 자동 보호하지 않는다. 후보 admission에는 다음 두 가지가 필요하다.
 
 1. **실제 근거:** 원본에서 확인되는 사건·발화·행동·비언어 반응 또는 필요한 서사 정보.
 2. **구체적인 기여:** 시청자가 새로 얻는 변화, 혹은 다른 핵심 장면을 이해시키는 명시적인 의존 정보.
 
 새 기여는 사건 진행, 새 evidence, 이해·오해의 변화, 구체적인 viewpoint, 감정 변화, 인물성, 웃음·행동의 payoff, 필요한 context 중 하나 이상일 수 있다. 기능 이름을 붙이는 것으로 끝내지 않고 **무엇이 달라지는지 한 문장으로 설명**해야 한다.
 
-다음은 단독 admission 근거가 아니다.
+다음은 특정 footage의 길이나 경계를 단독으로 보호하는 근거가 아니다.
 
 - 작품에서 중요한 장면이라는 사실
 - 긴 사용자 발화
@@ -206,7 +219,7 @@ A/B/C와 **EP1의 packaging promise / product positioning**은 변경하지 않�
 
 기본 단위는 가능한 범위에서 다음 인과를 잇는다.
 
-**source setup → 사건·대사 → 사용자 이해·오해·reaction → 결과 또는 다음 상태**
+**source setup → 필요한 작품 사건·대사 → 사용자 발언·이해·오해 → 실제 reaction → 자연스러운 완료 또는 다음 상태**
 
 이것은 다섯 요소를 매번 별도 컷으로 넣으라는 형식이 아니다.
 
@@ -216,7 +229,7 @@ A/B/C와 **EP1의 packaging promise / product positioning**은 변경하지 않�
 - 필수 서사 정보에는 강한 사용자 reaction이 없어도 된다.
 - 하나의 scene은 중간의 불필요한 시간을 생략한 여러 source 구간으로 구성할 수 있다.
 
-**scene 경계는 원작 장면 전체나 사용자 발화 전체가 아니라, 보존할 인과 기능을 기준으로 잡는다.** 긴 원본 덩어리에 역할 여러 개를 붙여 하나의 필수 scene으로 보호하지 않는다.
+**scene 경계는 원작 장면 전체나 사용자 발화 전체가 아니라, 보존할 인과 기능을 기준으로 잡는다.** 다만 말 중간, 문장 끝 직전, 행동·reaction 진행 중에 자르지 않는다. 긴 원본 덩어리에 역할 여러 개를 붙여 하나의 필수 scene으로 보호하지 않는다.
 
 #### 4. Within-scene compression rule
 
@@ -272,12 +285,12 @@ Context 범위에는 양방향 검사를 적용한다.
 
 | 기능 | 남길 조건 | 경쟁·압축 방식 |
 |---|---|---|
-| **Narrative** | 핵심 인과·관계·climax·resolution·emotional closure 또는 다음 장면의 이해에 필요 | 필수 기능은 유지하되, 이를 전달할 구간과 표현 방식을 경쟁한다. 원작 분량은 보호하지 않는다. |
+| **Narrative** | 핵심 인과·관계·목표·위험·감정 변화·climax·resolution·emotional closure 또는 다음 장면의 이해에 필요 | 본편의 선행 골격이다. 필수 기능은 유지하되 이를 전달할 구간과 표현 방식을 경쟁한다. 원작 분량은 보호하지 않는다. |
 | **Listening** | promise에 대한 새 발견·오류 형태·이해 방식·contrast·story progression·인물성·payoff를 추가 | 같은 기능의 evidence는 대표성을 경쟁시킨다. 사례 수 자체를 증명력으로 취급하지 않는다. |
 | **Reaction / character** | 인물이 기억되거나, 사건이 더 재미있어지거나, 이해·감정·viewer question이 달라짐 | 반응 크기만으로 고르지 않는다. 원인과 함께 비교하고 변화가 끝난 tail은 제거한다. |
 | **Bridge** | 명시한 다음 사건을 이해시키는 정보가 부족함 | 전달할 정보와 연결 대상을 특정한다. 그 정보가 전달되면 종료한다. |
 
-**Narrative의 필수 기능은 약한 청해·reaction 때문에 삭제하지 않는다.** 현재 owner의 후반 인과인 `전투 재기·climax → 해변 관계 회수 → 레제의 배경 → 귀환 선택 → 죽음 → 덴지가 모른 채 기다리는 결말`을 압축된 형태로 보존한다. 이것은 기존 REVIEW_C의 scene 수·경계·길이를 재사용하라는 뜻이 아니다.
+**Narrative의 필수 기능은 약한 청해·reaction 때문에 삭제하지 않는다.** 먼저 서사를 배치하고, 그 위에서 A/B→C와 재미·reaction을 경쟁시킨 뒤 evidence를 넣는다. 현재 owner의 후반 인과인 `전투 재기·climax → 해변 관계 회수 → 레제의 배경 → 귀환 선택 → 죽음 → 덴지가 모른 채 기다리는 결말`을 압축된 형태로 보존한다. 이것은 기존 REVIEW_C의 scene 수·경계·길이를 재사용하라는 뜻이 아니다.
 
 `MUST_KEEP`는 narrative function의 의무다. 한 beat의 모든 대사·전투·이동·반응을 살리는 면허가 아니다. 작품 전체 요약을 위해 주변 사건을 계속 추가하지 않는다.
 
@@ -362,9 +375,9 @@ scene별 최대 초수, chapter별 고정 분량, 고정 압축률, jump-cut 빈
 
 ### 현재 적용 결과와 제작 gate
 
-위 8절의 '빈 목록 시작'은 이번 full-original rescan 시작 원칙이며 이미 수행했다. 다음 기기에서 기존 REVIEW_C나 reconstruction 30개 후보로 재시작하거나 65개 목록을 기억으로 재구성하지 않는다. **현재 실행 상태/다음 행동은 `STATE.md`, candidate·boundary·검증 범위는 `materials/ep1_main/PLANNING_RESULTS.md`와 그 문서가 지정한 cloud checkpoint를 따른다.**
+위 8절의 '빈 목록 시작'은 full-original rescan에서 이미 수행됐고 direct AV 42/42 durable checkpoint도 완료됐다. 다음 기기에서 기존 REVIEW_C나 reconstruction 30개 후보로 재시작하거나 65개 목록을 기억으로 재구성하지 않는다. **현재 실행 상태/다음 행동은 `STATE.md`, candidate·boundary·검증 범위는 `materials/ep1_main/PLANNING_RESULTS.md`와 그 문서가 지정한 cloud checkpoint를 따른다.**
 
-계약은 READY이지만 이번 text/frame rescan은 직접 audio+continuous AV gate 미완료로 BLOCKED다. body search windows는 retained edit points가 아니며, 웃음·말투·침묵·comic timing·jump cut·인과 전달을 ASR/정지 프레임만으로 확정하지 않는다. 실제 AV 검증, 후보 재경쟁과 retained runtime 검증 전 body lock·rough cut을 하지 않는다. Cold open은 body lock 뒤 경쟁하고, subtitle/typography/burn-in 제작은 selection/internal compression lock 뒤다.
+현재 `ep1.review_step10` UAT 실패로 body lock과 Cold open은 재개방됐다. full rescan·65 후보 생성·direct AV 42/42는 다시 하지 않는다. 새 narrative-first 구조의 초반 2~3분 pilot만 source footage로 만들고, 사용자 pilot 시청 전에는 전체 rough cut·subtitle·typography·burn-in·`AI_최종_PASS`를 만들지 않는다.
 
 ### Historical failure evidence — current selection base 아님
 

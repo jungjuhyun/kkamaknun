@@ -29,15 +29,17 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** `CONTRACT_READY` → direct mixed-audio AV **42/42 durable checkpoint PASS** → 독립 재경쟁·retained boundaries·runtime·body lock·Cold open competition·Step 9 완료 → Step 10 review rough cut durable 생성 완료. 다음 gate는 사용자 시청 체감 관측이다. 확정 계약은 `FIRST_VIDEO.md`, 상세 evidence는 `materials/ep1_main/PLANNING_RESULTS.md`, runtime registry는 `tools/harness/STATE.json`, body ranges는 `tools/harness/EP1_LOCK.json`이 소유한다.
+**현재 실행 위치:** `CONTRACT_READY` → direct mixed-audio AV **42/42 durable checkpoint PASS** → 이전 body/Cold open/Step 9 → `ep1.review_step10` 사용자 UAT **`planning_quality_failure`** → narrative-first workflow·EP1 spine 통합 수정 → 초반 review pilot durable 생성 완료. 다음 gate는 pilot 사용자 시청이다. 확정 계약은 `FIRST_VIDEO.md`, 상세 evidence와 competitive application trace는 `materials/ep1_main/PLANNING_RESULTS.md`, runtime registry는 `tools/harness/STATE.json`, current planning/pilot lock은 `tools/harness/EP1_LOCK.json`이 소유한다.
 
 이번 rescan은 빈 목록에서 전체 `00:00:00–01:45:25.063`을 시간순 탐색해 새 후보 65개를 만들었다. 81개 연속 기록의 text/coarse-frame coverage에 시간 구멍은 없지만 모든 순간의 소리·동작·reaction을 직접 확인한 것은 아니다. COMPETE 42개는 fresh capability probe와 direct MP4 records를 거쳐 complete durable checkpoint로 보존했다.
 
-source search window 합계 **862초(14:22)는 final retained runtime이 아니었다.** Step 9에서 Cold open/body의 exact duplicate를 수리했다. 현재 lock은 32 RETAIN / 5 ALTERNATE / 5 DROP의 독립 재경쟁 결과와 52 retained ranges, footage 628.8초를 보존한다. Cold open은 F020 `2020.0–2029.0` + F007 `755.7–759.2`(12.5초)로 확정했고, 본편에서는 F020의 동일 teaser 구간을 제거하고 F007의 source question과 뒤 mishearing/translation만 남겼다. transition·ending allowance 포함 planned envelope는 679.15초(11:19.15)로 15분 ceiling 안이다. Step 9 deterministic validation·render 금지 gate·AI 전문 기획 판정은 PASS했다. Step 10 review artifact `ep1.review_step10`은 641.3505초로 durable publish·clean materialize/hash/full-decode를 통과했지만, **사용자 시청 테스트는 아직 시작되지 않았고** `AI_최종_PASS`는 false다.
+source search window 합계 **862초(14:22)**, 이전 32 RETAIN / 52 ranges / 628.8초 body, F020→F007 Cold open과 Step 9 PASS는 UAT 뒤 current lock이 아니다. 사용자가 작품 서사보다 AV/evidence가 앞선 montage와 말·행동·reaction completion 전 boundary 절단을 확인했다. F003 `지누키`와 F007 `여정`은 DROP하고, source narrative → 그 위의 A/B→C → 장면 재미·감정·관계 변화·reaction → evidence 순서로 10-beat spine과 36 RETAIN/BRIDGE·6 DROP을 다시 정했다. full body ranges·runtime·Cold open·Step 9는 pilot UAT 뒤 재잠금한다.
 
 Fresh `gemini-3.8-flash` probe는 source `3400.000–3416.000`의 H.264/AAC mixed-audio MP4를 actual video input으로 사용했고 source/user sound, visual event 및 동시 AV 관계를 기술했다. F002/F017/F037/F064도 같은 route로 보완했다. 42-record archive `ep1.direct_av_42_checkpoint`는 cloud publish와 clean materialize/hash round-trip을 통과했다. 파일 재생·ASR·정지 frame만으로 gate를 통과시키지 않았다.
 
-**다음 실행:** 사용자가 `ep1.review_step10`을 일반 시청자 모드로 본 뒤 이탈 충동·집중·이해 공백·반복·기억 장면·직후 감상·재시청 의향을 남긴다. AI는 그 관측이 생긴 뒤에만 구조 원인을 사후 해석한다. 현재는 Step 10 전체 PASS/FAIL이나 `AI_최종_PASS`를 선언하지 않는다.
+초반 pilot `ep1.review_pilot_narrative_v1`은 F002 완결 setup → F005/F010 마키마 애착 → F014/F015 레제 첫 만남·꽃·카페 초대를 source chronology로 연결한 161.921333초 artifact다. subtitle·burn-in·typography·나레이션·추가 음악/효과·Cold open이 없고, ffprobe/full decode/durable publish/clean materialize hash를 통과했다.
+
+**다음 실행:** 사용자가 `ep1.review_pilot_narrative_v1`만 일반 시청자 모드로 보고 (1) F002 opening이 길게 느껴지는지, (2) F005→F010에서 마키마 애착이 이어지는지, (3) F014 내부 생략 뒤에도 레제 첫 만남 감정이 이어지는지 관측한다. 그 전에는 전체 rough cut, 새 Cold open, full body lock, Step 9 재판정이나 `AI_최종_PASS`를 만들지 않는다. 실패한 `ep1.review_step10`은 더 이상 시청시키지 않는다.
 
 계약 결과 원문, 기존 research report, 7-field 후보/coverage, 기능 경쟁, 본문 가안, narrative check, runtime ledger, RED TEAM, 탐색 이력과 검토 contact sheet는 위 cloud checkpoint에 보존한다. 회사 PC의 Codex visualization 경로는 재개 의존성이 아니다. registry/size/SHA-256은 `tools/harness/STATE.json`이 소유한다.
 
@@ -53,7 +55,7 @@ Cloud material migration은 **COMPLETE**다. Phase E K-less recovery와 Phase F 
 
 durable-media의 synthetic cloud qualification도 완료했다. 기존 인증 rclone remote의 전용 synthetic namespace에서 A–E crash injection을 별도 process recovery로 검증했고, hash-verified checkpoint, clean-cache/K-less 재개, final ffprobe·full decode·manifest·marker-last commit을 확인했다. 이는 infrastructure capability만 검증하며 **EP1 direct AV gate를 해제하거나 새 production rough cut을 허가하지 않는다.**
 
-`tools/harness/PIPELINE.yaml`의 material_first 공정은 외부 source narrative가 있으면 네 layer와 synchronized evidence timeline이 준비되기 전 후보 경쟁으로 넘어가지 않도록 통합 수정했다. 작품 서사는 골격, listening은 소재·발견, reaction은 재미·인물성으로 다룬다. chronology integrity와 narrative continuity를 분리하고, 본편을 먼저 설계한 뒤 Cold open을 경쟁시키며, MUST_KEEP 누락·climax/resolution/emotional closure 삭제·진단표 배열·Cold open 단순 중복을 pre-render hard gate에서 막는다.
+`tools/harness/PIPELINE.yaml`의 material_first 공정은 외부 source narrative가 있으면 네 layer와 synchronized evidence timeline 뒤 narrative spine을 먼저 만들고, 그 위에 A/B→C·재미/reaction·evidence를 순서대로 얹는다. 경쟁 분석은 `구조 원리 → beat/scene → 바뀐 selection/DROP/boundary → 피한 Failure Pattern` application trace가 있어야 Step 5~9에 전달된다. review boundary는 setup부터 자연스러운 완료까지 보존하며, UAT quality failure 때 affected lock을 재개방하고 필요한 경우 전편보다 2~3분 pilot을 먼저 검증한다.
 
 `AGENTS.md`의 기획 라우팅은 실제 기획 요청을 `tools/harness/STATE.json` → 현재 `PIPELINE.yaml` → 현재 lock 순으로 연결한다. 현재 편은 `EP1`, lock은 `tools/harness/EP1_LOCK.json`, 입력 경로는 `material_first`다. `check_draft.py`는 이 lock을 `STATE.json`에서 선택하며 **current truth·잠금·자료 경계의 deterministic 오류만 검사**한다. PASS는 기획 품질 인증이 아니다.
 

@@ -3,73 +3,73 @@
 기준일: 2026-09-17 KST. 분석 source snapshot: `027ee9d7fa4784483ccc300bb8a7065ee455b24c`.
 이 문서는 EP1 planning evidence·provenance·검증 범위의 상세 owner다. A/B/C·packaging·확정 selection/compression contract는 `FIRST_VIDEO.md`, 사람이 읽는 다음 행동은 `STATE.md`, runtime/registry는 `tools/harness/STATE.json`이 소유한다.
 
-## Current checkpoint — direct AV complete, body locked; rough cut still forbidden
+## Current checkpoint — Step 10 UAT `planning_quality_failure`, narrative pilot ready
 
-`ep1.primary_recording` 전체 `00:00:00–01:45:25.063`의 desktop/mic ASR 및 source frame 탐색을 완료했다. 새 candidate universe는 빈 목록에서 생성됐고, old 34/15·reconstruction 30·REVIEW_C 17 scenes/Cold open은 seed가 아니다. REVIEW_C를 축소하는 실행이 아니다.
+`ep1.primary_recording` 전체 rescan, 65-candidate universe와 durable direct-AV 42/42는 그대로 재사용한다. `ep1.review_step10` 사용자 UAT가 **작품 서사 없는 evidence montage와 불완전 boundary**를 확인했으므로 이전 32 RETAIN / 52 body ranges / Cold open / Step 9 PASS는 재개방했다. 실패 artifact를 더 시청시키지 않으며 전체 rough cut도 다시 만들지 않았다.
 
-| 항목 | 보존한 실제 결과 / 한계 |
-|---|---|
-| Contract | CONTRACT_READY; 확정 원 응답과 기존 research를 cloud bundle에 보존, operative 규칙은 FIRST_VIDEO |
-| Coverage | 81개 연속 범위, ledger상 TC hole 없음; TEXT+COARSE_VISUAL이며 full continuous AV coverage 아님 |
-| Visual evidence | 20초 간격 317개 + detail 관측 55개, 중복 제외 366개 frame; 36 contact sheets와 11 time manifests |
-| 새 후보 | 65개 = KEEP 0 + COMPETE 42 + 잠정 탈락 23 |
-| DROP 집계 | 초기 non-event 등 DROP 16개 + 후보 탈락 23개 = DROP 기록 39개; 인접 합산 21 ranges |
-| 후보 경쟁 | fresh probe + direct MP4 42/42 evidence만으로 독립 재경쟁 완료: RETAIN 32 / ALTERNATE 5 / DROP 5 |
-| Body | `tools/harness/EP1_LOCK.json`의 body_lock에 32 candidate / 52 retained range를 source order로 잠금. Step 9에서 Cold open의 exact duplicate를 본편에서 제거했다. |
-| Runtime | retained footage 628.8초. Cold open 12.5초, transition 17.85초, ending allowance 20초를 더한 planned envelope 679.15초(11:19.15) |
-| 미확정 | Step 10 review rough cut은 durable 생성 완료; 사용자 시청 테스트와 그 뒤 사후 해석만 남음 |
-| Narrative | 관계 형성→도주 제안/거절→공격/전투→해변 관계 회수→귀환/차단→죽음/기다림 순서를 retained bridge로 보존 |
-| 제작 gate | durable direct AV 42/42, body lock, Cold open competition, Step 9 PASS; `ep1.review_step10` durable 생성 완료, 사용자 시청 전 AI 최종 PASS false |
+### Root cause와 전달 단절
 
-**Modality blocker:** 회사 PC의 해당 Astra/Codex 세션에서 audio probe가 `audio content omitted because you do not support audio input`로 반환됐다. 직접 듣기와 연속 AV perception을 완료하지 못했으며 ASR/정지 frame을 그 대체로 인증하지 않았다. 이 관측을 모든 미래 기기·모델의 고정 능력 제한으로 확대하지 않는다. 새 기기에서도 먼저 실제 입력 perception 경로를 확인해야 한다.
+1. Step 4 경쟁 영상 해부에는 Opening / Viewer Question / Escalation / Variation / Character / Payoff / Failure Pattern이 있었지만, 이를 특정 beat·selection·DROP·boundary로 전달하는 의무 산출물이 없었다.
+2. Step 5~7은 축 이름을 반복했을 뿐 `경쟁 원리 → 실제 후보 결정`의 application trace를 요구하지 않았다. 결과적으로 direct-AV 관측 명확성과 evidence 대표성이 narrative admission보다 먼저 후보를 배열했다.
+3. Step 9은 이미 만들어진 body에 평가축 이름을 사후 대조했다. 경쟁 원리가 실제 selection을 바꿨는지, 작품 사건·관계가 먼저 골격이 됐는지를 gate하지 않아 evidence montage를 PASS시켰다.
+4. deterministic 검사는 source chronology·overlap·runtime은 확인했지만 말·문장·행동·reaction completion을 확인하지 않았다. F002와 F020처럼 setup과 결과가 한 사건인 후보도 짧은 증거 조각으로 분해됐다.
 
-## Final direct-AV receipt, recompetition, body lock, and Cold open
+최신 공식 YouTube guidance도 특정 초수 공식 대신 첫 구간이 title/thumbnail 기대를 충족하면서 흥미를 유지하는지, Appeal / Engagement / Satisfaction을 함께 보는지, anticipation·curiosity와 storytelling을 통해 관심을 유지하는지를 설명한다. 이상적인 보편 길이는 없고 가치 전달에 필요한 길이만 쓰도록 한다. 따라서 이번 수리는 새 점수 공식을 만들지 않고 완결 사건·서사 변화·시청 가치에 적용한다. 근거: [audience retention](https://support.google.com/youtube/answer/9314415?hl=en), [recommendation performance](https://support.google.com/youtube/answer/16559650?hl=en), [content performance FAQ](https://support.google.com/youtube/answer/16559651?hl=en).
 
-Fresh `gemini-3.8-flash` capability probe used source `3400.000–3416.000` as an actual H.264/AAC mixed-audio MP4. ffprobe and full decode passed; the raw response independently described the user voice, source crunch/splatter sound, visual stomp/blood-drop events, their synchronous relation, and uncertainty. F002/F017/F037/F064 then completed by the same direct-MP4 route. The prior 38 receipts were reused without re-inference.
+### 새 narrative spine
 
-All 42 candidate records, clips, stream/decode receipts and raw responses are in durable logical artifact `ep1.direct_av_42_checkpoint` (`planning/ep1/direct_av/20260917/EP1_DIRECT_AV_42_CHECKPOINT.zip`, SHA-256 `ad614a416aabc12de169ae6b108c915395ea0ca4011602349d75d6d415dbf3bc`). Cloud publish and clean materialize/hash round-trip passed. No credential is in the artifact or repository.
+Packaging setup F002는 작품 서사 beat가 아니라 A/B 조건을 한 번 증명하는 진입부다. 그 뒤 body는 다음 작품 서사 순서를 골격으로 삼는다.
 
-Independent results: **RETAIN** F002/F003/F007/F014/F015/F020/F025/F027/F031/F032/F034/F035/F037/F042/F043/F045/F047/F049/F050/F052/F054/F055/F056/F057/F058/F059/F060/F061/F062/F063/F064/F065; **ALTERNATE** F005/F010/F023/F036/F038; **DROP** F017/F033/F041/F048/F053. The recheck preserved F003's ambiguity boundary, F007's source question, F020's causal order, F037's correction, F056/F060 limits, the N06 conflict boundary, and late source chronology.
+| Beat | 사건·앞뒤 인과 | 변하는 관계·목표·위험·감정 | 기억/시청 가치 | footage 역할 |
+|---|---|---|---|---|
+| P0 | F002에서 `가타카나 한번 읽어보자`→실제 읽기→막힌 결과 | 시청 조건과 읽기 약점 확정 | 영상 promise를 행동으로 이해 | complete setup, evidence는 여기서 종료 |
+| N1 | F005 데이트 제안→F010 덴지와 마키마의 공동 눈물 | 덴지의 마키마 애착과 감정 기준 형성 | 뒤 도주 거절 이유의 기준점 | F005 BRIDGE, F010 ANCHOR |
+| N2 | F014 비 오는 날 첫 만남·꽃→F015 카페 초대 | 낯선 레제가 호감·재회의 약속으로 바뀜 | 관계 시작과 꽃/cafe callback | F014/F015 ANCHOR |
+| N3 | F020 덴지의 한자 결핍·레제의 장난→F023 학교 결핍 | 두 사람의 결핍과 친밀감이 학교/일상 목표로 이어짐 | 코미디와 관계 정보가 동시에 작동 | F020/F023 STORY_REACTION |
+| N4 | F025 수영 시작→F027 레제가 수영을 가르침 | 위험한 제안이 신뢰·친밀감으로 변함 | 뒤 climax 해법과 진심 여부의 setup | F025/F027 ANCHOR |
+| N5 | F031 위험 신호→F034 도주 제안→F035 거절→F036 공격→F037 심장 목표→F038 폭탄 정체·구조 | 로맨스가 선택 충돌과 생존 위험으로 반전 | 관계극의 핵심 전환 | F031/F034~F038 ANCHOR |
+| N6 | F041~F043 추격·공안 피해·회복→F045 자신/심장 질문→F047 패배·구조→F049/F050 새 해법·빔 협력 | 개인 배신이 주변 피해와 동료 협력으로 확대 | 전투가 관계·캐릭터를 전진 | BRIDGE와 F045/F050 payoff |
+| N7 | F052 태풍 제거→F053 남은 레제의 위기→F054 수영/체인 회수→F055 생존 | 앞의 배움과 협력이 climax 해법이 됨 | action payoff와 setup 회수 | F052~F055 ANCHOR/BRIDGE |
+| N8 | F056 왜 살렸나→F057 거짓 주장→F058 덴지의 역도주 제안→F059 카페 약속 | 적대 뒤 진심·선택 가능성이 다시 열림 | 관계 payoff와 결말 dependency | F056~F059 ANCHOR |
+| N9 | F060 레제 배경→F061 귀환 선택→F062/F063 차단·공격→F064 학교 진실·엇갈린 기다림→F065 잔여 감정 | 자유를 선택했지만 재회가 좌절되고 덴지는 모름 | 비극적 resolution/emotional closure | F060~F065 MUST_KEEP |
 
-The locked body is the existing lock's `body_lock` field. It retains source context, event and reaction endings rather than treating the 862-second search windows as final runtime. Ranges are non-overlapping and chronological. The selected Cold open is F020 `2020.0–2029.0` followed by F007 `755.7–759.2` (12.5 seconds): immediate reading/hearing contradiction then concrete mishearing. F002 and F025 were alternatives; F037 was excluded to avoid pre-disclosing the later relationship/action payoff.
+### 새 candidate 결정
 
-## Step 9 — AI 전문 기획 판정 (current lock)
+- **RETAIN / BRIDGE 36:** F002, F005, F010, F014, F015, F020, F023, F025, F027, F031, F034, F035, F036, F037, F038, F041, F042, F043, F045, F047, F049, F050, F052, F053, F054, F055, F056, F057, F058, F059, F060, F061, F062, F063, F064, F065.
+- **DROP 6:** F003 `지누키`, F007 `여정`은 사용자 확정 DROP. F017은 관계 추론 중복, F032는 위험 전환이 F031/F036~F038보다 약함, F033은 독립 장소 bridge 비용이 큼, F048은 회복 정보를 F043과 반복한다.
+- 이전 ALTERNATE였던 F005/F010/F023/F036/F038과 DROP이던 F041/F053은 narrative dependency 때문에 복원했다. evidence 명확성보다 마키마 애착, 학교 결핍, 배신·폭탄 정체, 추격 연결, climax 직전 위기를 우선한 변화다.
+- 36개는 full body의 완결 boundary와 runtime을 잠근 수가 아니다. narrative spine coverage를 위한 current scene decision이며, pilot UAT 뒤 모든 retained scene에 completion boundary를 적용해 full body를 다시 lock한다.
 
-결론: **deterministic validation PASS / render_금지_gate PASS / AI 전문 기획 판정 PASS**. 이는 실제 시청 전 구조·근거 gate의 통과이며 최종 품질 인증이나 production 승인으로 읽지 않는다.
+### 경쟁 영상 원리 application trace
 
-Step 9은 Cold open의 F020 `2020.0–2029.0`와 F007 `755.7–759.2`가 본편에도 exact range로 들어 있던 결함을 발견했다. `F020 2020.0–2029.0`는 본편에서 제거했고, F007 본편은 source question `752.0–754.8`과 그 뒤 mishearing/translation `760.0–765.6`으로 바꿨다. direct-AV receipt·42-candidate 판정·Cold open competition은 재실행하지 않았다. F020 본편에는 이후 설명과 웃음 `2031.0–2034.5`, `2040.0–2042.0`만 남아 teaser의 동일 반응을 반복하지 않는다. 이 최소 보정 뒤 body는 52 ranges / 628.8초이며 planned envelope는 679.15초다.
+| 구조 원리 | 적용 beat/scene | 실제 변경 | 피한 Failure Pattern |
+|---|---|---|---|
+| Opening | P0 F002 complete event | old F020→F007 teaser montage를 폐기하고 읽기 시도 setup부터 결과까지 한 사건으로 연다 | 설명 없는 증거 조각·promise 과잉 압축 |
+| Viewer Question | P0→N1→N2 | `몇 개나 듣나`가 아니라 `이 읽기 상태로 작품 관계와 선택을 따라갈 수 있나`로 질문을 넘긴다 | 진단표 질문 고착 |
+| Escalation | N2→N5→N7→N9 | 만남→친밀감→도주 선택→배신/전투→수영 payoff→귀환/죽음으로 사건 규모와 감정을 키운다 | evidence 강도만 커지고 서사는 정지 |
+| Variation | N1/N3/N4/N6/N9 | 공동 감정·코미디·로맨스·협력 action·비극 결말로 변주하고 F003/F007/F017을 제거했다 | 같은 listening/mishearing 기능 반복 |
+| Character | F015/F025/F050/F058/F065 | 사건에 대한 선택·웃음·협력·잔여 감정이 있는 장면을 남긴다 | reaction만 떼어낸 montage |
+| Payoff | F025/F027→F054, F034/F035→F058/F061, F014/F015→F059/F061/F064 | setup과 회수를 같은 narrative chain으로 묶었다 | callback 원인을 잘라 명장면성이 사라짐 |
+| Failure Pattern | F002/F020 및 전 장면 | `setup → 사건/대사 → 사용자 발언 → reaction → 자연스러운 완료`를 boundary gate로 승격했다 | 말·행동·reaction completion 전 절단 |
 
-| 전문_평가_축 | 판정 | locked evidence 기준 |
-|---|---|---|
-| A/B→C 연결·Promise·Packaging Fit | PASS | F002의 읽기 시도, F003/F007의 소리 해석·오해, F020의 읽기/듣기 모순과 후반 F056/F060/F064의 감정·한계가 A/B를 C로 누적한다. package promise보다 강한 능력·인과는 주장하지 않는다. |
-| Opening·Viewer Question·핵심 장면까지의 이유 | PASS | F020→F007 Cold open은 모순 뒤 오해를 붙여 `어디까지 실제로 따라가는가`를 남긴다. 본편의 원인·새 결과를 분리해 회수한다. |
-| Escalation·Variation·장면 간 낙차·판단 갱신 | PASS | 초기 문자/소리 사례는 F014/F015의 관계 이해, F034/F035/F037의 전환, F056/F060/F064의 결말 감정으로 기능을 바꾼다. 성공·오해·자가수정·무언 몰입·미이해 경계가 같은 청해 판정표 배열을 막는다. |
-| Character·Payoff·Exit Hook | PASS | F020/F025/F037의 즉시 반응과 F056/F060/F064의 감정·한계가 인물성을 사건 안에 둔다. payoff는 단일 정답이 아니라 서사 이해·수정·몰입·정직한 미이해의 누적이며, exit는 정확한 단어·문자에 무엇을 더하면 달라질지의 질문에 한정한다. |
-| 동일 기능 반복 | PASS_AFTER_REPAIR | F020/F007 teaser/body exact duplicate를 제거했다. 나머지 초기 listening은 읽기 시도→자가수정→오해→관계 이해로 기능이 다르며, 실제 호흡은 rough cut에서 확인한다. |
-| chronology integrity·narrative continuity·MUST_KEEP coverage | PASS | body ranges는 source TC 오름차순이며 retained bridge는 관계 형성→도주 제안/거절→공격/전투→해변 관계 회수→귀환/차단→죽음/기다림을 보존한다. Cold open만 예외다. |
-| 사실 경계 | PASS | `gemini-3.8-flash` direct-AV evidence의 관찰 범위만 사용한다. 후반 미이해를 청해 성공으로 바꾸지 않고, 재확인/최초성은 viewer-facing 주장으로 만들지 않는다. |
+### Boundary와 RED TEAM
 
-### render_금지_gate RED TEAM
+F002는 `318.0–363.4`로 `가타카나 한번 읽어보자`부터 실제 읽기·`이는 어디 갔어`·마무리까지 보존한다. F020은 full body에서 `2004.0–2042.0`을 기본 사건 단위로 다시 검토해 덴지의 한자 setup, 사용자 `나도 못 읽는데`, 레제의 가르침/농담, 덴지의 읽기 결과와 레제의 웃음을 분리하지 않는다. 나머지도 문장·행동·reaction의 자연스러운 완료 전에 자르지 않는다.
 
-- PASS — MUST_KEEP narrative beat와 climax·resolution·emotional closure는 retained bridge 안에 남아 있으며, source narrative를 listening 사례로 대체하지 않는다.
-- PASS — F007은 source question과 뒤 reaction을 함께 보존하고, F020의 본편은 new explanation/reaction만 남긴다. cut boundary가 reaction 원인을 지우거나 Cold open을 단순 반복하지 않는다.
-- PASS — 초기 사례는 세 개 이상 같은 listening 기능으로 연속되지 않도록 읽기 행동·자가수정·오해·관계/사건 이해로 역할을 바꾼다. analysis tag는 편집 순서를 지배하지 않는다.
-- PASS — 동일 reaction/listening의 직접 중복은 위 최소 보정으로 제거했고, A/B→C 증명보다 source narrative의 관계·전환·결말 coverage를 우선한다.
+RED TEAM 결과, 새 spine은 evidence-first 배열·F003/F007 반복·F002 절단을 제거했고 P0 뒤 N1/N2로 즉시 작품 관계에 진입한다. 남은 위험은 (1) F002 45.4초가 opening에서 과하지 않은지, (2) F005→F010의 시간 생략이 마키마 애착으로 읽히는지, (3) F014 내부 세 구간의 생략이 만남의 감정을 깨지 않는지다. 이 세 가설만 먼저 볼 수 있어 전체 rough cut 대신 pilot로 검증한다. full body lock, Cold open competition, Step 9 재판정과 `AI_최종_PASS`는 모두 PENDING이다.
 
-남은 위험은 실제 호흡과 context의 체감이다. Step 10 review rough cut에서는 (1) F007의 source question→mishearing 재도입이 teaser를 보지 않은 시청자에게도 즉시 명료한지, (2) 초기 사례가 진단표처럼 느껴지기 전 F014/F015의 관계 서사로 넘어가는지, (3) F034/F035/F037의 관계 반전과 F056/F060/F064의 후반 인과·감정이 축소 후에도 읽히는지, (4) 679.15초 envelope가 실제로 느슨하지 않은지를 viewer mode로 검증한다. 이번 Step 9에서 rough cut·subtitle·burn-in·typography는 만들지 않았다.
+### Step 10 narrative-first review pilot
 
-## Step 10 — review rough cut 생성 완료, 사용자 시청 대기
+logical artifact `ep1.review_pilot_narrative_v1`은 durable run `ep1-narrative-pilot-20260917-57dd48e`로 marker-last commit했다. Cold open, subtitle, burn-in, typography, added narration/music/effects 없이 primary의 mixed audio와 source video만 사용했다.
 
-logical artifact `ep1.review_step10`은 durable run `ep1-step10-review-20260917-029a52d`로 marker-last commit했다. source는 immutable `ep1.primary_recording`이고, Cold open F020 `2020.0–2029.0` → F007 `755.7–759.2` 뒤에 current lock의 52 body ranges를 source TC 오름차순으로 연결했다. Step 9에서 제거한 F020/F007 exact duplicate는 복원하지 않았다.
-
-- actual duration: `641.3505s` (locked footage 합계 `641.3s`; AAC concat frame 정렬 차이 `0.0505s`)
+- source ranges: F002 `318.0–363.4`; F005 `687.0–708.5`; F010 `1043.0–1061.0`; F014 `1336.5–1359.5`, `1383.0–1405.5`, `1429.0–1444.5`; F015 `1463.5–1479.5`
+- actual duration: `161.921333s` (`02:41.921`)
 - streams: video 1 / source mixed audio 1
-- validation: ffprobe PASS, full decode PASS, body chronology PASS, Cold open→body order PASS
-- SHA-256: `f9b2b045d446a470f498b2da41bb60247516383544830f55d66b16c04882d12f`
-- durable: publish, manifest, marker-last commit, clean materialize/hash/decode PASS
-- treatment boundary: source TC/provenance overlay, subtitle, burn-in, typography, added narration, added music/effects 없음
+- validation: ffprobe PASS, full decode PASS, source chronology PASS, clean materialize/hash/decode PASS
+- SHA-256: `79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3`
+- durable object: `runs/ep1-narrative-pilot-20260917-57dd48e/committed/79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3.mp4`
 
-이 artifact는 actual 시청을 위한 review rough cut일 뿐이다. 사용자 체감 관측이 없으므로 Step 10 전체 PASS/FAIL, planning_quality PASS/FAIL, `AI_최종_PASS`는 판정하지 않는다.
+다음 gate는 사용자가 이 pilot만 실제 시청해 위 세 가설을 관측하는 것이다. `ep1.review_step10`은 historical failure artifact이며 전체 rough cut·Cold open·Step 9·planning quality 최종 판정은 만들지 않는다.
 
 ## Historical 2026-09-17 partial direct-AV receipt — superseded, not current input
 
