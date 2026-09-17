@@ -9,7 +9,7 @@
 - repository selector, bootstrap, immutable snapshot, same-chat freshness, GitHub 접근·실패 처리, bootstrap receipt는 ChatGPT Project instruction만 소유한다.
 - repository 운영 원칙과 source routing은 root `AGENTS.md`가 소유한다.
 - repository의 current project state와 project-level next action은 `STATE.md`, runtime state는 `tools/harness/STATE.json`, 세부 current truth는 각 owner가 소유한다.
-- 장기 영상 기획 판단 원칙과 material-first, source narrative·analysis·reaction 역할, scene unit, chronology와 narrative continuity, retention과 Cold open 원칙은 `PLAYBOOK.md`가 소유한다.
+- 장기 영상 기획 판단 원칙은 `PLAYBOOK.md`, material-first/pre-shoot 분기와 source reconstruction·후보 경쟁·boundary·Opening·UAT recovery를 포함한 공통 executable process는 `tools/harness/PIPELINE.yaml`이 소유한다.
 - 특정 작업의 계획·과거 handoff·평가 checkpoint는 그 문서가 명시한 한정된 범위의 기록이며 이 계약을 대체하지 않는다.
 
 current repository truth 확인은 현재 ChatGPT Project instruction을 따른다. 이 문서는 그 절차나 receipt 형식을 복제하지 않는다.

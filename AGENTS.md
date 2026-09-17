@@ -32,6 +32,7 @@
 | 공통 deterministic 규칙 | tools/harness/COMMON_RULES.json | 모든 편에 공통인 기계 검사 |
 | 편별 deterministic lock | STATE.json이 가리키는 lock 파일 | 해당 편의 사실·잠금·금지 문구 |
 | 첫 콘텐츠의 세부 사실·기획 기준 | FIRST_VIDEO.md | 1화 |
+| 첫 콘텐츠의 current planning 결정·상세 evidence·UAT·superseded planning 기록 | materials/ep1_main/PLANNING_RESULTS.md | 1화 planning/evidence |
 | 장기 판단 원칙 | PLAYBOOK.md | 반복 적용할 기획·운영 원칙 |
 | 안정적 프로젝트 배경 | PROJECT_CONTEXT.md | 채널·프로젝트의 지속적 맥락 |
 | 사용자 적합성 정보 | USER_PROFILE.md | 실제 판단을 바꾸는 안정적 특성 |
@@ -71,13 +72,11 @@
 
 영상 기획 routing은 다음을 고정한다.
 
-1. tools/harness/STATE.json에서 현재 공정, 현재 편, 현재_lock, 입력 경로와 계획 단계를 확인한다.
-2. STATE.json이 지정한 PIPELINE.yaml의 순서와 통과 조건을 따른다.
-3. STATE.json의 현재_lock 경로를 사용한다. EP1_LOCK.json 등 특정 편의 lock을 추측하거나 하드코딩하지 않는다.
-4. 실제 촬영물·실험 결과·관찰 기록이 있으면 material_first를 사용한다.
-5. material_first에서는 실제 footage와 material에서 사건·반응·변화를 먼저 찾고, 촬영 전의 예상이나 가상 원안이 이를 덮어쓰지 않게 한다.
-6. 외부 작품·경기·공연·사건처럼 자체 서사가 있는 material_first 입력은 source narrative, desktop dialogue/audio, user mic, visual/nonverbal reaction을 독립 복원해 synchronized evidence timeline을 만든 뒤 scene 후보를 경쟁시킨다.
-7. pipeline을 건너뛰고 바로 각·구조·패키징을 작성하지 않는다.
+1. `tools/harness/STATE.json`에서 현재 공정, 편, lock, 입력 경로와 계획 단계를 확인한다.
+2. `STATE.json`이 지정한 `PIPELINE.yaml`의 단계·분기·통과 조건을 따른다.
+3. `STATE.json`의 현재 lock을 사용하고 특정 편의 lock 경로를 추측하거나 하드코딩하지 않는다.
+4. 실제 재료가 있으면 `material_first`, 없으면 `pre_shoot` 경로를 선택한다. 각 경로의 실행 순서와 산출물은 `PIPELINE.yaml`만 소유한다.
+5. pipeline을 건너뛰고 바로 각·구조·패키징을 작성하지 않는다.
 
 System Evaluation 구현·감사·실행 요청은 `evals/system/README.md`를 기준으로 하며 영상 기획 결과물 요청이 아니므로 video_planning pipeline을 실행하지 않는다. 하네스 구현·감사·instruction source 수정 요청도 video_planning pipeline을 실행하지 않는다. tools/scene_collector 아래 작업은 해당 scoped AGENTS.md를 함께 따른다.
 
@@ -106,17 +105,12 @@ Search → Evaluate → Adopt/Buy → Adapt → Build last
 
 ## 7. 영상 기획 품질과 validator의 경계
 
-- A/B→C는 큰 기획 뼈대이며 경쟁 사례 분석을 대체하지 않는다.
-- material_first에서는 실제 사건·반응·시청각 신호에서 A+B가 특별해지는 장면을 찾은 뒤 콘텐츠 각과 구조를 만든다.
-- 외부 source narrative가 있는 영상은 먼저 사건·인과·관계·목표·위험·감정 변화와 climax·resolution·emotional closure로 narrative spine을 세운다. 그다음 A/B→C를 spine 위에 얹고, 장면의 재미·감정·관계 변화·reaction을 경쟁시킨 뒤, listening/reading 같은 분석 evidence를 마지막으로 배치한다. source narrative와 A/B→C가 충돌하면 source narrative를 우선한다.
-- 경쟁 사례 분석은 `참고했다`는 선언으로 끝내지 않는다. 채택한 Opening / Viewer Question / Escalation / Variation / Character / Payoff 원리 또는 피할 Failure Pattern이 어느 narrative beat·scene admission·DROP·boundary를 어떻게 바꿨는지 application trace로 남기고 Step 9에서 실제 selection과 대조한다.
-- chronology 보존과 narrative continuity 보존을 같은 것으로 취급하지 않는다. review boundary는 필요한 `setup → source 사건·대사 → 사용자 발언 → reaction → 자연스러운 완료`를 보존하고, 말·문장·행동·reaction의 완료 직전에 자르지 않는다.
 - 촬영 전 가정과 실제 결과를 섞지 않는다. 2차·3차 시청이나 재촬영 여부는 내부 material provenance와 분석 기록에서 구분한다. 이 내부 구분을 viewer-facing 영상에 의무 표기하지 않되, 최초 반응이 아닌 장면을 `첫 반응`, `처음 본 순간`, `처음 보는 장면`이라고 명시적으로 주장하지 않는다.
 - deterministic validator는 current truth·lock·자료 경계·명백한 금지 문구만 검사한다.
 - validator의 PASS는 기획 재미, 시청 지속, 콘텐츠 각, RED TEAM 통과나 최종 품질을 뜻하지 않는다.
 - RED TEAM은 살아남은 안의 명백한 약점을 공격하는 절차이지 좋은 기획 인증서가 아니다.
 - 공정과 current truth를 지켰는데 영상이 약하면 planning_quality_failure로 분리해 판단한다. 실패했다고 자동으로 harness layer를 추가하지 않는다.
-- AI/harness는 실제 장면 근거로 전문 기획 판정을 먼저 수행하고 review rough cut을 만든다. 사용자는 문서 기반 전문 evaluator가 아니라 실제 영상을 본 시청자로서 체감 반응을 제공한다. AI는 그 관측을 구조 문제로 해석해 근거·권고·남은 불확실성을 보고하고, 최종 제작 진행 여부의 의사결정은 사용자에게 남긴다. UAT가 planning_quality_failure이면 기존 selection·body lock·Cold open·Step 9 PASS를 필요한 범위에서 재개방하고, 실패 artifact를 더 시청시키지 않는다. 전편 재생성이 비싼 경우에는 수정 가설을 검증하는 짧은 pilot을 먼저 만든다.
+- AI/harness의 품질 판정, 실제 artifact UAT, 실패 복구의 실행 계약은 `PIPELINE.yaml`이 소유한다. 사용자의 체감 관측과 AI 해석을 구분하고 최종 제작 진행 여부의 결정은 사용자에게 남긴다.
 
 ## 8. Owner별 변경 원칙
 

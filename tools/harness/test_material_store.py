@@ -68,8 +68,37 @@ class MaterialStoreTests(unittest.TestCase):
             "ep1.new_scene_pool",
             "ep1.review_b",
             "ep1.review_c",
+            "ep1.full_rescan_checkpoint",
+            "ep1.direct_av_42_checkpoint",
+            "ep1.review_step10",
+            "ep1.review_pilot_narrative_v1",
         }
         self.assertTrue(expected.issubset(artifacts))
+
+    def test_current_checkpoint_metadata_is_preserved(self):
+        artifacts = material_store.load_artifacts()
+        expected = {
+            "ep1.full_rescan_checkpoint": (
+                "planning/ep1/rescan/20260916/EP1_RESCAN_CHECKPOINT.zip",
+                10_619_345,
+                "5062ea0d2f3b4afb07c6289071fd72899d4df76adfb3e697930728f045f38684",
+            ),
+            "ep1.direct_av_42_checkpoint": (
+                "planning/ep1/direct_av/20260917/EP1_DIRECT_AV_42_CHECKPOINT.zip",
+                684_526_179,
+                "ad614a416aabc12de169ae6b108c915395ea0ca4011602349d75d6d415dbf3bc",
+            ),
+            "ep1.review_pilot_narrative_v1": (
+                "runs/ep1-narrative-pilot-20260917-57dd48e/committed/79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3.mp4",
+                15_244_624,
+                "79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3",
+            ),
+        }
+        for artifact_id, (object_key, size, sha256) in expected.items():
+            record = artifacts[artifact_id]
+            self.assertEqual(record["object_key"], object_key)
+            self.assertEqual(record["size"], size)
+            self.assertEqual(record["sha256"], sha256)
 
     def test_primary_record_uses_verified_immutable_facts(self):
         record = material_store.artifact_record("ep1.primary_recording")

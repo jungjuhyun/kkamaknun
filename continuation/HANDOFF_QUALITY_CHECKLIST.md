@@ -9,7 +9,7 @@
 - [ ] **Q03** snapshot receipt와 SHA를 생성 시점 provenance로만 썼고 새 Chat의 current selector나 영구 current state처럼 고정하지 않았다.
 - [ ] **Q04** repository current state·project-level next action·runtime·세부 사실은 해당 owner를 가리키고, conversation-level next action은 owner 사실과 구분돼 handoff가 새 owner처럼 서술되지 않았다.
 - [ ] **Q05** ChatGPT Project instruction의 selector, bootstrap, immutable snapshot, freshness, GitHub failure handling 또는 receipt 절차를 복제하지 않았다.
-- [ ] **Q06** `PLAYBOOK.md`의 장기 영상 기획 판단 원칙을 복제하거나 대체 owner를 만들지 않았다.
+- [ ] **Q06** `PLAYBOOK.md`의 장기 판단 원칙이나 `tools/harness/PIPELINE.yaml`의 공통 executable process를 복제하거나 대체 owner를 만들지 않았다.
 - [ ] **Q07** repository owner의 긴 내용을 무조건 복사하지 않고 continuation에 필요한 source map과 conversation delta만 남겼다.
 
 ## B. Decision state와 작업 상태

@@ -157,235 +157,19 @@ A/B/C와 **EP1의 packaging promise / product positioning**은 변경하지 않�
 
 개별 listening scene은 영상 전체 promise의 proof/supporting evidence다. `내용은 아는데 일본어는 모름?`은 전체 영화 이해를 과장할 위험으로 기각했던 문구이며, 본 checkpoint에서 패키징을 재설계하지 않았다.
 
-### Step 10 UAT 이후 EP1 기획 우선순위 — current
+### EP1-specific content constraints
 
-`ep1.review_step10`은 사용자의 실제 시청에서 **`planning_quality_failure`**로 판정됐다. 이 artifact는 더 이상 사용자에게 시청시키지 않는다. 이전 32 RETAIN / 52 body ranges / Cold open / Step 9 전문 판정은 current selection lock이 아니며, durable direct-AV 42/42와 full-rescan evidence만 재사용한다.
+- 레제편의 source narrative가 body의 골격이다. 최소한 전투 재기·climax, 해변 관계 회수, 레제의 배경, 귀환 선택, 죽음, 덴지가 모른 채 기다리는 결말의 인과와 emotional closure를 압축된 형태로 보존한다.
+- 작품 자막으로 확인한 정보와 사용자가 실제로 들은 내용은 구분한다. 개별 관측을 전체 일본어 능력이나 학습 인과로 확대하지 않는다.
+- Cold open을 제외한 본편은 primary recording의 source chronology를 보존한다. 재시청·재촬영 provenance는 내부에 남기되 최초가 아닌 장면을 최초라고 주장하지 않는다.
+- 완성본 전체 hard ceiling은 15:00이며 목표 길이나 최소 길이가 아니다. 인과·promise·payoff를 끊어 상한만 맞추지 않는다.
+- full-original rescan과 direct AV 42/42 checkpoint는 완료된 입력이다. 새 evidence가 요구하지 않는 한 65개 후보 전체나 42개 direct-AV evidence를 다시 만들지 않는다.
 
-EP1의 selection·body 판단 순서는 다음과 같다.
+공통 selection·compression·boundary·Opening·UAT recovery 절차는 `tools/harness/PIPELINE.yaml`이 소유한다. EP1의 current candidate·spine·boundary·application trace·UAT와 superseded evidence는 `materials/ep1_main/PLANNING_RESULTS.md`, current gate와 다음 행동은 `STATE.md`, deterministic projection은 `tools/harness/EP1_LOCK.json`을 따른다.
 
-1. **레제편의 작품 서사** — 사건·인과·관계·목표·위험·감정 변화와 climax·resolution·emotional closure.
-2. **그 서사 위에서 작동하는 A/B→C** — source narrative와 충돌하면 작품 서사가 우선한다.
-3. **장면 자체의 재미·감정·관계 변화·명장면성·사용자 reaction.**
-4. **listening / reading / mishearing evidence.** evidence 가치만 높고 작품 흐름이나 시청 재미를 해치면 제거한다.
+### Historical planning evidence pointer
 
-고정 UAT 판정은 `여정` F007과 `지누키` F003의 DROP이다. F002는 `가타카나 한번 읽어보자`부터 실제 읽기 결과와 자연스러운 종료까지, F020은 덴지가 한자를 못 읽는 setup부터 레제의 가르침·농담·덴지의 읽기 결과·레제의 웃음까지 하나의 사건으로 검토한다. 새 narrative spine·candidate 판정·pilot boundary와 competitive application trace의 상세 owner는 `materials/ep1_main/PLANNING_RESULTS.md`, 실행 lock은 `tools/harness/EP1_LOCK.json`이다.
-
-### SELECTION_COMPRESSION_CONTRACT — CONTRACT_READY
-
-2026-09-16 accepted contract의 operative 규칙을 이 기존 EP1 owner에 통합한다. 별도 permanent contract owner는 만들지 않는다. 원 응답 전체와 당시 확인 receipt는 cloud `ep1.full_rescan_checkpoint`의 `SELECTION_COMPRESSION_CONTRACT.md`에 보존한다. 아래 규칙은 재설계하지 않았으며 표현의 경로·문서 연결만 정리했다.
-
-#### 1. Contract objective
-
-**장면을 넣을 이유, 장면 내부에 남길 부분, 장면을 이해시키는 context를 따로 판단한 뒤 하나의 시청 경험으로 검증한다.** scene-selection, within-scene compression, story-context allocation 실패를 함께 방지한다. 위 A/B/C와 packaging promise, lock의 chronology·material·provenance 경계를 유지한다.
-
-확정 시 읽은 기존 `REVIEW_RESEARCH_REPORT.md`는 `ep1.full_rescan_checkpoint`에 보존한다. 연구의 관찰과 REVIEW_C의 확정 실패를 통합하면 다음 차이가 남는다.
-
-| 판단 지점 | 연구에서 관찰된 전달 방식 | REVIEW_C 실패에 대한 계약의 대응 |
-|---|---|---|
-| 사건 선택 | 다음 판단·반응·보상을 만드는 부분을 선택 | 유효한 증거라는 이유만으로 누적하지 않고, 새 기여가 있는 후보를 경쟁 |
-| 장면 내부 | 증거·관점·감정이 진행되는 부분에 시간을 배정 | admission 이후에도 반복·필러·대기·불필요한 잔여를 다시 제거 |
-| Context | 이미 전달한 목적·관계를 이용해 달라진 조건을 연결 | 필요한 인과를 보존하면서 그 정보를 둘러싼 원작 분량은 별도로 경쟁 |
-
-이는 **구조에 관한 판단 모델**이다. 연구에는 실제 유지율이나 원본 대비 삭제량이 없어, 특정 편집 방식이 성공을 일으켰다고 확정하지 않는다. REVIEW_C의 세부 원인별 시간 기여도도 이번에 계측하지 않았다.
-
-통합 판단 질문은 다음과 같다.
-
-> **이 부분은 시청자의 사건 이해·판단·감정·기대·인물 인상을 무엇에서 무엇으로 바꾸는가? 직접 바꾸지 않는다면, 그 변화를 성립시키는 어떤 준비·인과·감정의 축적에 필요한가?**
-
-새로운 사실이 등장한다는 것만으로 충분하지 않다. **남길 이야기와 promise에 기여해야 하며, 이미 전달된 기능을 다시 기다리게 하는 부분은 제거한다.**
-
-#### 2. Scene admission rule
-
-외부 작품 서사가 있는 EP1은 먼저 narrative spine의 beat를 확정하고, 그 beat를 전달할 footage를 경쟁한다. 작품상 중요한 beat는 coverage 의무가 되지만 특정 긴 원본 구간을 자동 보호하지 않는다. 후보 admission에는 다음 두 가지가 필요하다.
-
-1. **실제 근거:** 원본에서 확인되는 사건·발화·행동·비언어 반응 또는 필요한 서사 정보.
-2. **구체적인 기여:** 시청자가 새로 얻는 변화, 혹은 다른 핵심 장면을 이해시키는 명시적인 의존 정보.
-
-새 기여는 사건 진행, 새 evidence, 이해·오해의 변화, 구체적인 viewpoint, 감정 변화, 인물성, 웃음·행동의 payoff, 필요한 context 중 하나 이상일 수 있다. 기능 이름을 붙이는 것으로 끝내지 않고 **무엇이 달라지는지 한 문장으로 설명**해야 한다.
-
-다음은 특정 footage의 길이나 경계를 단독으로 보호하는 근거가 아니다.
-
-- 작품에서 중요한 장면이라는 사실
-- 긴 사용자 발화
-- 일본어를 들었다는 증거
-- 웃음·놀람·침묵 등 reaction의 존재
-- 이전 기획에서 선택됐다는 이력
-
-화장실, 자리 비움, 의미 없는 대기는 scene으로 admission하지 않는다. 그 전후에 실제 사건이 있으면 사건만 분리해 검토한다.
-
-**Admission은 최종 KEEP이 아니다.** 통과한 후보도 내부 압축, context 비용, 기능 중복, 전체 흐름과 runtime 경쟁을 거친다.
-
-#### 3. Scene unit
-
-기본 단위는 가능한 범위에서 다음 인과를 잇는다.
-
-**source setup → 필요한 작품 사건·대사 → 사용자 발언·이해·오해 → 실제 reaction → 자연스러운 완료 또는 다음 상태**
-
-이것은 다섯 요소를 매번 별도 컷으로 넣으라는 형식이 아니다.
-
-- 앞 장면에서 이미 전달한 setup은 다시 설명하지 않는다.
-- 한 행동이나 대사가 사건·증거·payoff를 동시에 수행할 수 있다.
-- 필요한 결과가 다음 scene에서 드러나면 그 의존 관계를 연결한다.
-- 필수 서사 정보에는 강한 사용자 reaction이 없어도 된다.
-- 하나의 scene은 중간의 불필요한 시간을 생략한 여러 source 구간으로 구성할 수 있다.
-
-**scene 경계는 원작 장면 전체나 사용자 발화 전체가 아니라, 보존할 인과 기능을 기준으로 잡는다.** 다만 말 중간, 문장 끝 직전, 행동·reaction 진행 중에 자르지 않는다. 긴 원본 덩어리에 역할 여러 개를 붙여 하나의 필수 scene으로 보호하지 않는다.
-
-#### 4. Within-scene compression rule
-
-Admission 이후 모든 후보의 내부를 다시 판단한다.
-
-**우선 제거·압축할 부분:** 동일 의미 반복, 이미 전달한 설명, filler, hesitation, thinking pause, 말 고르는 시간, 문장 재시작, 같은 reaction의 tail, payoff 이후 대기, source event 이후 잔여, 다음 상태를 바꾸지 않는 말.
-
-한 발화 내부의 jump cut도 적극적으로 허용한다. 단, 압축 전후를 비교했을 때 다음이 유지돼야 한다.
-
-- 발언의 의미·대상·긍정과 부정·확신 정도
-- 실제로 들은 것과 추측한 것의 구분
-- 오해와 자가수정의 순서
-- reaction을 일으킨 실제 사건
-- 감정과 코미디가 성립하는 타이밍
-
-예를 들어 말 고르는 시간을 없애는 것은 가능하지만, **오해를 거쳐 답에 도달한 발화를 처음부터 정확히 이해한 것처럼 만들면 실패**다.
-
-반복·침묵도 삭제 후보로 보되, 다음 기능이 실제로 있으면 필요한 부분을 남긴다.
-
-- 새로운 상황에서 반복되어 의미가 바뀌는 callback
-- 웃음이나 당황이 진행되며 생기는 payoff
-- 표정·태도 변화 또는 결말의 감정적 수용
-- 뒤 반응을 성립시키는 긴장·기다림
-
-“여운”, “몰입”, “캐릭터”라는 이름만으로 보존하지 않는다. **삭제하면 무엇을 잃는지 원본 근거로 특정하고, 그 기능이 끝난 뒤에는 종료한다.**
-
-#### 5. Context allocation rule
-
-Context는 **현재 편집본을 여기까지 본 시청자가 아직 모르는 필수 정보**에 배정한다.
-
-각 큰 생략과 scene 연결에서 다음을 확인한다.
-
-- 지금 누구에게 무슨 상황이 벌어지는가?
-- 왜 사용자가 이렇게 반응했는가?
-- 앞 장면의 관계·목표·질문을 어떻게 이어받는가?
-- 사건의 결과로 무엇이 달라졌는가?
-- 그 변화가 다음 장면의 의미를 어떻게 만드는가?
-
-모든 질문을 매번 설명할 필요는 없다. 이미 전달한 정보는 재사용하고, **비어 있는 정보만 보충한다.** 원작을 이미 아는 시청자의 기억으로 공백을 메우지 않는다.
-
-Context 범위에는 양방향 검사를 적용한다.
-
-- **빼보기:** 이 부분을 빼도 원인·관계·결과·reaction을 동일하게 이해하는가? 그렇다면 제거 후보.
-- **이어보기:** 줄인 앞뒤를 연결하면 잘못된 인과, 갑작스러운 관계 변화, 근거 없는 reaction이 생기는가? 그렇다면 빠진 정보를 복원.
-
-복원할 때는 원작 장면 전체를 되돌리지 않고, 필요한 행동·대사·결과를 전달하는 더 간결한 구간을 찾는다. **가장 짧은 구간보다 의미와 감정이 성립하는 최소 충분 범위**를 선택한다.
-
-후보 경쟁에서는 reaction의 길이만 보지 않는다. 그 reaction을 성립시키는 setup·bridge·결과까지 함께 비교한다. 추가 설명이 필요하면 필요한 정보만 기록하고, 아직 만들지 않은 나레이션·자막이 이미 문제를 해결했다고 간주하지 않는다.
-
-#### 6. Narrative / listening / reaction / bridge competition rule
-
-공통 원칙은 **보존할 기능과 그 기능을 구현하는 footage를 분리하는 것**이다. 같은 기능의 후보끼리뿐 아니라, 서로 다른 기능이 전체 영상에서 차지할 자리도 경쟁한다. 기능별 고정 비율이나 할당량은 두지 않는다.
-
-| 기능 | 남길 조건 | 경쟁·압축 방식 |
-|---|---|---|
-| **Narrative** | 핵심 인과·관계·목표·위험·감정 변화·climax·resolution·emotional closure 또는 다음 장면의 이해에 필요 | 본편의 선행 골격이다. 필수 기능은 유지하되 이를 전달할 구간과 표현 방식을 경쟁한다. 원작 분량은 보호하지 않는다. |
-| **Listening** | promise에 대한 새 발견·오류 형태·이해 방식·contrast·story progression·인물성·payoff를 추가 | 같은 기능의 evidence는 대표성을 경쟁시킨다. 사례 수 자체를 증명력으로 취급하지 않는다. |
-| **Reaction / character** | 인물이 기억되거나, 사건이 더 재미있어지거나, 이해·감정·viewer question이 달라짐 | 반응 크기만으로 고르지 않는다. 원인과 함께 비교하고 변화가 끝난 tail은 제거한다. |
-| **Bridge** | 명시한 다음 사건을 이해시키는 정보가 부족함 | 전달할 정보와 연결 대상을 특정한다. 그 정보가 전달되면 종료한다. |
-
-**Narrative의 필수 기능은 약한 청해·reaction 때문에 삭제하지 않는다.** 먼저 서사를 배치하고, 그 위에서 A/B→C와 재미·reaction을 경쟁시킨 뒤 evidence를 넣는다. 현재 owner의 후반 인과인 `전투 재기·climax → 해변 관계 회수 → 레제의 배경 → 귀환 선택 → 죽음 → 덴지가 모른 채 기다리는 결말`을 압축된 형태로 보존한다. 이것은 기존 REVIEW_C의 scene 수·경계·길이를 재사용하라는 뜻이 아니다.
-
-`MUST_KEEP`는 narrative function의 의무다. 한 beat의 모든 대사·전투·이동·반응을 살리는 면허가 아니다. 작품 전체 요약을 위해 주변 사건을 계속 추가하지 않는다.
-
-**Listening은 실제 사용자 evidence로 판단한다.** 작품 자막이 알려 주는 정보를 사용자가 알아들은 내용으로 바꾸지 않는다. 성공 사례만 골라 비대칭을 지우거나, 확인된 장면을 전체 일본어 능력·학습 인과로 확대하지 않는다.
-
-**Bridge는 연결 대상에 종속된다.** 다음 후보가 탈락하면 그 후보만을 위해 남겼던 bridge도 다시 판정한다. Angel Devil 관련 정보도 유지할 사건·관계·결말을 이해시키는 데 필요한 만큼만 사용한다. 독립적인 재미가 있다면 별도 admission을 받아야 하며, bridge라는 이름으로 긴 scene을 보호하지 않는다.
-
-본편은 source chronology를 유지하며, listening 오류 유형별로 재배열하지 않는다. 본편 설계 후 Cold open을 경쟁시키고, 본편 재등장에는 새 맥락·원인·결과·감정·해석이 있어야 한다.
-
-#### 7. Runtime rule
-
-**EP1의 hard ceiling은 약 15분 이하이며, 이 계약의 작업상 통과 기준은 완성본 전체 15:00 이하다.** Cold open, 연결, 엔딩을 모두 포함한다. 15분을 채우는 목표나 최소 길이는 없다.
-
-좋은 10분이 늘어진 15분보다 우선한다. 반대로 짧아졌다는 이유로 인과·promise·payoff가 손상된 안을 통과시키지 않는다.
-
-상한을 넘으면 다음을 다시 판단한다.
-
-- 동일 기능 후보와 독립 가치가 약한 후보 제거
-- 살아남은 scene의 내부 압축
-- 중복 context 제거와 더 간결한 전달 구간 선택
-- 후보 묶음 자체의 교체
-
-필수 인과를 끊거나 단순 배속·강제 절단으로 상한만 맞추지 않는다. 필수 기능과 상한을 함께 충족하지 못하면 **selection/compression이 아직 해결되지 않은 상태**다.
-
-scene별 최대 초수, chapter별 고정 분량, 고정 압축률, jump-cut 빈도, 가짜 정량 점수는 만들지 않는다. 최종 길이는 실제 남길 구간에서 산출한다.
-
-#### 8. Full-original rescan decision format
-
-다음 실행의 탐색 범위는 **`ep1.primary_recording` 전체 `01:45:25.063`**이다.
-
-기존 네 layer와 synchronized timeline은 원본 대조용 evidence로 활용한다. 과거 34/15, reconstruction의 30 candidates, REVIEW_C 17 scenes는 후보 수·범위·우선순위의 기준으로 사용하지 않는다. 새 후보는 빈 목록에서 시작한다.
-
-기록은 다음 **7개 field**로 제한한다.
-
-| Field | 기록 내용 |
-|---|---|
-| **TC / boundary** | 원본 절대 TC와 사건 경계. 이후 남길 하위 구간을 같은 칸에 연결 |
-| **실제 사건·사용자 반응** | source 사건과 실제 발화·비언어를 구분. 미확인 해석은 표시 |
-| **시청자 변화·역할** | 무엇에서 무엇으로 바뀌는지 한 문장. 기존 pipeline 역할 태그를 필요한 만큼 병기 |
-| **필수 context·의존 관계** | 앞에서 필요한 정보 → 여기서 넘기는 상태. 연결 후보/beat 및 MUST_KEEP·BRIDGE·OPTIONAL 구분 |
-| **내부 압축** | 남길 핵심과 제거할 반복·대기·tail. 삭제하면 안 되는 의미·감정 경계 |
-| **기능 경쟁** | 겹치는 새 후보와 비교해 무엇을 더 주는지, 필요한 context 부담까지 기록 |
-| **판정·한 줄 이유** | KEEP / COMPETE / DROP 및 결정 이유 |
-
-판정의 의미는 다음과 같다.
-
-- **KEEP:** 현재 비교에서 살아남았으며 의존 관계와 압축 방향을 설명할 수 있음. 전체 scan·경쟁 종료 전에는 잠정 판정.
-- **COMPETE:** 가치가 있으나 대체 후보, context 비용, evidence 확인이 남음. 해결할 쟁점을 한 줄로 명시.
-- **DROP:** 새 기여가 없거나, 다른 후보가 기능을 더 잘 수행하거나, 압축 후에도 비용에 비해 약함.
-
-비사건 구간은 연속 범위를 묶어 `TC / DROP / 이유`만 남겨 기록 부담을 줄인다. 전체 탐색의 누락 여부는 검토 완료 TC 범위로 확인한다. 불확실한 관측에 의존하는 후보는 확정 KEEP으로 올리지 않는다.
-
-전체 scan 뒤에는 기존 기록으로 다음을 대조한다.
-
-**전체 범위 검토 → 기능 중복 경쟁 → 필수 인과 coverage → 내부 압축·연결 검토 → 전체 runtime 확인.**
-
-이 과정에서 후보가 빠지면 연결된 context와 bridge도 다시 계산한다. 최종 scene 수와 선택 TC는 이번 계약에서 정하지 않는다.
-
-#### 9. RED TEAM에서 제거·수정된 잘못된 규칙
-
-다음 regression을 공격하고, 해결을 계약 본문에 반영했다.
-
-| 제거·수정한 규칙 | 본문에 반영한 해결 |
-|---|---|
-| 작품상 중요하거나 MUST_KEEP이면 긴 source를 유지 | **기능 보존과 footage 분량 분리** — 3·6절 |
-| 긴 사용자 발화일수록 중요 | 발화 길이와 무관하게 새 기여를 판단하고 내부 재압축 — 2·4절 |
-| Listening evidence는 많이 보여줄수록 좋음 | 추가 발견과 기능 중복을 경쟁 — 6절 |
-| Narrative continuity를 위해 중간 사건을 모두 보여줌 | 필수 의존 정보만 연결하고 영화 요약 확장 방지 — 5·6절 |
-| Reaction이 존재하면 KEEP | 실제 인물성·판단·감정·payoff의 기여 요구 — 2·6절 |
-| 15분까지 채워야 충분함 | 최소 길이·padding 목표 제거 — 7절 |
-| 매 순간 새 정보가 없으면 삭제 | 필요한 setup·감정 축적·코미디 타이밍을 인정하되 삭제 손실을 구체화 — 1·4절 |
-| 반복·침묵은 무조건 삭제 | 기능이 바뀌는 반복과 살아 있는 감정만 보존 — 4절 |
-| 가장 짧은 context가 항상 최선 | 최소 충분 범위를 앞뒤 연결로 검증 — 5절 |
-| Bridge는 continuity라는 이유로 독립 보존 | 연결 대상·전달 정보·종료 조건을 명시하고 종속 후보 탈락 시 재판정 — 6절 |
-| REVIEW_C 17개에서 덜어내면 새 selection | 전체 원본에서 빈 후보 목록으로 시작 — 8절 |
-| Source 최대 N초·N초마다 jump cut | 고정 초수·빈도 대신 의미·감정·인과 보존으로 판정 — 4·7절 |
-| 경쟁자 한 명의 구조·말투를 template로 사용 | 여러 사례의 전달 원리만 채택하고 EP1 promise·chronology 유지 — 1·6절 |
-| 자막·typography로 selection 결함을 해결 | 정보 필요만 기록하고 제작은 selection/internal compression lock 이후 — 5절 및 아래 제작 gate |
-
-오염 검사 결과, 이 계약에는 **기존 scene ID, 선택 경계, 순위, scene 수를 보존해야 한다는 조건이 없다.** 기존 REVIEW_C와 우연히 겹치는 장면도 새 원본 관찰과 새 경쟁 근거로만 살아남을 수 있다.
-
-
-### 현재 적용 결과와 제작 gate
-
-위 8절의 '빈 목록 시작'은 full-original rescan에서 이미 수행됐고 direct AV 42/42 durable checkpoint도 완료됐다. 다음 기기에서 기존 REVIEW_C나 reconstruction 30개 후보로 재시작하거나 65개 목록을 기억으로 재구성하지 않는다. **현재 실행 상태/다음 행동은 `STATE.md`, candidate·boundary·검증 범위는 `materials/ep1_main/PLANNING_RESULTS.md`와 그 문서가 지정한 cloud checkpoint를 따른다.**
-
-현재 `ep1.review_step10` UAT 실패로 body lock과 Cold open은 재개방됐다. full rescan·65 후보 생성·direct AV 42/42는 다시 하지 않는다. 새 narrative-first 구조의 초반 2~3분 pilot만 source footage로 만들고, 사용자 pilot 시청 전에는 전체 rough cut·subtitle·typography·burn-in·`AI_최종_PASS`를 만들지 않는다.
-
-### Historical failure evidence — current selection base 아님
-
-REVIEW_B는 chronology만 대략 보존한 채 narrative continuity와 핵심 사건·감정·payoff를 잃고 listening/reaction을 진단 사례처럼 배열했으며 Cold open을 단순 반복했다. 당시 34 candidates / 15 selects는 historical이다.
-
-2026-09-14 reconstruction은 source narrative / desktop dialogue·audio / user mic raw / visual·nonverbal 네 layer와 25 beats / 633 sync rows / 30 candidates를 만들었다. 당시 독립 `EVIDENCE_GATE_PASS`와 subtitle-assisted `STEP9_PASS`는 그 실행의 기록이다. 이후 primary에서 만든 `ep1.review_c` (44:43.021)는 실제 사용자 시청에서 scene-selection·within-scene compression·story-context allocation failure로 거절됐다. 당시 `선택을 따라가는 귀`, S01–S17, Cold open 33:26.6–33:38.6 + 53:32.9–53:45.6은 failure evidence이며 축소 수정의 base가 아니다.
-
-한국어 자막으로 알 수 있는 작품 정보와 사용자의 실제 listening은 계속 분리한다. 레제 배경의 작품 정보가 사용자 청해 성공을 뜻하지 않는다. 과거 source audit도 이번 AV gate를 대체하지 않는다. 상세 이력과 당시 planned boundaries는 `materials/ep1_main/PLANNING_RESULTS.md`가 보존한다.
+REVIEW_B, REVIEW_C, 과거 reconstruction·Step 9·selection·Cold open·planned boundary와 실패 원인은 `materials/ep1_main/PLANNING_RESULTS.md`가 보존한다. 이 문서의 아래 촬영 protocol·초기 기획 기록은 EP1 의미와 provenance를 재현하는 historical reference이며 current planning instruction이 아니다.
 
 ## 촬영 protocol과 과거 기획 기록
 
@@ -1647,11 +1431,10 @@ POC2는:
 
 따라서 새로운 실제 문제가 생기지 않는 한 OBS 멀티트랙 설정은 더 이상 현재 작업으로 다루지 않는다.
 
-## 현재 작업 단계
+## Current gate pointer
 
 다음 할 일은 `STATE.md`가 owner다.
-1화의 A/B/C와 진단용 본 촬영 프로토콜은 확정했고, **콘텐츠 각과 최종 구성은 실제 촬영물 관찰 뒤에 정한다.**
-1화의 결과를 미리 특정 학습 결론이나 성공→실패→회복 서사에 맞추지 않는다.
+EP1의 current planning 결정과 UAT는 `materials/ep1_main/PLANNING_RESULTS.md`를 따른다. 아래 후속 POC 가설은 EP1 final planning PASS나 다음 편 확정을 뜻하지 않는다.
 
 ## 후속 학습/콘텐츠 POC — 사용자 아이디어 현재안
 

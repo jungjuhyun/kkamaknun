@@ -1,9 +1,28 @@
 # EP1 본 촬영 material-first 결과
 
 기준일: 2026-09-17 KST. 분석 source snapshot: `027ee9d7fa4784483ccc300bb8a7065ee455b24c`.
-이 문서는 EP1 planning evidence·provenance·검증 범위의 상세 owner다. A/B/C·packaging·확정 selection/compression contract는 `FIRST_VIDEO.md`, 사람이 읽는 다음 행동은 `STATE.md`, runtime/registry는 `tools/harness/STATE.json`이 소유한다.
+이 문서는 EP1 current planning 결정·상세 evidence·application trace·UAT·superseded planning provenance의 owner다. A/B/C·packaging과 EP1 semantic/content constraints는 `FIRST_VIDEO.md`, 사람이 읽는 current gate와 다음 행동은 `STATE.md`, runtime/registry는 `tools/harness/STATE.json`이 소유한다.
 
-## Current checkpoint — Step 10 UAT `planning_quality_failure`, narrative pilot ready
+## Current UAT — narrative direction improved, Opening/boundary gate reopened
+
+### USER_FACT
+
+- 사용자가 `ep1.review_pilot_narrative_v1`을 실제로 시청했다.
+- narrative direction은 이전보다 개선됐다.
+- 일부 scene boundary는 여전히 너무 이르거나 어색했다.
+- 현재 Opening은 계속 볼 이유를 충분히 만들지 못했다.
+- Opening에서 가타카나를 읽는 F002 complete event를 보여주는 것만으로는 `그래서 왜 계속 봐야 하지?`가 해결되지 않았다.
+
+### AI interpretation
+
+- 기존 Opening / Viewer Question gate는 FAIL이며 재경쟁이 필요하다.
+- pilot에서 드러난 affected boundary만 validation을 재개방한다. F002가 complete event라는 사실은 Opening PASS의 충분조건이 아니다.
+- narrative-first 방향의 개선은 유지하되 대체 Opening scene, Cold open, full body lock, Step 9 또는 최종 planning PASS는 아직 확정하지 않는다.
+- F003/F007을 비롯한 과거 evidence montage를 대체 Opening으로 자동 승격하지 않는다.
+
+현재 다음 검증 순서는 `Opening / Viewer Question 재경쟁 → affected boundary 재검토 → 실패 가설 하나를 검증하는 smallest-sufficient pilot → 사용자 UAT`다. 이후 evidence가 허용할 때만 full body relock, Cold open 경쟁, AI quality gate, full rough cut과 사용자 UAT로 진행한다.
+
+## Predecessor checkpoint evidence — narrative pilot construction
 
 `ep1.primary_recording` 전체 rescan, 65-candidate universe와 durable direct-AV 42/42는 그대로 재사용한다. `ep1.review_step10` 사용자 UAT가 **작품 서사 없는 evidence montage와 불완전 boundary**를 확인했으므로 이전 32 RETAIN / 52 body ranges / Cold open / Step 9 PASS는 재개방했다. 실패 artifact를 더 시청시키지 않으며 전체 rough cut도 다시 만들지 않았다.
 
@@ -38,13 +57,13 @@ Packaging setup F002는 작품 서사 beat가 아니라 A/B 조건을 한 번 �
 - **RETAIN / BRIDGE 36:** F002, F005, F010, F014, F015, F020, F023, F025, F027, F031, F034, F035, F036, F037, F038, F041, F042, F043, F045, F047, F049, F050, F052, F053, F054, F055, F056, F057, F058, F059, F060, F061, F062, F063, F064, F065.
 - **DROP 6:** F003 `지누키`, F007 `여정`은 사용자 확정 DROP. F017은 관계 추론 중복, F032는 위험 전환이 F031/F036~F038보다 약함, F033은 독립 장소 bridge 비용이 큼, F048은 회복 정보를 F043과 반복한다.
 - 이전 ALTERNATE였던 F005/F010/F023/F036/F038과 DROP이던 F041/F053은 narrative dependency 때문에 복원했다. evidence 명확성보다 마키마 애착, 학교 결핍, 배신·폭탄 정체, 추격 연결, climax 직전 위기를 우선한 변화다.
-- 36개는 full body의 완결 boundary와 runtime을 잠근 수가 아니다. narrative spine coverage를 위한 current scene decision이며, pilot UAT 뒤 모든 retained scene에 completion boundary를 적용해 full body를 다시 lock한다.
+- 36개는 full body의 완결 boundary와 runtime을 잠근 수가 아니다. narrative spine coverage를 위한 current scene decision이며, Opening 재경쟁과 affected boundary pilot UAT 전에는 full body를 lock하지 않는다.
 
 ### 경쟁 영상 원리 application trace
 
 | 구조 원리 | 적용 beat/scene | 실제 변경 | 피한 Failure Pattern |
 |---|---|---|---|
-| Opening | P0 F002 complete event | old F020→F007 teaser montage를 폐기하고 읽기 시도 setup부터 결과까지 한 사건으로 연다 | 설명 없는 증거 조각·promise 과잉 압축 |
+| Opening | P0 F002 complete event | old F020→F007 teaser montage를 폐기하고 읽기 시도 setup부터 결과까지 한 사건으로 만들었다. 최신 pilot UAT는 이 complete event만으로 계속 볼 이유가 생기지 않음을 확인했으므로 Opening 적용은 superseded다. | 설명 없는 증거 조각은 제거했지만 Viewer Question 부재는 남음 |
 | Viewer Question | P0→N1→N2 | `몇 개나 듣나`가 아니라 `이 읽기 상태로 작품 관계와 선택을 따라갈 수 있나`로 질문을 넘긴다 | 진단표 질문 고착 |
 | Escalation | N2→N5→N7→N9 | 만남→친밀감→도주 선택→배신/전투→수영 payoff→귀환/죽음으로 사건 규모와 감정을 키운다 | evidence 강도만 커지고 서사는 정지 |
 | Variation | N1/N3/N4/N6/N9 | 공동 감정·코미디·로맨스·협력 action·비극 결말로 변주하고 F003/F007/F017을 제거했다 | 같은 listening/mishearing 기능 반복 |
@@ -56,7 +75,7 @@ Packaging setup F002는 작품 서사 beat가 아니라 A/B 조건을 한 번 �
 
 F002는 `318.0–363.4`로 `가타카나 한번 읽어보자`부터 실제 읽기·`이는 어디 갔어`·마무리까지 보존한다. F020은 full body에서 `2004.0–2042.0`을 기본 사건 단위로 다시 검토해 덴지의 한자 setup, 사용자 `나도 못 읽는데`, 레제의 가르침/농담, 덴지의 읽기 결과와 레제의 웃음을 분리하지 않는다. 나머지도 문장·행동·reaction의 자연스러운 완료 전에 자르지 않는다.
 
-RED TEAM 결과, 새 spine은 evidence-first 배열·F003/F007 반복·F002 절단을 제거했고 P0 뒤 N1/N2로 즉시 작품 관계에 진입한다. 남은 위험은 (1) F002 45.4초가 opening에서 과하지 않은지, (2) F005→F010의 시간 생략이 마키마 애착으로 읽히는지, (3) F014 내부 세 구간의 생략이 만남의 감정을 깨지 않는지다. 이 세 가설만 먼저 볼 수 있어 전체 rough cut 대신 pilot로 검증한다. full body lock, Cold open competition, Step 9 재판정과 `AI_최종_PASS`는 모두 PENDING이다.
+이 RED TEAM은 새 spine의 evidence-first 배열·F003/F007 반복·F002 절단을 제거했지만 Opening success를 인증하지 못했다. 최신 pilot UAT에서 narrative direction 개선과 함께 일부 boundary의 이른/어색한 종료, F002 Opening의 Viewer Question 부재가 확인됐다. affected boundary와 Opening만 재개방하며 full body lock, Cold open competition, Step 9 재판정과 `AI_최종_PASS`는 모두 PENDING이다.
 
 ### Step 10 narrative-first review pilot
 
@@ -69,7 +88,7 @@ logical artifact `ep1.review_pilot_narrative_v1`은 durable run `ep1-narrative-p
 - SHA-256: `79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3`
 - durable object: `runs/ep1-narrative-pilot-20260917-57dd48e/committed/79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3.mp4`
 
-다음 gate는 사용자가 이 pilot만 실제 시청해 위 세 가설을 관측하는 것이다. `ep1.review_step10`은 historical failure artifact이며 전체 rough cut·Cold open·Step 9·planning quality 최종 판정은 만들지 않는다.
+사용자는 이 pilot을 실제 시청했다. USER_FACT와 AI interpretation은 문서 상단의 current UAT 절이 소유한다. artifact의 technical validation은 유지되지만 Opening / Viewer Question과 affected boundary 품질은 FAIL이며, 전체 rough cut·Cold open·Step 9·planning quality 최종 판정은 만들지 않는다.
 
 ## Historical 2026-09-17 partial direct-AV receipt — superseded, not current input
 
@@ -93,7 +112,7 @@ Approved work path에 prior Gemini `gemini-3.8-flash` direct-MP4 records가 남�
 
 DROP도 표본 사이 강한 비언어 사건이 없다는 인증이 아니다. artifact의 '실제 사건/반응' 서술 중 ASR 기반 항목과 표본 관측을 구분하며, 청해 정확성·웃음·말투·침묵·몰입·comic timing·내부 jump cut 자연스러움은 미검증이다.
 
-## Durable evidence와 복원 순서
+## Historical durable evidence와 당시 복원 순서
 
 Logical ID: **`ep1.full_rescan_checkpoint`**. object key: `planning/ep1/rescan/20260916/EP1_RESCAN_CHECKPOINT.zip`. registry의 size/SHA-256으로 archive 전체를 검증한다. 기존 material registry에 file artifact 하나를 추가한 이유는 candidate 표·전사 탐색 view·contact sheet가 외부 evidence이기 때문이다. Git에는 상세 media/transcript/frame을 넣지 않고 기존 owner와 registry만 유지한다. 별도 permanent owner/manifest는 만들지 않는다.
 
@@ -126,7 +145,9 @@ python tools/harness/material_store.py path ep1.full_rescan_checkpoint
 
 반환된 ZIP을 같은 local cache의 작업 directory에 풀고 INDEX를 읽는다. 회사 PC 경로를 재현하지 않는다. primary는 `ep1.primary_recording`으로 resolve하고 기존 cache가 있으면 helper verify 후 재사용한다. 없으면 cloud에서 materialize한다. 크기 5,065,619,726 bytes / SHA-256 `7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525` / duration 6325.0625초 / video 0·desktop 2·mic 3을 확인한다. K SSD는 필요 없다. 이번 persistence 작업은 primary를 새 다운로드하거나 AV 분석하지 않는다.
 
-## AV completion — 다음 실행의 정확한 입력과 gate
+## Historical AV completion gate — 현재 42-record checkpoint로 충족됨
+
+아래는 direct AV 42/42가 완료되기 전의 재개 계약이다. 현재 next action이 아니며, 완료된 checkpoint의 provenance를 재현하기 위해 보존한다.
 
 1. 실제 audio + continuous AV perception이 되는 경로를 확인한다. 안 되면 `FULL_RESCAN_BLOCKED` 유지. 재생 성공이나 전사/프레임 열람만으로 gate를 통과시키지 않는다.
 2. PROVISIONAL_BODY의 39개 후보 search windows를 raw context와 함께 직접 대조하고, F003/F007/F017 대체 후보를 경쟁시킨다. 65개 전체 기록과 DROP 이유를 보존해 필요 시 재개방한다. 기존 30개 pool/REVIEW_C로 universe를 교체하지 않는다.

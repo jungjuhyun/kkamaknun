@@ -1,5 +1,5 @@
 {
-  "설명": "현재 1화 기획 실행 잠금. current truth의 semantic owner를 대체하지 않으며 check_draft.py가 명백한 위반만 검사한다.",
+  "설명": "1화 deterministic enforcement projection. semantic/planning owner를 대체하지 않으며 check_draft.py가 명백한 위반만 검사한다.",
   "편": "1화",
   "입력_경로": "material_first",
   "잠금_문장": {
@@ -45,87 +45,5 @@
       "모든 대사의 자막을 확보",
       "전체 자막 파일이 현재 repo에 있다"
     ]
-  },
-  "planning_revision": {
-    "status": "NARRATIVE_PILOT_USER_VIEW_REQUIRED",
-    "trigger": "ep1.review_step10 planning_quality_failure",
-    "superseded_step9_receipt": {
-      "selected_candidates": 32,
-      "body_ranges": 52,
-      "retained_body_seconds": 628.8,
-      "planned_envelope_seconds": 679.15,
-      "cold_open_ranges_seconds": [[2020, 2029], [755.7, 759.2]],
-      "current_truth": false
-    },
-    "priority_order": [
-      "source narrative",
-      "A/B→C on the source narrative",
-      "scene fun/emotion/relationship change/iconic value/reaction",
-      "listening/reading/mishearing evidence"
-    ],
-    "conflict_rule": "source narrative wins over A/B→C; evidence-only value cannot damage story flow or viewing value",
-    "narrative_spine": [
-      {"beat": "P0", "function": "complete experiment setup", "candidates": ["F002"]},
-      {"beat": "N1", "function": "Makima attachment and emotional baseline", "candidates": ["F005", "F010"]},
-      {"beat": "N2", "function": "Reze meeting, flower, and cafe invitation", "candidates": ["F014", "F015"]},
-      {"beat": "N3", "function": "Denji's reading and school deprivation become intimacy", "candidates": ["F020", "F023"]},
-      {"beat": "N4", "function": "swimming builds trust and later payoff setup", "candidates": ["F025", "F027"]},
-      {"beat": "N5", "function": "danger, escape choice, rejection, betrayal, heart target, bomb identity", "candidates": ["F031", "F034", "F035", "F036", "F037", "F038"]},
-      {"beat": "N6", "function": "pursuit, damage, recovery, central self-versus-heart question, defeat, team solution", "candidates": ["F041", "F042", "F043", "F045", "F047", "F049", "F050"]},
-      {"beat": "N7", "function": "typhoon removal, final danger, swimming-chain climax, survival", "candidates": ["F052", "F053", "F054", "F055"]},
-      {"beat": "N8", "function": "beach relationship reversal and cafe promise", "candidates": ["F056", "F057", "F058", "F059"]},
-      {"beat": "N9", "function": "Reze background, return choice, interception, death, unknowing wait, emotional close", "candidates": ["F060", "F061", "F062", "F063", "F064", "F065"]}
-    ],
-    "candidate_decisions": {
-      "RETAIN": ["F002", "F005", "F010", "F014", "F015", "F020", "F023", "F025", "F027", "F031", "F034", "F035", "F036", "F037", "F038", "F041", "F042", "F043", "F045", "F047", "F049", "F050", "F052", "F053", "F054", "F055", "F056", "F057", "F058", "F059", "F060", "F061", "F062", "F063", "F064", "F065"],
-      "DROP": ["F003", "F007", "F017", "F032", "F033", "F048"],
-      "total": 42
-    },
-    "boundary_contract": "setup → required source event/dialogue → user utterance → reaction → natural completion; no mid-utterance, pre-sentence-end, mid-action, or mid-reaction cut",
-    "required_complete_events": {
-      "F002": [318.0, 363.4],
-      "F020_review_basis": [2004.0, 2042.0]
-    },
-    "cold_open": "REOPENED; no current selected Cold open",
-    "step9": "REOPENED; prior PASS is superseded by user UAT"
-  },
-  "body_lock": {
-    "status": "REOPENED_AFTER_STEP10_UAT_FAILURE",
-    "source_identity": {
-      "artifact_id": "ep1.primary_recording",
-      "sha256": "7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525"
-    },
-    "evidence_checkpoint": "ep1.direct_av_42_checkpoint",
-    "provisional_selected_candidate_ids": ["F002", "F005", "F010", "F014", "F015", "F020", "F023", "F025", "F027", "F031", "F034", "F035", "F036", "F037", "F038", "F041", "F042", "F043", "F045", "F047", "F049", "F050", "F052", "F053", "F054", "F055", "F056", "F057", "F058", "F059", "F060", "F061", "F062", "F063", "F064", "F065"],
-    "ranges_seconds": null,
-    "retained_body_seconds": null,
-    "validation": {
-      "source_chronology": "PENDING_FULL_BODY_RELOCK",
-      "range_overlap": "PENDING_FULL_BODY_RELOCK",
-      "narrative_continuity": "PENDING_PILOT_UAT_AND_FULL_BODY_RELOCK",
-      "context_bridge": "PENDING_PILOT_UAT_AND_FULL_BODY_RELOCK",
-      "runtime": "PENDING_FULL_BODY_RELOCK",
-      "competitive_application_trace": "RECORDED_IN_PLANNING_RESULTS"
-    },
-    "rough_cut_allowed": false
-  },
-  "review_pilot_lock": {
-    "status": "PASS_DURABLE_USER_VIEW_REQUIRED",
-    "logical_artifact_id": "ep1.review_pilot_narrative_v1",
-    "durable_run_id": "ep1-narrative-pilot-20260917-57dd48e",
-    "ranges_seconds": [[318.0, 363.4], [687.0, 708.5], [1043.0, 1061.0], [1336.5, 1359.5], [1383.0, 1405.5], [1429.0, 1444.5], [1463.5, 1479.5]],
-    "candidate_order": ["F002", "F005", "F010", "F014", "F014", "F014", "F015"],
-    "duration_seconds": 161.921333,
-    "sha256": "79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3",
-    "source_chronology": "PASS",
-    "ffprobe": "PASS",
-    "full_decode": "PASS",
-    "durable_publish": "PASS",
-    "clean_materialize_hash_decode": "PASS",
-    "cold_open": "NOT_USED",
-    "treatment": "source footage and mixed audio only; no subtitle, burn-in, typography, narration, music, effects, or provenance overlay",
-    "user_view": "PENDING",
-    "full_rough_cut_allowed": false,
-    "AI_final_pass": false
   }
 }
