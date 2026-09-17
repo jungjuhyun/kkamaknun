@@ -1,6 +1,6 @@
 # STATE.md — 현재 상태
 
-기준 시각: 2026-09-16 KST
+기준 시각: 2026-09-17 KST
 
 ## 현재 상태
 
@@ -29,15 +29,15 @@
 
 2026-09-04부터 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`를 현재 하네스 교정·1화 실전 검증 계획으로 사용한다.
 
-**현재 실행 위치:** `CONTRACT_READY` → `ep1.primary_recording` 전체 text/frame coverage 완료 → **`FULL_RESCAN_BLOCKED` — 직접 audio + continuous AV 검증 대기**. 확정 계약은 `FIRST_VIDEO.md`, 상세 evidence와 복구 절차는 `materials/ep1_main/PLANNING_RESULTS.md`가 소유한다.
+**현재 실행 위치:** `CONTRACT_READY` → `ep1.primary_recording` 전체 text/frame coverage 완료 → **`FULL_RESCAN_BLOCKED` — direct AV receipt 38/42 확인, 4개 재실행과 현재 capability probe 대기**. 확정 계약은 `FIRST_VIDEO.md`, 상세 evidence와 복구 절차는 `materials/ep1_main/PLANNING_RESULTS.md`가 소유한다.
 
 이번 rescan은 빈 목록에서 전체 `00:00:00–01:45:25.063`을 시간순 탐색해 새 후보 65개를 만들었다. KEEP 0 / COMPETE 42 / 잠정 탈락 후보 23개다. KEEP 0은 실제 AV 검증 미완료를 반영한다. 81개 연속 기록의 text/coarse-frame coverage에 시간 구멍은 없지만 모든 순간의 소리·동작·reaction을 직접 확인한 것은 아니다.
 
-본문은 39개 후보를 17개 기능 구간으로 묶은 검증 가안이며, 대체 후보 3개가 남아 있다. source search window 합계 **862초(14:22)는 final retained runtime이 아니다**. 검증된 retained boundaries·전체 runtime·body lock은 미확정이고 Cold open 경쟁은 미실행이다. **rough cut 생성은 아직 금지**하며 subtitle/typography/burn-in은 selection과 internal compression lock 이후다. `AI_최종_PASS`는 false다.
+본문은 39개 후보를 17개 기능 구간으로 묶은 검증 가안이며, 대체 후보 3개가 남아 있다. source search window 합계 **862초(14:22)는 final retained runtime이 아니다**. source MP4에서 만든 mixed-audio AV clip 38개는 SHA·video/audio stream·full decode 및 Gemini raw response까지 대조됐지만, F002/F017/F037/F064는 raw model response가 없어 42개 complete set이 아니다. 이 불완전 set에서 파생된 local recompetition/body/cold-open/rough-cut 파일은 current input이 아니다. 검증된 retained boundaries·전체 runtime·body lock은 계속 미확정이고 Cold open 경쟁도 미실행이다. **rough cut 생성은 아직 금지**하며 subtitle/typography/burn-in은 selection과 internal compression lock 이후다. `AI_최종_PASS`는 false다.
 
-blocker는 회사 PC의 해당 Astra/Codex 도구 경로에서 audio 입력이 모델에 전달되지 않아 직접 audio/연속 AV perception을 완료하지 못한 것이다. 파일 재생·ASR·정지 프레임만으로 대체하지 않는다. 이는 관측된 세션/도구 경로의 제한이며 모든 기기·모델의 영구적 불가능을 뜻하지 않는다.
+Gemini 공식 video-understanding 문서는 `gemini-3.8-flash`의 video input, static mode의 frame+audio 처리, agentic mode의 on-demand frame/audio/transcript 탐색을 지원한다고 현재 명시한다. 기존 local F036 direct-MP4 receipt도 source visual transition, 작품 audio, user voice와 그 시간 관계를 함께 기술한다. 하지만 이번 process/user/machine 환경에는 Gemini API credential·gcloud auth·실행 가능한 기존 venv가 없어 새 10–20초 probe와 누락 4개 재실행을 할 수 없다. 파일 재생·ASR·정지 프레임만으로 대체하지 않으며, 이전 38개 local receipt만으로 42개 경쟁·body lock·Cold open을 확정하지 않는다.
 
-**다음 실행:** GitHub의 이 checkpoint와 cloud logical artifact **`ep1.full_rescan_checkpoint`**를 materialize/verify하고 `INDEX.md`에서 이어간다. primary의 검증된 cache를 재사용하거나 logical ID로 복원한 뒤, 먼저 실제 audio+continuous AV를 지각할 수 있는 경로를 확인한다. **직접 AV verification → 42개 후보 재경쟁 → retained boundaries → context/bridge 포함 runtime 재검증 → body lock → Cold open 경쟁** 순서다. AV gate가 계속 막히면 BLOCKED를 유지한다. 완성본 전체 ≤15:00이되 padding 목표가 아니며, 새 rough cut은 이 gate들을 통과한 뒤의 단계다.
+**다음 실행:** 사용 가능한 기존 Gemini credential/API path를 복원한 뒤, verified primary에서 10–20초 mixed-audio MP4 probe를 새로 만들어 Files API video input으로 보낸다. probe receipt에는 uploaded file identity/state, audio/video stream, raw response와 deterministic AV 대조를 함께 남긴다. 이어 F002/F017/F037/F064의 raw response를 동일 방식으로 보완하고 42개 complete record를 durable checkpoint로 보존한다. 그 뒤에만 **42개 후보 재경쟁 → retained boundaries → context/bridge 포함 runtime 재검증 → body lock → Cold open 경쟁** 순서로 진행한다. AV gate가 계속 막히면 BLOCKED를 유지한다. 완성본 전체 ≤15:00이되 padding 목표가 아니며, 새 rough cut은 이 gate들을 통과한 뒤의 단계다.
 
 계약 결과 원문, 기존 research report, 7-field 후보/coverage, 기능 경쟁, 본문 가안, narrative check, runtime ledger, RED TEAM, 탐색 이력과 검토 contact sheet는 위 cloud checkpoint에 보존한다. 회사 PC의 Codex visualization 경로는 재개 의존성이 아니다. registry/size/SHA-256은 `tools/harness/STATE.json`이 소유한다.
 

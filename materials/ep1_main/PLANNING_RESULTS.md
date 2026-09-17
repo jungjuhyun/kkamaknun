@@ -1,6 +1,6 @@
 # EP1 본 촬영 material-first 결과
 
-기준일: 2026-09-16 KST. 분석 source snapshot: `027ee9d7fa4784483ccc300bb8a7065ee455b24c`.
+기준일: 2026-09-17 KST. 분석 source snapshot: `027ee9d7fa4784483ccc300bb8a7065ee455b24c`.
 이 문서는 EP1 planning evidence·provenance·검증 범위의 상세 owner다. A/B/C·packaging·확정 selection/compression contract는 `FIRST_VIDEO.md`, 사람이 읽는 다음 행동은 `STATE.md`, runtime/registry는 `tools/harness/STATE.json`이 소유한다.
 
 ## Current checkpoint — contract READY, full rescan BLOCKED
@@ -14,14 +14,34 @@
 | Visual evidence | 20초 간격 317개 + detail 관측 55개, 중복 제외 366개 frame; 36 contact sheets와 11 time manifests |
 | 새 후보 | 65개 = KEEP 0 + COMPETE 42 + 잠정 탈락 23 |
 | DROP 집계 | 초기 non-event 등 DROP 16개 + 후보 탈락 23개 = DROP 기록 39개; 인접 합산 21 ranges |
-| 후보 경쟁 | 구조·context·중복 기반 2차 경쟁은 기록됨; actual AV가 좌우하는 우열은 미완료 |
+| 후보 경쟁 | 구조·context·중복 기반 2차 경쟁은 기록됨; direct AV receipt 38/42은 대조됐으나 complete 42개 set이 아니므로 actual AV가 좌우하는 우열은 미확정 |
 | Body | 39개 후보 / 17개 기능 묶음; 대체 후보 F003/F007/F017 3개 별도; NOT LOCKED |
 | Runtime | 63개 raw source search windows 합계 862초(14:22). 제안 context/bridge 포함. final retained runtime 아님 |
 | 미확정 | verified retained duration, 추가 context/호흡 보정, Cold open, finished total runtime 모두 미정 |
 | Narrative | 필수 후반 chain의 담당 후보는 존재. 압축 후 viewer가 인과·감정을 이해하는지는 AV 미검증 |
-| 제작 gate | 직접 AV 검증 0, body lock false, Cold open 경쟁 NOT STARTED, rough cut 금지, AI 최종 PASS false |
+| 제작 gate | direct AV receipt 검증 38/42, body lock false, Cold open 경쟁 NOT STARTED, rough cut 금지, AI 최종 PASS false |
 
 **Modality blocker:** 회사 PC의 해당 Astra/Codex 세션에서 audio probe가 `audio content omitted because you do not support audio input`로 반환됐다. 직접 듣기와 연속 AV perception을 완료하지 못했으며 ASR/정지 frame을 그 대체로 인증하지 않았다. 이 관측을 모든 미래 기기·모델의 고정 능력 제한으로 확대하지 않는다. 새 기기에서도 먼저 실제 입력 perception 경로를 확인해야 한다.
+
+## 2026-09-17 direct-AV 재개 receipt — partial, not a selection result
+
+Web-first receipt: 현재 Google Gemini API 공식 video-understanding 문서는 `gemini-3.8-flash`의 video input을 지원하며, static mode가 frame과 audio를 함께 처리하고 agentic mode가 frame/audio/transcript를 요청에 따라 탐색한다고 명시한다. 이 작업은 short candidate clip의 reaction timing과 context boundary를 확인하는 용도이므로, completion 때는 actual `video/mp4` Files API input을 사용하고 static clip/subclip route를 기본으로 한다. transcript·still-only surrogate는 금지한다.
+
+Current material-store contract로 `ep1.full_rescan_checkpoint`와 `ep1.primary_recording`의 registry SHA-256을 다시 검증했다. checkpoint ZIP을 disposable cache에 추출하고 `INDEX.md`를 처음부터 읽었다. primary는 5,065,619,726 bytes / SHA-256 `7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525` / 6325.0625초, video 0·mixed 1·desktop 2·mic 3을 확인했다. K SSD는 사용하지 않았다.
+
+Approved work path에 prior Gemini `gemini-3.8-flash` direct-MP4 records가 남아 있었다. F003/F005/F007/F010/F014/F015/F020/F023/F025/F027/F031/F032/F033/F034/F035/F036/F038/F041/F042/F043/F045/F047/F048/F049/F050/F052/F053/F054/F055/F056/F057/F058/F059/F060/F061/F062/F063/F065, 총 38개는 clip SHA-256, video+audio stream, full ffmpeg decode, non-empty Gemini raw response를 이번에 다시 대조했다. F036은 source image transition·desktop source sound·user voice와 시점 관계를 함께 기술해 direct AV route가 실제로 두 modality를 사용한 evidence다.
+
+그러나 F002/F017/F037/F064는 source-derived MP4와 Gemini Files object ID만 남고 raw model response가 없다. 이 네 개는 current per-candidate AV record가 아니며, 특히 F017 alternate와 F002/F037/F064의 selection을 확정할 수 없다. 현재 process/user/machine에는 `GEMINI_API_KEY`, `GOOGLE_API_KEY`, `GOOGLE_GENAI_API_KEY`, gcloud auth 및 실행 가능한 기존 venv가 없어, 새로운 10–20초 capability probe와 네 response의 재실행을 수행하지 못했다. credential 값은 읽거나 기록하지 않았다.
+
+따라서 local `AV42_RECOMPETITION`, body lock, Cold open lock, rough-cut artifacts는 incomplete evidence 위에서 생성된 machine-local 작업물일 뿐 current truth가 아니다. 32/4/6 판정·537.3초·Cold open 12.3초를 채택하지 않는다. 이번 실행에서도 rough cut을 생성하지 않았다.
+
+재개 hard gate는 다음과 같다.
+
+1. available credential path에서 10–20초 mixed-audio MP4를 새로 Files API video input으로 upload하고 upload file identity/state, raw response, video/audio stream, full decode 및 deterministic visible/audio event 대조를 receipt로 남긴다.
+2. F002/F017/F037/F064를 동일한 direct-video route로 실행해 source range, clip hash, visual/audio events, reaction timing, context/boundary, uncertainty, retain/drop/alternate recommendation을 모두 보완한다.
+3. 42개 complete per-candidate record를 material-store durable checkpoint로 보존한 뒤에만 42개 재경쟁, retained boundaries, runtime, body lock과 Cold open competition을 재개한다.
+
+그 전에는 `FULL_RESCAN_BLOCKED`를 유지한다.
 
 DROP도 표본 사이 강한 비언어 사건이 없다는 인증이 아니다. artifact의 '실제 사건/반응' 서술 중 ASR 기반 항목과 표본 관측을 구분하며, 청해 정확성·웃음·말투·침묵·몰입·comic timing·내부 jump cut 자연스러움은 미검증이다.
 
