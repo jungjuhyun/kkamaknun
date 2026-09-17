@@ -7,7 +7,60 @@
   "현재_입력_경로": "material_first",
   "현재_계획": null,
   "현재_계획_단계": "기존 EP1 derived transcription/planning evidence retired; raw-material-only clean-room restart",
-  "다음_실행": "Gemini API로 ep1.primary_recording 재전사만 수행한다. 분석·scene selection·편집 판단·pilot 생성은 같은 실행에서 하지 않는다. unattended overnight를 전제로 checkpoint/resume 상태를 저장하고 재전사 완료 범위를 검증한 뒤 STOP한다.",
+  "다음_실행": "Gemini API 재전사 run만 수행한다. primary recording에서 desktop/source stream 2와 mic/user stream 3을 서로 분리해 deterministic chunk로 처리하고, 각 chunk를 검증 즉시 checkpoint한다. mixed stream 1, 한국어 source subtitle, A/B, 기존 transcript/sync/narrative/candidate/pilot/UAT는 Gemini 재전사 입력에 넣지 않는다. 두 raw audio track의 전체 범위를 검증한 뒤 STOP하며 분석은 별도 실행에서만 시작한다.",
+  "cleanroom_transcription_run": {
+    "목적": "raw audio 재전사만 수행하며 분석·scene selection·편집 판단을 하지 않는다.",
+    "provider": "Gemini API",
+    "source_artifact": "ep1.primary_recording",
+    "input_tracks": [
+      {
+        "stream_index": 2,
+        "role": "desktop/source"
+      },
+      {
+        "stream_index": 3,
+        "role": "mic/user"
+      }
+    ],
+    "forbidden_inputs": [
+      "audio stream 1 mixed",
+      "ep1.source_subtitles_ko",
+      "FIRST_VIDEO.md의 A/B 또는 기타 기획 premise",
+      "retired desktop/mic transcript",
+      "retired sync timeline",
+      "retired narrative map/scene pool/candidate/selection",
+      "retired pilot/UAT/review artifact"
+    ],
+    "chunk_contract": {
+      "rule": "두 track을 각각 독립적으로 deterministic chunk로 나누고 current official Gemini API의 file/request 제한 안에서 처리한다.",
+      "timeline": "각 chunk는 primary recording absolute start/end를 보존한다.",
+      "overlap": "boundary transcription 손실을 막는 최소 overlap을 허용하되 merge 시 중복을 식별·제거할 수 있어야 한다."
+    },
+    "checkpoint_contract": {
+      "assumption": "unattended overnight run",
+      "after_each_verified_chunk": true,
+      "record": [
+        "track role/index",
+        "absolute start/end",
+        "input chunk sha256",
+        "model identifier",
+        "prompt/config hash",
+        "raw response",
+        "normalized transcript",
+        "validation status",
+        "next unit"
+      ],
+      "resume": "검증 완료 checkpoint는 재호출하지 않고 마지막 미완료 unit부터 재개한다.",
+      "failure": "API·network·quota·credential 실패 시 기존 derived 자료로 fallback하지 않고 마지막 verified checkpoint에서 중단한다."
+    },
+    "completion_gate": [
+      "desktop/source stream 2 전체 recording 범위가 verified checkpoint로 덮인다.",
+      "mic/user stream 3 전체 recording 범위가 verified checkpoint로 덮인다.",
+      "chunk overlap/merge에서 누락·중복·순서 역전이 검증된다.",
+      "완료 manifest가 input identity와 전체 unit 상태를 기록한다."
+    ],
+    "stop_after": "재전사 완료 검증. source narrative 분석, AV 해석, scene competition, editing, pilot은 시작하지 않는다."
+  },
   "external_material": {
     "durable_store": "authenticated cloud material store",
     "transport_adapter": "rclone",

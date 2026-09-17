@@ -70,6 +70,27 @@ def test_runtime_registry_is_raw_material_only():
     assert STATE["상태"] == "EP1_CLEANROOM_GEMINI_RETRANSCRIPTION_PENDING"
 
 
+def test_cleanroom_transcription_contract_is_independent_and_resumable():
+    contract = STATE["cleanroom_transcription_run"]
+    tracks = [
+        (item["stream_index"], item["role"])
+        for item in contract["input_tracks"]
+    ]
+    assert tracks == [(2, "desktop/source"), (3, "mic/user")]
+    forbidden = "\n".join(contract["forbidden_inputs"])
+    assert "stream 1" in forbidden
+    assert "ep1.source_subtitles_ko" in forbidden
+    assert "A/B" in forbidden
+    assert "retired" in forbidden
+    checkpoint = contract["checkpoint_contract"]
+    assert checkpoint["assumption"] == "unattended overnight run"
+    assert checkpoint["after_each_verified_chunk"] is True
+    assert "재호출하지 않고" in checkpoint["resume"]
+    assert "fallback" in checkpoint["failure"]
+    assert len(contract["completion_gate"]) == 4
+    assert "분석" in contract["stop_after"]
+
+
 def test_pipeline_topology_and_input_branches_are_preserved():
     assert PIPELINE["공정"] == "video_planning"
     assert list(PIPELINE["입력_분기"]) == ["material_first", "pre_shoot"]

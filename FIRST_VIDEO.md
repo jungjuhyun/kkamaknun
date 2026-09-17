@@ -18,7 +18,7 @@ B:
 
 현재 C, 제목, 썸네일, Opening, Viewer Question, narrative spine, scene candidate, body 구조와 payoff는 **미확정**이다. 새 raw-material 분석 전에 이전 값을 복원하거나 승계하지 않는다.
 
-이 영상은 카타카나 암기 영상으로 고정하지 않는다.
+A/B는 이후 planning synthesis에서 유지할 프로젝트 premise다. **독립 clean-room Gemini 재전사·분석에는 A/B나 이 문서를 모델 입력으로 주지 않는다.**
 
 사용자의 안정적인 배경 사실은 `USER_PROFILE.md`를 따른다.
 
@@ -43,7 +43,7 @@ B:
 
 `ep1.source_subtitles_ko`는 raw Korean source-subtitle directory다.
 
-자막은 source narrative를 확인하는 원시 자료로 보존할 수 있지만, 이전 파생 narrative map이나 scene selection을 되살리는 근거로 사용하지 않는다. 자막 TC와 OBS recording TC가 동일하다고 미리 가정하지 않는다.
+자막은 source narrative를 확인하는 원시 자료로 보존할 수 있지만 **현재 재전사 run에는 사용하지 않는다.** 이후 독립 분석 단계에서 필요할 때만 raw source로 검토한다. 자막 TC와 OBS recording TC가 동일하다고 미리 가정하지 않는다.
 
 ## Clean-room exclusion boundary
 
