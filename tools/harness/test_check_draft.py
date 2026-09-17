@@ -18,13 +18,7 @@ PIPELINE = yaml.safe_load(PIPELINE_TEXT)
 
 A = LOCK["잠금_문장"]["A"]
 B = LOCK["잠금_문장"]["B"]
-C = LOCK["잠금_문장"]["C"]
-PACKAGE_PROMISE = LOCK["잠금_문장"]["패키징_promise"]
-TIMELINE = LOCK["잠금_문장"]["타임라인"]
-CLEAN = (
-    f"A: `{A}`\nB: \"{B}\"\nC: `{C}`\n"
-    f"패키징: `{PACKAGE_PROMISE}`\n타임라인: `{TIMELINE}`\n"
-)
+CLEAN = f'A: `{A}`\nB: "{B}"\n'
 
 
 def run(text):
@@ -44,34 +38,36 @@ def test_clean_material_first_draft_passes():
     assert run(CLEAN) == []
 
 
-def test_locked_abc_and_package_are_enforced():
-    replacements = {
+def test_locked_premise_is_enforced():
+    for original, replacement in {
         A: "다른 A",
         B: "다른 B",
-        C: "다른 C",
-        PACKAGE_PROMISE: "개별 오청 하나를 영상 전체 상품으로 만든다.",
-    }
-    for original, replacement in replacements.items():
+    }.items():
         assert run(CLEAN.replace(original, replacement))
 
 
 def test_forbidden_claims_are_enforced():
-    claims = (
-        "아직 촬영한 것이 없으니 장면을 가정한다.",
-        "영화 전체 일본어 자막을 완전히 확보했다.",
-    )
-    for claim in claims:
-        assert run(CLEAN + claim + "\n")
+    assert run(CLEAN + "아직 촬영한 것이 없으니 장면을 가정한다.\n")
 
 
 def test_subjective_quality_is_outside_validator_scope():
     assert run(CLEAN + "이 구조는 무조건 재미있고 시청지속도 완벽하다.\n") == []
 
 
-def test_lock_contains_only_deterministic_projection():
+def test_cleanroom_lock_does_not_preserve_old_planning():
     assert LOCK["입력_경로"] == "material_first"
+    assert set(LOCK["잠금_문장"]) == {"A", "B"}
     assert LOCK["패키징_제약"]["exact_copy_locked"] is False
+    assert "C" not in LOCK["잠금_문장"]
+    assert "패키징_promise" not in LOCK["잠금_문장"]
+    assert "타임라인" not in LOCK["잠금_문장"]
     assert {"planning_revision", "body_lock", "review_pilot_lock"}.isdisjoint(LOCK)
+
+
+def test_runtime_registry_is_raw_material_only():
+    artifacts = set(STATE["external_material"]["artifacts"])
+    assert artifacts == {"ep1.primary_recording", "ep1.source_subtitles_ko"}
+    assert STATE["상태"] == "EP1_CLEANROOM_GEMINI_RETRANSCRIPTION_PENDING"
 
 
 def test_pipeline_topology_and_input_branches_are_preserved():

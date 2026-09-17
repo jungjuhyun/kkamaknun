@@ -1,13 +1,13 @@
 {
-  "상태": "EP1_OPENING_VIEWER_QUESTION_AND_AFFECTED_BOUNDARY_RECOMPETITION_REQUIRED",
+  "상태": "EP1_CLEANROOM_GEMINI_RETRANSCRIPTION_PENDING",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
-  "현재_계획": "plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md",
-  "현재_계획_단계": "direct AV 42/42 and full rescan preserved; narrative pilot user-view completed; narrative direction improved; Opening/Viewer Question failed; affected boundaries reopened",
-  "다음_실행": "Opening/Viewer Question 재경쟁 후 affected boundary만 재검토하고, 실패 가설 하나를 검증하는 smallest-sufficient pilot을 사용자 UAT에 넘긴다.",
+  "현재_계획": null,
+  "현재_계획_단계": "기존 EP1 derived transcription/planning evidence retired; raw-material-only clean-room restart",
+  "다음_실행": "Gemini API로 ep1.primary_recording 재전사만 수행한다. 분석·scene selection·편집 판단·pilot 생성은 같은 실행에서 하지 않는다. unattended overnight를 전제로 checkpoint/resume 상태를 저장하고 재전사 완료 범위를 검증한 뒤 STOP한다.",
   "external_material": {
     "durable_store": "authenticated cloud material store",
     "transport_adapter": "rclone",
@@ -16,7 +16,7 @@
     "remote_root_env": "KKAMAKNUN_MATERIAL_REMOTE",
     "rclone_env_optional": "KKAMAKNUN_RCLONE",
     "credential_boundary": "rclone config and credentials are outside the repository",
-    "offline_backup": "K SSD is an optional offline backup, not a current execution, transport, or rollback dependency.",
+    "offline_backup": "optional offline backup only; not a current execution, transport, or rollback dependency",
     "artifacts": {
       "ep1.primary_recording": {
         "object_key": "source/ep1/2026-09-06 23-54-01-01.mp4",
@@ -29,81 +29,6 @@
         "object_key": "source/ep1/subtitles",
         "kind": "directory",
         "publish": false
-      },
-      "ep1.desktop_transcript": {
-        "object_key": "transcription/EP1_DESKTOP_JA_FULL.jsonl",
-        "kind": "file",
-        "publish": true
-      },
-      "ep1.mic_transcript": {
-        "object_key": "transcription/EP1_MIC_RAW_FULL.jsonl",
-        "kind": "file",
-        "publish": true
-      },
-      "ep1.sync_timeline_jsonl": {
-        "object_key": "transcription/EP1_SYNC_TIMELINE.jsonl",
-        "kind": "file",
-        "publish": true
-      },
-      "ep1.sync_timeline_csv": {
-        "object_key": "transcription/EP1_SYNC_TIMELINE.csv",
-        "kind": "file",
-        "publish": true
-      },
-      "ep1.narrative_map": {
-        "object_key": "transcription/EP1_NARRATIVE_MAP.md",
-        "kind": "file",
-        "publish": true
-      },
-      "ep1.transcription_qa": {
-        "object_key": "transcription/EP1_TRANSCRIPTION_QA.md",
-        "kind": "file",
-        "publish": true
-      },
-      "ep1.new_scene_pool": {
-        "object_key": "transcription/EP1_NEW_SCENE_POOL.md",
-        "kind": "file",
-        "publish": true
-      },
-      "ep1.review_b": {
-        "object_key": "review/EP1_STEP5_REVIEW_B.mp4",
-        "kind": "file",
-        "publish": true
-      },
-      "ep1.review_c": {
-        "object_key": "review/EP1_STEP10_REVIEW_C.mp4",
-        "kind": "file",
-        "publish": true
-      },
-      "ep1.full_rescan_checkpoint": {
-        "object_key": "planning/ep1/rescan/20260916/EP1_RESCAN_CHECKPOINT.zip",
-        "kind": "file",
-        "size": 10619345,
-        "sha256": "5062ea0d2f3b4afb07c6289071fd72899d4df76adfb3e697930728f045f38684",
-        "publish": true
-      },
-      "ep1.direct_av_42_checkpoint": {
-        "object_key": "planning/ep1/direct_av/20260917/EP1_DIRECT_AV_42_CHECKPOINT.zip",
-        "kind": "file",
-        "size": 684526179,
-        "sha256": "ad614a416aabc12de169ae6b108c915395ea0ca4011602349d75d6d415dbf3bc",
-        "publish": true
-      },
-      "ep1.review_step10": {
-        "object_key": "runs/ep1-step10-review-20260917-029a52d/committed/f9b2b045d446a470f498b2da41bb60247516383544830f55d66b16c04882d12f.mp4",
-        "kind": "file",
-        "size": 94642658,
-        "sha256": "f9b2b045d446a470f498b2da41bb60247516383544830f55d66b16c04882d12f",
-        "publish": false,
-        "current_usage": "historical planning_quality_failure; do not ask user to view again"
-      },
-      "ep1.review_pilot_narrative_v1": {
-        "object_key": "runs/ep1-narrative-pilot-20260917-57dd48e/committed/79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3.mp4",
-        "kind": "file",
-        "size": 15244624,
-        "sha256": "79f4686049abc45ca6b07c014ef44ed346b89e4a9aeff81565db834af201d0f3",
-        "publish": false,
-        "current_usage": "user-view completed; narrative direction improved; Opening/Viewer Question and affected boundaries require recompetition"
       }
     }
   }

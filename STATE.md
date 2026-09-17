@@ -1,61 +1,65 @@
 # STATE.md — 현재 상태
 
-기준 시각: 2026-09-17 KST
+기준 시각: 2026-09-18 KST
 
 ## Active focus
 
-현재 active plan은 `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`다. video-planning harness의 기존 두 입력 분기와 stage topology는 유지한다. EP1 material-first/external-narrative 검증은 아직 final PASS가 아니며, pre_shoot branch와 전체 two-branch harness가 live-validated됐다고 주장하지 않는다.
+EP1은 기존 파생 전사·동기화·서사 맵·scene candidate·selection·pilot·UAT 판단을 current truth에서 걷어낸 **raw-material-only clean-room restart** 상태다.
+
+공통 video-planning harness와 `material_first` 경로는 유지한다. 기존 EP1 파생 산출물은 Git history나 external store에 남아 있을 수 있지만, 새 전사·분석의 입력이나 current evidence로 사용하지 않는다.
 
 현재 runtime route는 `tools/harness/STATE.json`의 `video_planning / EP1 / material_first / tools/harness/EP1_LOCK.json`이다.
 
-## 최신 pilot UAT
+## 사용자 확정 방향
 
-**USER_FACT**
+- 기존 EP1 derived transcript/sync/narrative/candidate/RETAIN·BRIDGE·DROP/pilot/UAT 결과는 새 분석의 기준으로 신뢰하지 않는다.
+- `ep1.primary_recording`에서 Gemini API로 **재전사부터 다시 시작**한다.
+- 재전사와 분석은 같은 실행에 묶지 않는다.
+- 장시간 실행은 사용자가 걸어두고 자는 상황을 기본으로 보고, 중간 결과와 진행 위치를 checkpoint로 남겨 resume 가능해야 한다.
+- 새 clean-room 결과가 나오기 전에는 기존 scene/narrative ID, old narrative map, old scene pool, old pilot 구성으로 수렴하지 않는다.
 
-- 사용자가 `ep1.review_pilot_narrative_v1`을 실제 시청했다.
-- narrative direction은 이전보다 개선됐다.
-- 일부 scene boundary는 여전히 너무 이르거나 어색했다.
-- 현재 Opening은 계속 볼 이유를 충분히 만들지 못했다.
-- F002의 가타카나 읽기 complete event만으로는 `그래서 왜 계속 봐야 하지?`가 해결되지 않았다.
+## Raw input headline
 
-**AI interpretation**
+현재 active raw input은 다음뿐이다.
 
-- Opening / Viewer Question gate는 FAIL이며 재경쟁이 필요하다.
-- pilot에서 드러난 affected boundary validation만 재개방한다.
-- narrative-first 방향은 유지하되 대체 Opening, F003/F007 등 과거 evidence montage 재승격, full body relock, Cold open, Step 9와 final planning PASS는 아직 확정하지 않는다.
+- `ep1.primary_recording`
+  - object key: `source/ep1/2026-09-06 23-54-01-01.mp4`
+  - size: `5,065,619,726` bytes
+  - SHA-256: `7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525`
+  - duration: `6325.0625s`
+  - video stream 0
+  - mixed audio stream 1
+  - desktop/source audio stream 2
+  - mic/user audio stream 3
+- `ep1.source_subtitles_ko`
+  - raw Korean source-subtitle directory
+  - 보존은 하되 새 Gemini 재전사 결과를 미리 정답으로 유도하는 derived evidence로 취급하지 않는다.
 
-## Validated input headline
+## Current planning state
 
-- primary material: `ep1.primary_recording`; single MP4, duration `6325.0625s`, desktop stream 2, mic stream 3.
-- full-original rescan 65 candidates와 direct mixed-audio AV 42/42 durable checkpoint는 완료됐으며 새 evidence가 요구하지 않는 한 반복하지 않는다.
-- `ep1.review_step10`은 historical `planning_quality_failure`라 다시 시청시키지 않는다.
-- `ep1.review_pilot_narrative_v1`은 ffprobe/full decode/durable publish/clean materialize hash를 통과했지만, technical PASS는 Opening·boundary quality PASS가 아니다.
-- 상세 candidate/spine/application trace/UAT와 historical evidence는 `materials/ep1_main/PLANNING_RESULTS.md`가 소유한다.
+현재 C, packaging, Opening, Viewer Question, narrative spine, candidate, boundary, RETAIN/BRIDGE/DROP, body lock, Cold open, pilot, rough cut에 대한 current 결정은 **없다**.
 
-## Current blocker와 immediate next action
+`materials/ep1_main/PLANNING_RESULTS.md`는 reset 상태이며 새 clean-room 결과 전에는 planning decision을 기록하지 않는다.
 
-현재 blocker는 title/thumbnail promise 또는 즉시 볼 가치를 실제 footage로 드러내면서도 이후 결과·변화·관계·원인에 대한 미해결 Viewer Question을 남기는 Opening이 아직 검증되지 않았고, pilot의 일부 assembled boundary도 자연스럽지 않다는 점이다.
+## Immediate next action
 
-다음 실행:
+다음 실행은 하나만 한다.
 
-> Opening / Viewer Question 재경쟁 → affected boundary만 재검토 → 실패 가설 하나를 검증하는 smallest-sufficient pilot → 사용자 UAT → full body relock → Cold open 경쟁 → AI quality gate → full rough cut → 사용자 UAT → EP1 production decision → harness acceptance scope 판정
+> Gemini API로 `ep1.primary_recording`을 처음부터 재전사한다. 이 실행에서는 서사 분석, scene selection, 편집 판단, pilot 생성까지 진행하지 않는다. 장시간 무인 실행을 전제로 checkpoint/resume 상태를 저장하고, 재전사 결과와 완료 범위를 검증한 뒤 STOP한다.
 
-새 evidence가 요구하지 않는 한 65개 candidate 전체 rescan이나 42개 direct-AV evidence 전체 재구축을 반복하지 않는다.
+재전사 run이 검증된 뒤에만 **별도 실행**으로 Gemini 분석을 시작한다.
 
 ## Owner pointers
 
 - common executable planning process: `tools/harness/PIPELINE.yaml`
-- EP1 semantic facts·A/B/C·packaging·content constraints: `FIRST_VIDEO.md`
-- EP1 current planning/evidence/UAT/superseded planning: `materials/ep1_main/PLANNING_RESULTS.md`
-- runtime route·stage·artifact registry: `tools/harness/STATE.json`
+- EP1 stable facts·clean-room boundary: `FIRST_VIDEO.md`
+- EP1 current planning results: `materials/ep1_main/PLANNING_RESULTS.md`
+- runtime route·raw artifact registry: `tools/harness/STATE.json`
 - deterministic EP1 projection: `tools/harness/EP1_LOCK.json`
 - long-lived judgment principles: `PLAYBOOK.md`
-- current harness implementation/acceptance plan: `plans/GPT_HARNESS_FINISH_AND_EP1_VALIDATION.md`
 
 ## Other workstreams
 
-- Cloud material migration과 durable-media synthetic qualification은 완료 상태다. GitHub가 code/current-truth source이고 K SSD는 optional offline backup이다. 구현·history는 `plans/CLOUD_MATERIAL_STORAGE_MIGRATION.md`, `plans/DURABLE_MEDIA_EXECUTION_RECOVERY.md`, `tools/harness/durable_media.py`를 따른다.
-- Scene collector 재작업은 UAT 미완료 보존 상태다. 다시 요청할 때 `SCENE_COLLECTOR_PLAN.md`와 scoped `tools/scene_collector/AGENTS.md`를 따른다.
-- System Evaluation은 독립 owner `evals/system/README.md`를 따른다. Phase 3는 `PHASE3_PASSED`, initial Phase 4 Actual Work pilot은 `PHASE4_PILOT_BLOCKED` (`4/5 PASS`, P4-A `UNKNOWN`), Phase 5는 `NOT_STARTED`다. 이번 video-planning cleanup은 그 구현·artifact를 변경하지 않는다.
+Cloud material storage, Scene Collector, System Evaluation 등 EP1 clean-room restart와 무관한 workstream의 기존 current truth는 이번 reset으로 변경하지 않는다.
 
-현재 상태 질문은 이 파일을 기준으로 답하고, 상세 사실은 위 owner로 이동해 확인한다.
+현재 상태 질문은 이 파일을 기준으로 답하고, EP1 세부 사실은 위 owner로 이동해 확인한다.
