@@ -15,9 +15,9 @@
 | 새 후보 | 65개 = KEEP 0 + COMPETE 42 + 잠정 탈락 23 |
 | DROP 집계 | 초기 non-event 등 DROP 16개 + 후보 탈락 23개 = DROP 기록 39개; 인접 합산 21 ranges |
 | 후보 경쟁 | fresh probe + direct MP4 42/42 evidence만으로 독립 재경쟁 완료: RETAIN 32 / ALTERNATE 5 / DROP 5 |
-| Body | `tools/harness/EP1_LOCK.json`의 body_lock에 32 candidate / 52 retained range를 source order로 잠금 |
-| Runtime | retained footage 639.3초. Cold open 12.5초, transition 17.85초, ending allowance 20초를 더한 planned envelope 689.65초(11:29.65) |
-| 미확정 | review rough cut 및 사용자 시청 테스트만 남음; 이번 checkpoint는 그 artifact를 허가하지 않음 |
+| Body | `tools/harness/EP1_LOCK.json`의 body_lock에 32 candidate / 52 retained range를 source order로 잠금. Step 9에서 Cold open의 exact duplicate를 본편에서 제거했다. |
+| Runtime | retained footage 628.8초. Cold open 12.5초, transition 17.85초, ending allowance 20초를 더한 planned envelope 679.15초(11:19.15) |
+| 미확정 | Step 10 review rough cut 및 사용자 시청 테스트만 남음; 이번 checkpoint는 그 artifact를 자동으로 허가하지 않음 |
 | Narrative | 관계 형성→도주 제안/거절→공격/전투→해변 관계 회수→귀환/차단→죽음/기다림 순서를 retained bridge로 보존 |
 | 제작 gate | durable direct AV 42/42, body lock, Cold open competition PASS; rough cut 금지, AI 최종 PASS false |
 
@@ -32,6 +32,31 @@ All 42 candidate records, clips, stream/decode receipts and raw responses are in
 Independent results: **RETAIN** F002/F003/F007/F014/F015/F020/F025/F027/F031/F032/F034/F035/F037/F042/F043/F045/F047/F049/F050/F052/F054/F055/F056/F057/F058/F059/F060/F061/F062/F063/F064/F065; **ALTERNATE** F005/F010/F023/F036/F038; **DROP** F017/F033/F041/F048/F053. The recheck preserved F003's ambiguity boundary, F007's source question, F020's causal order, F037's correction, F056/F060 limits, the N06 conflict boundary, and late source chronology.
 
 The locked body is the existing lock's `body_lock` field. It retains source context, event and reaction endings rather than treating the 862-second search windows as final runtime. Ranges are non-overlapping and chronological. The selected Cold open is F020 `2020.0–2029.0` followed by F007 `755.7–759.2` (12.5 seconds): immediate reading/hearing contradiction then concrete mishearing. F002 and F025 were alternatives; F037 was excluded to avoid pre-disclosing the later relationship/action payoff.
+
+## Step 9 — AI 전문 기획 판정 (current lock)
+
+결론: **deterministic validation PASS / render_금지_gate PASS / AI 전문 기획 판정 PASS**. 이는 실제 시청 전 구조·근거 gate의 통과이며 최종 품질 인증이나 production 승인으로 읽지 않는다.
+
+Step 9은 Cold open의 F020 `2020.0–2029.0`와 F007 `755.7–759.2`가 본편에도 exact range로 들어 있던 결함을 발견했다. `F020 2020.0–2029.0`는 본편에서 제거했고, F007 본편은 source question `752.0–754.8`과 그 뒤 mishearing/translation `760.0–765.6`으로 바꿨다. direct-AV receipt·42-candidate 판정·Cold open competition은 재실행하지 않았다. F020 본편에는 이후 설명과 웃음 `2031.0–2034.5`, `2040.0–2042.0`만 남아 teaser의 동일 반응을 반복하지 않는다. 이 최소 보정 뒤 body는 52 ranges / 628.8초이며 planned envelope는 679.15초다.
+
+| 전문_평가_축 | 판정 | locked evidence 기준 |
+|---|---|---|
+| A/B→C 연결·Promise·Packaging Fit | PASS | F002의 읽기 시도, F003/F007의 소리 해석·오해, F020의 읽기/듣기 모순과 후반 F056/F060/F064의 감정·한계가 A/B를 C로 누적한다. package promise보다 강한 능력·인과는 주장하지 않는다. |
+| Opening·Viewer Question·핵심 장면까지의 이유 | PASS | F020→F007 Cold open은 모순 뒤 오해를 붙여 `어디까지 실제로 따라가는가`를 남긴다. 본편의 원인·새 결과를 분리해 회수한다. |
+| Escalation·Variation·장면 간 낙차·판단 갱신 | PASS | 초기 문자/소리 사례는 F014/F015의 관계 이해, F034/F035/F037의 전환, F056/F060/F064의 결말 감정으로 기능을 바꾼다. 성공·오해·자가수정·무언 몰입·미이해 경계가 같은 청해 판정표 배열을 막는다. |
+| Character·Payoff·Exit Hook | PASS | F020/F025/F037의 즉시 반응과 F056/F060/F064의 감정·한계가 인물성을 사건 안에 둔다. payoff는 단일 정답이 아니라 서사 이해·수정·몰입·정직한 미이해의 누적이며, exit는 정확한 단어·문자에 무엇을 더하면 달라질지의 질문에 한정한다. |
+| 동일 기능 반복 | PASS_AFTER_REPAIR | F020/F007 teaser/body exact duplicate를 제거했다. 나머지 초기 listening은 읽기 시도→자가수정→오해→관계 이해로 기능이 다르며, 실제 호흡은 rough cut에서 확인한다. |
+| chronology integrity·narrative continuity·MUST_KEEP coverage | PASS | body ranges는 source TC 오름차순이며 retained bridge는 관계 형성→도주 제안/거절→공격/전투→해변 관계 회수→귀환/차단→죽음/기다림을 보존한다. Cold open만 예외다. |
+| 사실 경계 | PASS | `gemini-3.8-flash` direct-AV evidence의 관찰 범위만 사용한다. 후반 미이해를 청해 성공으로 바꾸지 않고, 재확인/최초성은 viewer-facing 주장으로 만들지 않는다. |
+
+### render_금지_gate RED TEAM
+
+- PASS — MUST_KEEP narrative beat와 climax·resolution·emotional closure는 retained bridge 안에 남아 있으며, source narrative를 listening 사례로 대체하지 않는다.
+- PASS — F007은 source question과 뒤 reaction을 함께 보존하고, F020의 본편은 new explanation/reaction만 남긴다. cut boundary가 reaction 원인을 지우거나 Cold open을 단순 반복하지 않는다.
+- PASS — 초기 사례는 세 개 이상 같은 listening 기능으로 연속되지 않도록 읽기 행동·자가수정·오해·관계/사건 이해로 역할을 바꾼다. analysis tag는 편집 순서를 지배하지 않는다.
+- PASS — 동일 reaction/listening의 직접 중복은 위 최소 보정으로 제거했고, A/B→C 증명보다 source narrative의 관계·전환·결말 coverage를 우선한다.
+
+남은 위험은 실제 호흡과 context의 체감이다. Step 10 review rough cut에서는 (1) F007의 source question→mishearing 재도입이 teaser를 보지 않은 시청자에게도 즉시 명료한지, (2) 초기 사례가 진단표처럼 느껴지기 전 F014/F015의 관계 서사로 넘어가는지, (3) F034/F035/F037의 관계 반전과 F056/F060/F064의 후반 인과·감정이 축소 후에도 읽히는지, (4) 679.15초 envelope가 실제로 느슨하지 않은지를 viewer mode로 검증한다. 이번 Step 9에서 rough cut·subtitle·burn-in·typography는 만들지 않았다.
 
 ## Historical 2026-09-17 partial direct-AV receipt — superseded, not current input
 

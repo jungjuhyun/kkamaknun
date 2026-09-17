@@ -33,11 +33,11 @@
 
 이번 rescan은 빈 목록에서 전체 `00:00:00–01:45:25.063`을 시간순 탐색해 새 후보 65개를 만들었다. 81개 연속 기록의 text/coarse-frame coverage에 시간 구멍은 없지만 모든 순간의 소리·동작·reaction을 직접 확인한 것은 아니다. COMPETE 42개는 fresh capability probe와 direct MP4 records를 거쳐 complete durable checkpoint로 보존했다.
 
-source search window 합계 **862초(14:22)는 final retained runtime이 아니었다.** 현재 lock은 32 RETAIN / 5 ALTERNATE / 5 DROP의 독립 재경쟁 결과와 52 retained ranges, footage 639.3초를 보존한다. Cold open은 F020 `2020.0–2029.0` + F007 `755.7–759.2`(12.5초)로 확정했다. transition·ending allowance 포함 planned envelope는 689.65초(11:29.65)로 15분 ceiling 안이다. **rough cut 생성은 여전히 금지**하며 `AI_최종_PASS`는 false다.
+source search window 합계 **862초(14:22)는 final retained runtime이 아니었다.** Step 9에서 Cold open/body의 exact duplicate를 수리했다. 현재 lock은 32 RETAIN / 5 ALTERNATE / 5 DROP의 독립 재경쟁 결과와 52 retained ranges, footage 628.8초를 보존한다. Cold open은 F020 `2020.0–2029.0` + F007 `755.7–759.2`(12.5초)로 확정했고, 본편에서는 F020의 동일 teaser 구간을 제거하고 F007의 source question과 뒤 mishearing/translation만 남겼다. transition·ending allowance 포함 planned envelope는 679.15초(11:19.15)로 15분 ceiling 안이다. Step 9 deterministic validation·render 금지 gate·AI 전문 기획 판정은 PASS했지만, **rough cut은 이번 실행에서 만들지 않았고** `AI_최종_PASS`는 false다.
 
 Fresh `gemini-3.8-flash` probe는 source `3400.000–3416.000`의 H.264/AAC mixed-audio MP4를 actual video input으로 사용했고 source/user sound, visual event 및 동시 AV 관계를 기술했다. F002/F017/F037/F064도 같은 route로 보완했다. 42-record archive `ep1.direct_av_42_checkpoint`는 cloud publish와 clean materialize/hash round-trip을 통과했다. 파일 재생·ASR·정지 frame만으로 gate를 통과시키지 않았다.
 
-**다음 실행:** lock된 ranges로 AI 전문 기획 판정과 deterministic validation을 실행한다. 이 단계가 PASS해도 새 review rough cut·subtitle·burn-in·typography를 이번 실행에서 만들지 않는다.
+**다음 실행:** 별도 Step 10 실행 범위에서 lock된 ranges로 review rough cut을 만들고 실제 시청 테스트를 수행한다. Step 9 PASS는 최종 품질·제작 승인이나 `AI_최종_PASS`가 아니다.
 
 계약 결과 원문, 기존 research report, 7-field 후보/coverage, 기능 경쟁, 본문 가안, narrative check, runtime ledger, RED TEAM, 탐색 이력과 검토 contact sheet는 위 cloud checkpoint에 보존한다. 회사 PC의 Codex visualization 경로는 재개 의존성이 아니다. registry/size/SHA-256은 `tools/harness/STATE.json`이 소유한다.
 
