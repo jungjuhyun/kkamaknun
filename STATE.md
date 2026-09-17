@@ -51,6 +51,8 @@ A/B/C, primary material, 내부 재시청 provenance와 packaging promise는 유
 
 Cloud material migration은 **COMPLETE**다. Phase E K-less recovery와 Phase F cutover validation을 통과했다. 현재 code와 current truth의 canonical sync source는 GitHub이며 checkout 위치와 Windows drive letter는 machine-local detail이다. external material의 durable bytes는 authenticated cloud material store에 두고, runtime은 `tools/harness/STATE.json`의 logical artifact ID를 사용한다. local processing은 `KKAMAKNUN_MATERIAL_ROOT` 아래 fully materialized cache에서만 수행하며 rclone remote는 `KKAMAKNUN_MATERIAL_REMOTE`으로 주입한다. credential/rclone config는 repository 밖에 둔다. K SSD는 optional offline backup일 뿐 current execution·transport·rollback dependency가 아니며 external artifact는 Git에 add·commit하지 않는다. 이 완료는 provider 영구 고정, macOS 전체 workflow 실기 검증, EP1 production 완료, REVIEW_C 해결, 또는 video-planning 최종 PASS를 뜻하지 않는다.
 
+durable-media의 synthetic cloud qualification도 완료했다. 기존 인증 rclone remote의 전용 synthetic namespace에서 A–E crash injection을 별도 process recovery로 검증했고, hash-verified checkpoint, clean-cache/K-less 재개, final ffprobe·full decode·manifest·marker-last commit을 확인했다. 이는 infrastructure capability만 검증하며 **EP1 direct AV gate를 해제하거나 새 production rough cut을 허가하지 않는다.**
+
 `tools/harness/PIPELINE.yaml`의 material_first 공정은 외부 source narrative가 있으면 네 layer와 synchronized evidence timeline이 준비되기 전 후보 경쟁으로 넘어가지 않도록 통합 수정했다. 작품 서사는 골격, listening은 소재·발견, reaction은 재미·인물성으로 다룬다. chronology integrity와 narrative continuity를 분리하고, 본편을 먼저 설계한 뒤 Cold open을 경쟁시키며, MUST_KEEP 누락·climax/resolution/emotional closure 삭제·진단표 배열·Cold open 단순 중복을 pre-render hard gate에서 막는다.
 
 `AGENTS.md`의 기획 라우팅은 실제 기획 요청을 `tools/harness/STATE.json` → 현재 `PIPELINE.yaml` → 현재 lock 순으로 연결한다. 현재 편은 `EP1`, lock은 `tools/harness/EP1_LOCK.json`, 입력 경로는 `material_first`다. `check_draft.py`는 이 lock을 `STATE.json`에서 선택하며 **current truth·잠금·자료 경계의 deterministic 오류만 검사**한다. PASS는 기획 품질 인증이 아니다.
@@ -180,4 +182,3 @@ Phase 0~1 measurement contract와 deterministic oracle proof, Docker-free Phase 
 
 현재 상태 질문은 이 파일을 기준으로 답한다. 다음 할 일은 위 POC 절 한 곳에만 적는다.
 장면 수집기 실제 구현을 시작할 때는 `SCENE_COLLECTOR_PLAN.md`를 실행 계획으로 읽는다.
-

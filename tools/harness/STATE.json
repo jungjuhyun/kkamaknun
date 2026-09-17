@@ -91,6 +91,13 @@
       }
     }
   },
+  "durable_media_execution": {
+    "status": "SYNTHETIC_CLOUD_QUALIFIED",
+    "owner": "tools/harness/durable_media.py",
+    "contract": "Run journals and completed-unit checkpoints are external, hash-verified artifacts under runs/<run-id>; local staging is ephemeral; a normal MP4 is committed only after ffprobe/full-decode validation, manifest, and final marker.",
+    "planning_boundary": "This capability does not clear EP1 direct AV verification or authorize a new production rough cut.",
+    "cloud_pilot": "PASS — existing authenticated rclone remote, synthetic namespace, A–E crash injection with separate-process resume, cloud hash round trip, clean-cache recovery, final ffprobe/full decode/manifest/marker. K SSD was not accessed. This does not clear EP1 AV verification or authorize a production rough cut."
+  },
   "A_B_C": {
     "판정": "유지",
     "A": "20년 이상 취미로 애니를 봐왔지만 일본어를 제대로 공부해본 적은 없는 사람",

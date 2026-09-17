@@ -26,6 +26,7 @@
 | 사람이 읽는 현재 상태·다음 행동 | STATE.md | 현재 프로젝트 상태 |
 | Chat 간 conversation-only decision state·작업 연속성 전달 계약 | continuation/CONTINUATION_SPEC.md | active continuation 생성·검수·진입 |
 | runtime 현재 실행 상태 | tools/harness/STATE.json | 현재 공정·편·lock·입력 경로 |
+| durable media run·checkpoint·commit 구현 | tools/harness/durable_media.py | external run journal·checkpoint lifecycle |
 | System Evaluation 측정 계약·target boundary·fixture·grader | evals/system/README.md | Planning RED TEAM과 분리된 harness 평가 |
 | 공통 영상 기획 process | tools/harness/PIPELINE.yaml | 모든 영상 기획 공정 |
 | 공통 deterministic 규칙 | tools/harness/COMMON_RULES.json | 모든 편에 공통인 기계 검사 |
@@ -87,11 +88,21 @@ System Evaluation 구현·감사·실행 요청은 `evals/system/README.md`를 �
 - 행별 대조 자료나 일부 관찰을 전체 작품·전체 자막·일반 능력으로 확대하지 않는다.
 - 외부 사실·최신 정보·가격·규칙·기술 상태·성과 수치가 판단에 영향을 주면 웹에서 현재 원출처를 확인한다. 검색하지 않은 외부 사실을 확인한 것처럼 보고하지 않는다.
 - 외부 자료를 사용할 때 저장소 current truth, 사용자가 제공한 source, 외부 조사와 AI의 추론을 분리한다.
-- 새 도구·서비스·구현을 선택할 때는 다음 순서를 기본으로 한다.
+
+### Web-first design hard gate
+
+architecture, workflow, tool, recovery, storage, execution-contract 또는 새로운 framework/service를 제안·선택·구현하기 전에 반드시 최신 공식 원출처를 조사한다. 이 gate는 단순 local bug fix나 설계 선택이 없는 기계적 변경에는 적용하지 않는다.
+
+1. 현재 구현·owner·테스트와 외부 prior art를 먼저 읽고 문제 경계를 확인한다.
+2. 공식 문서 우선으로 현재 기능, 실패·재시도·integrity·운영 제약을 조사한다. 웹 접근이 불가능하면 독자적 architecture를 확정하거나 구현하지 않는다.
+3. 후보별로 해결 문제, 기존 구조와의 중복, 도입 비용·운영 복잡도, provider coupling, rollback/validation을 비교한다.
+4. 아래 순서의 결론과 근거를 실행 계획에 남기고, 계획 RED TEAM을 통과한 뒤 구현한다.
 
 Search → Evaluate → Adopt/Buy → Adapt → Build last
 
-이미 있는 도구나 현재 구조로 목적을 달성할 수 있는지 먼저 확인하고, 새 framework·agent·규칙·문서 계층을 실패 근거 없이 추가하지 않는다.
+5. 구현 뒤에는 current owner, 테스트, deterministic validation, reference scan을 갱신한다. 관측 불가능한 browse/tool 행동을 System Evaluation PASS로 추측하지 않는다; 평가를 추가할 때는 source evidence·freshness·repo/external/inference 분리처럼 관측 가능한 계약만 측정한다.
+
+이미 있는 도구나 현재 구조로 목적을 달성할 수 있는지 먼저 확인하고, 새 framework·agent·규칙·문서 계층을 실패 근거 없이 추가하지 않는다. Project instruction은 이 gate의 상위 enforcement bridge만 소유하며, 이 절의 세부 routing·owner·명령·provider 계약을 복제하지 않는다.
 
 ## 7. 영상 기획 품질과 validator의 경계
 
