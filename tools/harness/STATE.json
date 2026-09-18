@@ -7,7 +7,7 @@
   "현재_입력_경로": "material_first",
   "현재_계획": null,
   "현재_계획_단계": "기존 EP1 derived transcription/planning evidence retired; raw-material-only clean-room restart",
-  "다음_실행": "tools/harness/gemini_transcribe.py로 Gemini API 재전사만 수행한다. 로컬 source identity와 stream 2/3을 검증한 뒤 같은 최종 config의 소규모 paid preflight를 먼저 실행하고, verified checkpoint를 재사용해 full run을 resume한다. mixed stream 1, 한국어 source subtitle, A/B, 기존 transcript/sync/narrative/candidate/pilot/UAT는 입력하지 않는다. 두 raw audio track 전체 범위와 completion manifest를 검증한 뒤 STOP한다.",
+  "다음_실행": "tools/harness/gemini_transcribe.py로 Gemini API 재전사만 수행한다. 로컬 source identity와 stream 2/3을 검증한 뒤 같은 최종 config의 첫 두 planned unit만 paid preflight로 실행하고, verified checkpoint를 재사용해 full run을 resume한다. mixed stream 1, 한국어 source subtitle, A/B, 기존 transcript/sync/narrative/candidate/pilot/UAT는 입력하지 않는다. 두 raw audio track 전체 범위와 completion manifest를 검증한 뒤 STOP한다.",
   "cleanroom_transcription_run": {
     "목적": "raw audio 재전사만 수행하며 분석·scene selection·편집 판단을 하지 않는다.",
     "provider": "Gemini API",
@@ -21,7 +21,8 @@
       "default_chunk_seconds": 900,
       "default_overlap_seconds": 0,
       "word_timestamps_default": false,
-      "preflight": "최종 full-run config와 같은 deterministic unit plan에서 --max-new-units 2로 stream 2/3 한 unit씩 실제 API E2E를 확인하고 PAUSED checkpoint를 남긴 뒤 같은 run을 resume한다.",
+      "sdk_retry_attempts": 0,
+      "preflight": "최종 full-run config와 같은 deterministic unit plan의 첫 두 planned unit만 --max-new-units 2로 실행한다. 이미 verified/reused여도 cap 밖 unit으로 전진하지 않으며 stream 2/3 한 unit씩 E2E를 확인하고 PAUSED checkpoint를 남긴 뒤 cap 없이 같은 run을 resume한다.",
       "provider_revalidation": "paid execution 직전 current official Gemini docs에서 model availability, Files/Interactions 지원과 request/file 제한을 다시 확인한다. 외부 서비스 limit 숫자는 repo의 장기 상수로 취급하지 않는다."
     },
     "input_tracks": [
@@ -62,8 +63,9 @@
         "validation status",
         "next unit"
       ],
+      "request_intent": "각 paid Interactions API 제출 직전에 REQUEST_INTENT를 durable store와 journal에 먼저 기록한다. response/checkpoint 없이 프로세스가 사라지면 같은 unit 자동 재호출을 금지한다.",
       "resume": "검증 완료 checkpoint와 durable raw response는 재호출하지 않고 마지막 미완료 unit부터 재개한다.",
-      "ambiguous_paid_request": "interaction 제출 뒤 결과 수락 여부를 확정할 수 없는 실패는 AMBIGUOUS로 기록하고 자동 재호출하지 않는다. 명시적 retry 없이는 같은 unit을 다시 과금하지 않는다.",
+      "ambiguous_paid_request": "interaction 제출 뒤 결과 수락 여부를 확정할 수 없는 실패는 AMBIGUOUS로 기록하고 자동 재호출하지 않는다. REQUEST_INTENT 또는 AMBIGUOUS unit은 명시적 retry 없이는 다시 과금하지 않는다.",
       "failure": "API·network·quota·credential 실패 시 기존 derived 자료로 fallback하지 않고 마지막 verified checkpoint에서 중단한다."
     },
     "completion_gate": [
@@ -73,6 +75,15 @@
       "완료 manifest가 input identity와 전체 unit 상태를 기록한다."
     ],
     "stop_after": "재전사 완료 검증. source narrative 분석, AV 해석, scene competition, editing, pilot은 시작하지 않는다."
+  },
+  "post_transcription_route": {
+    "status": "재전사 completion gate 통과 후 별도 실행에서만 시작",
+    "judgment_model": "gemini-3.8-flash",
+    "role": "Gemini가 fresh transcript와 source narrative/subtitle 및 실제 영상 맥락을 바탕으로 usable reaction material의 IN/OUT, retain/drop, opening/body order, buildup/escalation/payoff/ending과 최종 rough-cut 조합 판단을 소유한다.",
+    "planning_context": "A/B→C, 나라면 왜 보나, source narrative continuity, 핵심 장면, boundary, 시청각 판단, Opening, payoff 등 current repo owner의 방법론을 Gemini 판단 기준으로 투영한다.",
+    "forbidden_historical_inputs": "retired GPT EP1 transcript/sync/narrative map/scene pool/candidate/selection/pilot/UAT와 과거 구체적 편집 답안은 Gemini clean-room 판단 입력으로 사용하지 않는다.",
+    "gpt_role": "GPT/harness는 current truth 전달, provenance·타임코드·누락·형식 검증, Gemini가 지정한 edit plan의 deterministic EDL/assembly 실행만 담당하며 영상 취향 판단으로 Gemini 결정을 덮어쓰지 않는다.",
+    "terminal_quality_gate": "Gemini가 재료 선별부터 최종 조합까지 판단한 실제 rough cut도 사용자 시청에서 부적합하면 추가 harness/prompt/process 보강으로 구제하지 않고 AI autonomous planning을 종료해 사용자 직접 기획으로 전환한다."
   },
   "external_material": {
     "durable_store": "authenticated cloud material store",

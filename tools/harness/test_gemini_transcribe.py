@@ -146,6 +146,13 @@ class GeminiTranscribeTests(unittest.TestCase):
         self.assertEqual(coverage["tracks"]["2"]["end"], 1900.0)
         self.assertEqual(coverage["tracks"]["3"]["gaps"], 0)
 
+    def test_preflight_scope_is_first_planned_units_even_when_reused(self):
+        units = gt.build_units(1900.0, self.tracks(), 900.0)
+        scoped = gt.selected_run_units(units, 2)
+        self.assertEqual([u["unit_id"] for u in scoped], [u["unit_id"] for u in units[:2]])
+        self.assertEqual([u["stream_index"] for u in scoped], [2, 3])
+        self.assertEqual(gt.selected_run_units(units, 0), units)
+
     def test_overlap_requires_word_timestamps_for_deterministic_ownership(self):
         with self.assertRaises(gt.TranscriptionError):
             gt.build_units(100.0, self.tracks(), 60.0, overlap_seconds=2.0)
@@ -160,7 +167,10 @@ class GeminiTranscribeTests(unittest.TestCase):
         self.assertEqual(units[0]["extract_end"], 62.0)
 
     def test_default_transcription_is_verbatim_without_context_bias(self):
-        self.assertEqual(gt.transcription_config(False), {"mode": "verbatim"})
+        self.assertEqual(
+            gt.transcription_config(False), {"mode": {"type": "verbatim"}}
+        )
+        self.assertEqual(gt.no_retry_http_options(), {"retry_options": {"attempts": 0}})
         config = gt.execution_config(
             model="gemini-3.5-transcribe",
             chunk_seconds=900.0,
@@ -170,6 +180,7 @@ class GeminiTranscribeTests(unittest.TestCase):
             ffprobe_version="ffprobe test",
             google_genai_version="2.24.0",
         )
+        self.assertEqual(config["sdk_retry_attempts"], 0)
         self.assertEqual(config["language_codes"], "auto")
         self.assertIsNone(config["custom_vocabulary"])
         self.assertFalse(config["diarization"])
@@ -225,6 +236,40 @@ class GeminiTranscribeTests(unittest.TestCase):
             self.assertEqual(checkpoint["normalized_transcript"], "hello")
             self.assertEqual(checkpoint["validation"]["status"], "VERIFIED")
             self.assertEqual(checkpoint["next_unit"], "next-unit")
+
+    def test_request_intent_is_durable_before_interaction_submit(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run = FakeRun(FakeStore(root / "store"))
+            unit = gt.build_units(
+                60.0, [{"stream_index": 2, "role": "desktop/source"}], 60.0
+            )[0]
+            client = FakeClient(FakeInteraction("spoken text"))
+            observed = []
+
+            def create(**_kwargs):
+                observed.append(run.state["units"][unit["unit_id"]]["state"])
+                return FakeInteraction("spoken text")
+
+            client.interactions.create = create
+            chunk_meta = {"sha256": "chunk", "size": 10, "duration": 60.0}
+            with patch.object(gt, "extract_chunk", return_value=chunk_meta):
+                result = gt.transcribe_one(
+                    run=run,
+                    workspace=root / "work",
+                    source=root / "source.mp4",
+                    unit=unit,
+                    model="gemini-3.5-transcribe",
+                    word_timestamps=False,
+                    overlap_seconds=0.0,
+                    ffmpeg="ffmpeg",
+                    ffprobe="ffprobe",
+                    client=client,
+                    allow_retry_ambiguous=False,
+                    next_unit_id=None,
+                )
+            self.assertEqual(result, "TRANSCRIBED")
+            self.assertEqual(observed, ["REQUEST_INTENT"])
 
     def test_returned_paid_response_is_saved_before_normalization_failure(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -315,6 +360,33 @@ class GeminiTranscribeTests(unittest.TestCase):
                     )
                 self.assertEqual(client.interactions.calls, first_calls)
 
+    def test_request_intent_blocks_resume_without_explicit_override(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            run = FakeRun(FakeStore(root / "store"))
+            unit = gt.build_units(
+                60.0, [{"stream_index": 2, "role": "desktop/source"}], 60.0
+            )[0]
+            chunk_meta = {"sha256": "chunk", "size": 10, "duration": 60.0}
+            file_meta = {"name": "files/1", "uri": "uri://1", "mime_type": "audio/flac"}
+            gt.record_request_intent(run, root / "work", unit, chunk_meta, file_meta)
+            client = FakeClient()
+            with self.assertRaises(gt.TranscriptionError):
+                gt.transcribe_one(
+                    run=run,
+                    workspace=root / "work",
+                    source=root / "source.mp4",
+                    unit=unit,
+                    model="gemini-3.5-transcribe",
+                    word_timestamps=False,
+                    overlap_seconds=0.0,
+                    ffmpeg="ffmpeg",
+                    ffprobe="ffprobe",
+                    client=client,
+                    allow_retry_ambiguous=False,
+                    next_unit_id=None,
+                )
+            self.assertEqual(client.interactions.calls, 0)
 
     def test_default_run_id_does_not_silently_fork_when_tool_config_changes(self):
         identity = {

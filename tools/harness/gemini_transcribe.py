@@ -153,7 +153,6 @@ def validate_stream_contract(
             raise TranscriptionError(f"configured stream {index} is missing")
         if stream.get("codec_type") != "audio":
             raise TranscriptionError(f"configured stream {index} is not audio")
-    # The current clean-room contract deliberately excludes the mixed stream.
     if any(track["stream_index"] == 1 for track in tracks):
         raise TranscriptionError("mixed audio stream 1 is forbidden")
 
@@ -201,7 +200,6 @@ def build_units(
 
     segment_count = int(math.ceil(duration / chunk_seconds))
     units: list[dict[str, Any]] = []
-    # Interleave tracks by segment so a small preflight exercises both tracks.
     for segment_index in range(segment_count):
         core_start = segment_index * chunk_seconds
         core_end = min(duration, (segment_index + 1) * chunk_seconds)
@@ -229,14 +227,15 @@ def build_units(
 
 
 def transcription_config(word_timestamps: bool) -> dict[str, Any]:
+    mode: dict[str, Any] = {"type": "verbatim"}
     if word_timestamps:
-        return {
-            "mode": {
-                "type": "verbatim",
-                "timestamp_granularities": ["word"],
-            }
-        }
-    return {"mode": "verbatim"}
+        mode["timestamp_granularities"] = ["word"]
+    return {"mode": mode}
+
+
+def no_retry_http_options() -> dict[str, Any]:
+    """Disable SDK retries so one application submit means one provider submit."""
+    return {"retry_options": {"attempts": 0}}
 
 
 def execution_config(
@@ -254,6 +253,7 @@ def execution_config(
         "model": model,
         "api": "Gemini Interactions API + Files API",
         "transcription_config": transcription_config(word_timestamps),
+        "sdk_retry_attempts": 0,
         "language_codes": "auto",
         "custom_vocabulary": None,
         "diarization": False,
@@ -287,9 +287,6 @@ def source_identity(
 
 
 def default_run_id(identity: dict[str, Any], config: dict[str, Any]) -> str:
-    # Intentionally exclude mutable tool/config versions from the default ID.
-    # Re-entering the same source then finds the existing journal and refuses a
-    # config mismatch instead of silently creating a second paid run.
     track_hash = sha256_json(identity.get("tracks", []))[:8]
     return (
         f"gemini-transcribe-{str(identity['sha256'])[:12]}-"
@@ -479,7 +476,7 @@ def new_genai_client() -> Any:
         raise TranscriptionError(
             "google-genai is required; install tools/harness/requirements_gemini.txt"
         ) from exc
-    return genai.Client()
+    return genai.Client(http_options=no_retry_http_options())
 
 
 def best_effort_delete_file(client: Any, file_meta: dict[str, Any]) -> str | None:
@@ -488,10 +485,9 @@ def best_effort_delete_file(client: Any, file_meta: dict[str, Any]) -> str | Non
         return None
     try:
         client.files.delete(name=name)
-    except Exception as exc:  # cleanup failure must not invalidate a paid result
+    except Exception as exc:
         return f"{type(exc).__name__}: {exc}"
     return None
-
 
 
 def local_raw_response(workspace: Path, unit_id_value: str) -> Path:
@@ -696,6 +692,53 @@ def ambiguous_checkpoint(workspace: Path, unit_id_value: str) -> Path:
     return workspace / "ambiguous" / f"{unit_id_value}.json"
 
 
+def request_intent_checkpoint(workspace: Path, unit_id_value: str) -> Path:
+    return workspace / "request_intent" / f"{unit_id_value}.json"
+
+
+def record_request_intent(
+    run: durable_media.Run,
+    workspace: Path,
+    unit: dict[str, Any],
+    chunk_meta: dict[str, Any],
+    file_meta: dict[str, Any],
+) -> None:
+    record = {
+        "schema": RUNNER_SCHEMA,
+        "run_id": run.state["run_id"],
+        "unit_id": unit["unit_id"],
+        "state": "REQUEST_INTENT",
+        "reason": (
+            "Durable intent recorded before the paid Interactions API submit. "
+            "If the process disappears before a durable response exists, automatic retry is blocked."
+        ),
+        "track": {
+            "stream_index": unit["stream_index"],
+            "role": unit["role"],
+        },
+        "timing": unit,
+        "input_chunk": chunk_meta,
+        "uploaded_file": file_meta,
+        "recorded_at": time.time(),
+    }
+    path = request_intent_checkpoint(workspace, unit["unit_id"])
+    write_json(path, record)
+    checksum = material_store.sha256_file(path)
+    receipt = run.store.put(
+        path,
+        f"{run.prefix}/{TRANSCRIPTION_PREFIX}/request_intent/{unit['unit_id']}/{checksum}.json",
+    )
+    durable_media.verify(path, receipt)
+    run.state["units"][unit["unit_id"]] = {
+        "state": "REQUEST_INTENT",
+        "receipt": receipt,
+        "input_identity": run.state["input_identity"],
+        "config_sha256": run.state["config_sha256"],
+        "input_chunk_sha256": chunk_meta["sha256"],
+    }
+    run.save()
+
+
 def record_ambiguous(
     run: durable_media.Run,
     workspace: Path,
@@ -730,6 +773,7 @@ def record_ambiguous(
         path,
         f"{run.prefix}/{TRANSCRIPTION_PREFIX}/ambiguous/{unit['unit_id']}/{checksum}.json",
     )
+    durable_media.verify(path, receipt)
     run.state["units"][unit["unit_id"]] = {
         "state": "AMBIGUOUS",
         "receipt": receipt,
@@ -737,7 +781,6 @@ def record_ambiguous(
         "config_sha256": run.state["config_sha256"],
     }
     run.save()
-
 
 
 def make_checkpoint_from_response(
@@ -797,6 +840,7 @@ def make_checkpoint_from_response(
         "verified_at": time.time(),
         "next_unit": next_unit_id,
     }
+
 
 def validate_plan_coverage(
     units: list[dict[str, Any]], tracks: list[dict[str, Any]], duration: float
@@ -977,7 +1021,6 @@ def commit_completion(
     }
     marker_path = workspace / "final" / COMPLETION_MARKER
     write_json(marker_path, marker)
-    # Marker is deliberately published last. Its existence is authoritative.
     marker_receipt = run.store.put(marker_path, completion_marker_key(run.state["run_id"]))
     durable_media.verify(marker_path, marker_receipt)
     return manifest
@@ -1011,7 +1054,6 @@ def durable_run_plan(
     )
     run.state["transcription_plan"] = receipt
     run.save()
-
 
 
 def pause_run(run: durable_media.Run) -> None:
@@ -1118,16 +1160,20 @@ def transcribe_one(
 
     existing_entry = run.state.get("units", {}).get(unit["unit_id"])
     local_ambiguous = ambiguous_checkpoint(workspace, unit["unit_id"])
-    ambiguous = (
-        existing_entry and existing_entry.get("state") == "AMBIGUOUS"
-    ) or local_ambiguous.is_file()
-    if ambiguous and not allow_retry_ambiguous:
+    local_intent = request_intent_checkpoint(workspace, unit["unit_id"])
+    unresolved_state = existing_entry and existing_entry.get("state") in {
+        "AMBIGUOUS",
+        "REQUEST_INTENT",
+    }
+    unresolved = bool(unresolved_state) or local_ambiguous.is_file() or local_intent.is_file()
+    if unresolved and not allow_retry_ambiguous:
         raise TranscriptionError(
-            f"ambiguous paid request blocked from automatic retry: {unit['unit_id']}"
+            f"unresolved paid request blocked from automatic retry: {unit['unit_id']}"
         )
-    if ambiguous and allow_retry_ambiguous:
+    if unresolved and allow_retry_ambiguous:
         run.state.get("units", {}).pop(unit["unit_id"], None)
         local_ambiguous.unlink(missing_ok=True)
+        local_intent.unlink(missing_ok=True)
         run.save()
 
     chunk = workspace / "chunks" / f"{unit['unit_id']}.flac"
@@ -1148,6 +1194,7 @@ def transcribe_one(
         }
         if not file_meta["uri"]:
             raise TranscriptionError("Gemini Files API returned no file URI")
+        record_request_intent(run, workspace, unit, chunk_meta, file_meta)
         interaction_started = True
         interaction = client.interactions.create(
             model=model,
@@ -1196,6 +1243,7 @@ def transcribe_one(
                     file=sys.stderr,
                 )
     return "TRANSCRIBED"
+
 
 def installed_google_genai_version() -> str:
     try:
@@ -1253,6 +1301,15 @@ def build_context(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def selected_run_units(
+    units: list[dict[str, Any]], max_new_units: int
+) -> list[dict[str, Any]]:
+    """Scope preflight to a deterministic prefix, even when units are reused."""
+    if max_new_units < 0:
+        raise TranscriptionError("max_new_units must be non-negative")
+    return units[:max_new_units] if max_new_units else units
+
+
 def run_command(args: argparse.Namespace) -> int:
     if installed_google_genai_version() == "not-installed":
         raise TranscriptionError(
@@ -1289,8 +1346,9 @@ def run_command(args: argparse.Namespace) -> int:
     )
     durable_run_plan(run, workspace, context["units"], context["config"])
     client = new_genai_client()
+    execution_units = selected_run_units(context["units"], args.max_new_units)
     new_count = 0
-    for unit_index, unit in enumerate(context["units"]):
+    for unit_index, unit in enumerate(execution_units):
         next_unit_id = (
             context["units"][unit_index + 1]["unit_id"]
             if unit_index + 1 < len(context["units"])
@@ -1312,8 +1370,6 @@ def run_command(args: argparse.Namespace) -> int:
                 next_unit_id=next_unit_id,
             )
         except Exception:
-            # This process is stopping, so release its lease without changing
-            # the unit verdict (CHECKPOINTED / RESPONSE_SAVED / AMBIGUOUS / absent).
             try:
                 pause_run(run)
             except Exception:
@@ -1322,28 +1378,26 @@ def run_command(args: argparse.Namespace) -> int:
         print(f"{result} {unit['unit_id']}")
         if result == "TRANSCRIBED":
             new_count += 1
-            if args.max_new_units and new_count >= args.max_new_units:
-                pause_run(run)
-                print(
-                    json.dumps(
-                        {
-                            "run_id": run_id,
-                            "state": "PREFLIGHT_STOP",
-                            "new_units": new_count,
-                            "next_unit": next(
-                                (
-                                    candidate["unit_id"]
-                                    for candidate in context["units"]
-                                    if candidate["unit_id"]
-                                    not in run.state.get("units", {})
-                                ),
-                                None,
-                            ),
-                        },
-                        ensure_ascii=False,
-                    )
-                )
-                return 0
+
+    if args.max_new_units:
+        pause_run(run)
+        print(
+            json.dumps(
+                {
+                    "run_id": run_id,
+                    "state": "PREFLIGHT_STOP",
+                    "planned_prefix_units": len(execution_units),
+                    "new_units": new_count,
+                    "next_unit": (
+                        context["units"][len(execution_units)]["unit_id"]
+                        if len(execution_units) < len(context["units"])
+                        else None
+                    ),
+                },
+                ensure_ascii=False,
+            )
+        )
+        return 0
 
     manifest = build_completion_manifest(
         run,
