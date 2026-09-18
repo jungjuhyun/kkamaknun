@@ -1,17 +1,18 @@
 {
-  "상태": "EP1_CLEANROOM_GEMINI_RETRANSCRIPTION_PENDING",
+  "상태": "EP1_CLEANROOM_GEMINI_RETRANSCRIPTION_COMPLETED",
   "현재_실행_공정": "tools/harness/PIPELINE.yaml",
   "공정": "video_planning",
   "현재_편": "EP1",
   "현재_lock": "tools/harness/EP1_LOCK.json",
   "현재_입력_경로": "material_first",
   "현재_계획": null,
-  "현재_계획_단계": "기존 EP1 derived transcription/planning evidence retired; raw-material-only clean-room restart",
-  "다음_실행": "tools/harness/gemini_transcribe.py로 Gemini API 재전사만 수행한다. 로컬 source identity와 stream 2/3을 검증한 뒤 같은 최종 config의 첫 두 planned unit만 paid preflight로 실행하고, verified checkpoint를 재사용해 full run을 resume한다. mixed stream 1, 한국어 source subtitle, A/B, 기존 transcript/sync/narrative/candidate/pilot/UAT는 입력하지 않는다. 두 raw audio track 전체 범위와 completion manifest를 검증한 뒤 STOP한다.",
+  "현재_계획_단계": "clean-room retranscription completed; independent source reconstruction pending",
+  "다음_실행": "Gemini 3.8 Flash로 material_first Step 3 독립 source reconstruction만 수행한다. fresh stream 2/3 transcript, raw Korean source subtitle, 실제 primary video/audio로 source narrative·desktop/source·user mic·visual/nonverbal 네 layer와 synchronized evidence timeline을 복원한다. 이 reconstruction에는 A/B premise나 retired GPT EP1 구체적 planning 답안을 넣지 않으며, 완료 후 STOP한다. A/B→C와 current planning methodology를 사용하는 scene competition·final composition은 다음 별도 실행에서 시작한다.",
   "cleanroom_transcription_run": {
     "목적": "raw audio 재전사만 수행하며 분석·scene selection·편집 판단을 하지 않는다.",
     "provider": "Gemini API",
     "source_artifact": "ep1.primary_recording",
+    "status": "COMPLETED_REPORTED_AND_LOCALLY_VERIFIED",
     "runner": {
       "path": "tools/harness/gemini_transcribe.py",
       "dependency_file": "tools/harness/requirements_gemini.txt",
@@ -74,14 +75,65 @@
       "chunk overlap/merge에서 누락·중복·순서 역전이 검증된다.",
       "완료 manifest가 input identity와 전체 unit 상태를 기록한다."
     ],
-    "stop_after": "재전사 완료 검증. source narrative 분석, AV 해석, scene competition, editing, pilot은 시작하지 않는다."
+    "completion_report": {
+      "source_identity": "PASS",
+      "planned_units": 16,
+      "verified_units": 16,
+      "paid_submits": 16,
+      "preflight_units": [
+        "s02_c0000_0000000000_0000900000",
+        "s03_c0000_0000000000_0000900000"
+      ],
+      "preflight_result": "TRANSCRIBED + VERIFIED; PREFLIGHT_STOP / PAUSED",
+      "resume_first_two": "REUSED",
+      "request_intent_records": 16,
+      "raw_responses": 16,
+      "verified_checkpoints": 16,
+      "unresolved_request_intent": 0,
+      "ambiguous": 0,
+      "stream_2_coverage": "0-6325.0625 PASS",
+      "stream_3_coverage": "0-6325.0625 PASS",
+      "gap_check": "PASS",
+      "duplicate_check": "PASS",
+      "order_check": "PASS",
+      "completion_manifest": "PRESENT_AND_VERIFIED",
+      "completion_marker": "PRESENT_AND_VERIFIED",
+      "evidence_boundary": "local execution report; next analysis run must re-read durable marker/manifest and input identity before consuming transcript"
+    },
+    "stop_after": "재전사 완료 검증. source narrative 분석, AV 해석, scene competition, editing, pilot은 별도 실행에서만 시작한다."
   },
   "post_transcription_route": {
-    "status": "재전사 completion gate 통과 후 별도 실행에서만 시작",
+    "status": "READY_FOR_INDEPENDENT_SOURCE_RECONSTRUCTION",
     "judgment_model": "gemini-3.8-flash",
-    "role": "Gemini가 fresh transcript와 source narrative/subtitle 및 실제 영상 맥락을 바탕으로 usable reaction material의 IN/OUT, retain/drop, opening/body order, buildup/escalation/payoff/ending과 최종 rough-cut 조합 판단을 소유한다.",
-    "planning_context": "A/B→C, 나라면 왜 보나, source narrative continuity, 핵심 장면, boundary, 시청각 판단, Opening, payoff 등 current repo owner의 방법론을 Gemini 판단 기준으로 투영한다.",
-    "forbidden_historical_inputs": "retired GPT EP1 transcript/sync/narrative map/scene pool/candidate/selection/pilot/UAT와 과거 구체적 편집 답안은 Gemini clean-room 판단 입력으로 사용하지 않는다.",
+    "stage_1_independent_reconstruction": {
+      "purpose": "material_first Step 3의 네 layer와 synchronized evidence timeline을 fresh evidence만으로 복원한다.",
+      "inputs": [
+        "verified fresh stream 2 transcript",
+        "verified fresh stream 3 transcript",
+        "ep1.source_subtitles_ko raw source",
+        "ep1.primary_recording actual video/audio"
+      ],
+      "outputs": [
+        "source narrative with absolute recording TC",
+        "desktop/source dialogue/audio layer",
+        "user mic raw layer",
+        "visual/nonverbal reaction layer",
+        "synchronized evidence timeline",
+        "uncertainty and provenance"
+      ],
+      "forbidden_context": [
+        "FIRST_VIDEO.md의 A/B planning premise",
+        "retired GPT EP1 transcript/sync/narrative map/scene pool/candidate/selection/pilot/UAT",
+        "old scene IDs or old edit answers"
+      ],
+      "stop_after": "independent reconstruction validation; do not auto-chain planning synthesis"
+    },
+    "stage_2_planning_synthesis": {
+      "status": "BLOCKED_UNTIL_STAGE_1_COMPLETES",
+      "role": "Gemini가 reconstructed evidence와 current planning methodology를 바탕으로 usable reaction material의 IN/OUT, retain/drop, opening/body order, buildup/escalation/payoff/ending과 최종 rough-cut 조합 판단을 소유한다.",
+      "planning_context": "A/B→C, 나라면 왜 보나, source narrative continuity, 핵심 장면, boundary, 시청각 판단, Opening, payoff 등 current repo owner의 방법론을 Gemini 판단 기준으로 투영한다.",
+      "forbidden_historical_inputs": "retired GPT EP1 transcript/sync/narrative map/scene pool/candidate/selection/pilot/UAT와 과거 구체적 편집 답안은 Gemini clean-room 판단 입력으로 사용하지 않는다."
+    },
     "gpt_role": "GPT/harness는 current truth 전달, provenance·타임코드·누락·형식 검증, Gemini가 지정한 edit plan의 deterministic EDL/assembly 실행만 담당하며 영상 취향 판단으로 Gemini 결정을 덮어쓰지 않는다.",
     "terminal_quality_gate": "Gemini가 재료 선별부터 최종 조합까지 판단한 실제 rough cut도 사용자 시청에서 부적합하면 추가 harness/prompt/process 보강으로 구제하지 않고 AI autonomous planning을 종료해 사용자 직접 기획으로 전환한다."
   },
