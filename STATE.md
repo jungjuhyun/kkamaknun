@@ -41,21 +41,31 @@ EP1은 기존 파생 전사·동기화·서사 맵·scene candidate·selection·
 
 `materials/ep1_main/PLANNING_RESULTS.md`는 reset 상태이며 새 clean-room 결과 전에는 planning decision을 기록하지 않는다.
 
+## Gemini retranscription runner
+
+재전사 실행기는 `tools/harness/gemini_transcribe.py`에 준비되어 있다. 이 구현이 생겼다고 해서 전사가 완료된 것은 아니며, 현재 transcript는 여전히 **미생성 / 미검증** 상태다.
+
+2026-09-18 current official Gemini docs를 기준으로 Run 1은 전용 `gemini-3.5-transcribe`를 Files API + Interactions API로 사용한다. 이 전용 모델은 당시 Batch API를 지원하지 않으므로 generic Gemini Batch를 기본 경로로 채택하지 않았다. generic audio-understanding 경로는 multi-channel audio를 single channel로 합치므로 stream 2/3 분리 계약을 대신할 수 없다.
+
+전사는 `verbatim`이 기본이다. word-level timestamp는 정확도를 낮출 수 있다는 provider 경고가 있으므로 기본값은 off다. 기본 chunk core는 겹치지 않으며, overlap을 켤 경우에만 word timestamp를 함께 사용해 각 word를 하나의 core interval에 결정론적으로 귀속한다. provider의 model/limit/support는 paid 실행 직전에 official docs로 다시 확인한다.
+
+runner는 기존 `durable_media.py`의 journal/lease/object-store를 재사용한다. Gemini 응답이 돌아오면 normalized checkpoint보다 먼저 raw response를 durable store에 기록한다. interaction 제출 뒤 수락 여부를 확정할 수 없는 실패는 `AMBIGUOUS`로 남기고 자동 재호출하지 않아 이중 과금 가능성을 보수적으로 차단한다.
+
 ## Immediate next action — transcription only
 
 다음 실행은 **재전사 하나만** 한다.
 
-1. primary recording에서 `audio stream 2 = desktop/source`와 `audio stream 3 = mic/user`를 서로 분리한다.
-2. `audio stream 1 = mixed`는 재전사 입력으로 사용하지 않는다. provider가 multi-channel/stream audio를 합쳐 버리는 경로에도 의존하지 않는다.
-3. 두 raw track을 각각 deterministic chunk로 나눈다. chunk는 current official Gemini API의 file/request 제한 안에 들어가야 하며 primary recording의 absolute start/end를 보존한다.
-4. Gemini에는 해당 raw audio chunk와 전사 지시만 준다. 한국어 source subtitle, A/B, `FIRST_VIDEO.md`, 기존 transcript/sync/narrative/candidate/selection/pilot/UAT는 입력하지 않는다.
+1. 로컬에서 최신 feature branch와 `ep1.primary_recording` identity를 확인하고 `tools/harness/requirements_gemini.txt`의 runtime dependency를 준비한다.
+2. runner의 `plan` 경로로 source SHA/size, stream 2/3, deterministic chunk plan과 absolute coverage를 검증한다.
+3. full run과 같은 config에서 `--max-new-units 2`로 소규모 paid preflight를 실행한다. unit은 segment별로 stream 2/3이 교차되므로 두 track의 실제 upload → transcription → raw-response save → verified checkpoint 경로를 각각 확인한다.
+4. preflight가 `PAUSED` 상태로 정상 종료되면 같은 run/config를 다시 실행해 verified unit을 재호출하지 않고 나머지를 resume한다.
 5. 각 chunk가 검증되는 즉시 `track`, absolute start/end, input SHA-256, model, prompt/config hash, raw response, normalized transcript, validation, next unit을 checkpoint한다.
-6. 중단 후 재실행하면 verified checkpoint를 재호출하지 않고 마지막 미완료 unit부터 resume한다. API/network/quota/credential 실패를 기존 derived 자료 fallback으로 메우지 않는다.
-7. 두 track 전체 범위, chunk merge의 누락·중복·순서, 완료 manifest를 검증한 뒤 **STOP**한다.
+6. `audio stream 1 = mixed`, 한국어 source subtitle, A/B, `FIRST_VIDEO.md`, 기존 transcript/sync/narrative/candidate/selection/pilot/UAT는 Gemini 입력으로 사용하지 않는다.
+7. 두 track 전체 범위, chunk merge의 누락·중복·순서, 완료 manifest와 marker를 검증한 뒤 **STOP**한다.
 
 이 실행에서는 source narrative 분석, AV 해석, scene selection, RETAIN/BRIDGE/DROP, 편집 판단, pilot 생성을 하지 않는다. 재전사 run이 검증된 뒤에만 **별도 실행**으로 Gemini 분석을 시작한다.
 
-구체적인 provider API 제한·지원 형식은 실행 직전 current official Gemini 문서를 다시 확인한다. 현재 repo에는 변할 수 있는 외부 서비스 숫자를 장기 상수로 잠그지 않는다.
+구체적인 provider API 제한·지원 형식은 paid 실행 직전 current official Gemini 문서를 다시 확인한다. 현재 repo에는 변할 수 있는 외부 서비스 숫자를 장기 상수로 잠그지 않는다.
 
 ## Owner pointers
 
@@ -63,6 +73,8 @@ EP1은 기존 파생 전사·동기화·서사 맵·scene candidate·selection·
 - EP1 stable facts·clean-room boundary: `FIRST_VIDEO.md`
 - EP1 current planning results: `materials/ep1_main/PLANNING_RESULTS.md`
 - runtime route·raw artifact registry·현재 clean-room run contract: `tools/harness/STATE.json`
+- crash-safe Gemini retranscription execution: `tools/harness/gemini_transcribe.py`
+- external media run journal·checkpoint lifecycle: `tools/harness/durable_media.py`
 - deterministic EP1 projection: `tools/harness/EP1_LOCK.json`
 - long-lived judgment principles: `PLAYBOOK.md`
 

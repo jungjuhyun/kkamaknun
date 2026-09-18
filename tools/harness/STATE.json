@@ -7,11 +7,23 @@
   "현재_입력_경로": "material_first",
   "현재_계획": null,
   "현재_계획_단계": "기존 EP1 derived transcription/planning evidence retired; raw-material-only clean-room restart",
-  "다음_실행": "Gemini API 재전사 run만 수행한다. primary recording에서 desktop/source stream 2와 mic/user stream 3을 서로 분리해 deterministic chunk로 처리하고, 각 chunk를 검증 즉시 checkpoint한다. mixed stream 1, 한국어 source subtitle, A/B, 기존 transcript/sync/narrative/candidate/pilot/UAT는 Gemini 재전사 입력에 넣지 않는다. 두 raw audio track의 전체 범위를 검증한 뒤 STOP하며 분석은 별도 실행에서만 시작한다.",
+  "다음_실행": "tools/harness/gemini_transcribe.py로 Gemini API 재전사만 수행한다. 로컬 source identity와 stream 2/3을 검증한 뒤 같은 최종 config의 소규모 paid preflight를 먼저 실행하고, verified checkpoint를 재사용해 full run을 resume한다. mixed stream 1, 한국어 source subtitle, A/B, 기존 transcript/sync/narrative/candidate/pilot/UAT는 입력하지 않는다. 두 raw audio track 전체 범위와 completion manifest를 검증한 뒤 STOP한다.",
   "cleanroom_transcription_run": {
     "목적": "raw audio 재전사만 수행하며 분석·scene selection·편집 판단을 하지 않는다.",
     "provider": "Gemini API",
     "source_artifact": "ep1.primary_recording",
+    "runner": {
+      "path": "tools/harness/gemini_transcribe.py",
+      "dependency_file": "tools/harness/requirements_gemini.txt",
+      "model": "gemini-3.5-transcribe",
+      "api": "Gemini Interactions API + Files API",
+      "mode": "verbatim",
+      "default_chunk_seconds": 900,
+      "default_overlap_seconds": 0,
+      "word_timestamps_default": false,
+      "preflight": "최종 full-run config와 같은 deterministic unit plan에서 --max-new-units 2로 stream 2/3 한 unit씩 실제 API E2E를 확인하고 PAUSED checkpoint를 남긴 뒤 같은 run을 resume한다.",
+      "provider_revalidation": "paid execution 직전 current official Gemini docs에서 model availability, Files/Interactions 지원과 request/file 제한을 다시 확인한다. 외부 서비스 limit 숫자는 repo의 장기 상수로 취급하지 않는다."
+    },
     "input_tracks": [
       {
         "stream_index": 2,
@@ -34,7 +46,7 @@
     "chunk_contract": {
       "rule": "두 track을 각각 독립적으로 deterministic chunk로 나누고 current official Gemini API의 file/request 제한 안에서 처리한다.",
       "timeline": "각 chunk는 primary recording absolute start/end를 보존한다.",
-      "overlap": "boundary transcription 손실을 막는 최소 overlap을 허용하되 merge 시 중복을 식별·제거할 수 있어야 한다."
+      "overlap": "기본은 정확도 우선 contiguous core coverage다. overlap을 사용하면 word timestamp를 함께 사용해 core ownership으로 중복을 결정론적으로 제거해야 한다."
     },
     "checkpoint_contract": {
       "assumption": "unattended overnight run",
@@ -50,7 +62,8 @@
         "validation status",
         "next unit"
       ],
-      "resume": "검증 완료 checkpoint는 재호출하지 않고 마지막 미완료 unit부터 재개한다.",
+      "resume": "검증 완료 checkpoint와 durable raw response는 재호출하지 않고 마지막 미완료 unit부터 재개한다.",
+      "ambiguous_paid_request": "interaction 제출 뒤 결과 수락 여부를 확정할 수 없는 실패는 AMBIGUOUS로 기록하고 자동 재호출하지 않는다. 명시적 retry 없이는 같은 unit을 다시 과금하지 않는다.",
       "failure": "API·network·quota·credential 실패 시 기존 derived 자료로 fallback하지 않고 마지막 verified checkpoint에서 중단한다."
     },
     "completion_gate": [

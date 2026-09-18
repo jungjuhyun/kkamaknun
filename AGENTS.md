@@ -27,6 +27,7 @@
 | Chat 간 conversation-only decision state·작업 연속성 전달 계약 | continuation/CONTINUATION_SPEC.md | active continuation 생성·검수·진입 |
 | runtime 현재 실행 상태 | tools/harness/STATE.json | 현재 공정·편·lock·입력 경로 |
 | durable media run·checkpoint·commit 구현 | tools/harness/durable_media.py | external run journal·checkpoint lifecycle |
+| Gemini clean-room 재전사 실행 | tools/harness/gemini_transcribe.py | raw track chunk extraction·Gemini STT·verified checkpoint·completion lifecycle |
 | System Evaluation 측정 계약·target boundary·fixture·grader | evals/system/README.md | Planning RED TEAM과 분리된 harness 평가 |
 | 공통 영상 기획 process | tools/harness/PIPELINE.yaml | 모든 영상 기획 공정 |
 | 공통 deterministic 규칙 | tools/harness/COMMON_RULES.json | 모든 편에 공통인 기계 검사 |
@@ -141,4 +142,3 @@ repo 변경이 승인된 경우 AI가 가능한 수정을 직접 수행한다. �
 9. commit 후 remote/ref를 다시 확인해 실제 post-commit SHA와 변경 파일을 검증한다.
 
 instruction source를 수정할 때는 관련 source 전체 확인 → owner 판정 → 중복·충돌·stale 제거 → 통합 교체 → parse/test/reference scan의 순서를 지킨다.
-
