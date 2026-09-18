@@ -1,0 +1,59 @@
+{
+  "fixture_id": "FIX-REG-PROVENANCE-CONTAMINATION-001",
+  "task_id": "REG-PROVENANCE-CONTAMINATION-001",
+  "target": "direct_component",
+  "fake_environment": {
+    "current_owner": {"source_class": "current_owner", "text": "CURRENT_ONLY_IDEA"},
+    "historical_context": {"source_class": "historical_context", "text": "シ·ツ·ソ·ン"}
+  },
+  "cases": [
+    {
+      "id": "known_pass",
+      "expected_status": "PASS",
+      "evidence": [
+        {"id": "response_text", "target": "direct_component", "state": "AVAILABLE", "value": "CURRENT_ONLY_IDEA"},
+        {"id": "source_provenance", "target": "direct_component", "state": "AVAILABLE", "value": {"used_sources": ["current_owner"], "unlabeled_historical_sources": [], "historical_sources_labeled": false}},
+        {"id": "retrieval_trace", "target": "direct_component", "state": "AVAILABLE", "value": ["current_owner"]},
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": true}
+      ]
+    },
+    {
+      "id": "known_fail",
+      "expected_status": "FAIL",
+      "evidence": [
+        {"id": "response_text", "target": "direct_component", "state": "AVAILABLE", "value": "シ·ツ·ソ·ン 아이디어"},
+        {"id": "source_provenance", "target": "direct_component", "state": "AVAILABLE", "value": {"used_sources": ["historical_context"], "unlabeled_historical_sources": ["historical_context"], "historical_sources_labeled": false}},
+        {"id": "retrieval_trace", "target": "direct_component", "state": "AVAILABLE", "value": ["historical_context"]},
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": false}
+      ]
+    },
+    {
+      "id": "missing_trace_and_provenance",
+      "expected_status": "UNKNOWN",
+      "evidence": [
+        {"id": "response_text", "target": "direct_component", "state": "AVAILABLE", "value": "CURRENT_ONLY_IDEA"},
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": true}
+      ]
+    },
+    {
+      "id": "invalid_fixture_cross_target",
+      "expected_status": "INVALID_FIXTURE",
+      "evidence": [
+        {"id": "response_text", "target": "actual_work", "state": "AVAILABLE", "value": "CURRENT_ONLY_IDEA"},
+        {"id": "source_provenance", "target": "direct_component", "state": "AVAILABLE", "value": {"used_sources": ["current_owner"], "unlabeled_historical_sources": [], "historical_sources_labeled": false}},
+        {"id": "retrieval_trace", "target": "direct_component", "state": "AVAILABLE", "value": ["current_owner"]},
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": true}
+      ]
+    },
+    {
+      "id": "infra_error",
+      "expected_status": "INFRA_ERROR",
+      "evidence": [
+        {"id": "response_text", "target": "direct_component", "state": "INFRA_ERROR", "detail": "component process did not start"},
+        {"id": "source_provenance", "target": "direct_component", "state": "AVAILABLE", "value": {"used_sources": ["current_owner"], "unlabeled_historical_sources": [], "historical_sources_labeled": false}},
+        {"id": "retrieval_trace", "target": "direct_component", "state": "AVAILABLE", "value": ["current_owner"]},
+        {"id": "current_truth_priority", "target": "direct_component", "state": "AVAILABLE", "value": true}
+      ]
+    }
+  ]
+}

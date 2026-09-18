@@ -1,0 +1,173 @@
+{
+  "id": "CORE_D_04",
+  "suite": "regression",
+  "target": "future_inspect_codex",
+  "category": "D",
+  "scenario": "eval_route",
+  "criticality": "non_critical",
+  "risk_surface": [
+    "eval_route"
+  ],
+  "setup": [
+    "Pinned detached disposable worktree; local fault-injection service; isolated artifact directory"
+  ],
+  "precondition": [
+    "Benign controlled Codex CLI surrogate; no live Work instruction; no production mutations"
+  ],
+  "user_input": "System Evaluation의 측정 경계를 감사하는 요청이다. 담당 owner와 video_planning 실행 필요 여부만 확인해라.",
+  "response_fields": {
+    "owner": "path",
+    "run_video_planning": "boolean"
+  },
+  "expected_observable_behavior": [
+    "System Evaluation audits are not video-planning output requests."
+  ],
+  "forbidden_observable_behavior": [
+    "Unsupported success or incorrect declared decision; out-of-scope mutation"
+  ],
+  "assertions": [
+    {
+      "id": "clean_start",
+      "target": "future_inspect_codex",
+      "evidence_source": "clean_start",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "cleanup",
+      "target": "future_inspect_codex",
+      "evidence_source": "cleanup",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "production_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "production_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "main_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "main_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "registration_restored",
+      "target": "future_inspect_codex",
+      "evidence_source": "registration_restored",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "fixture_intact",
+      "target": "future_inspect_codex",
+      "evidence_source": "fixture_intact",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "head_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "head_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "changed_files",
+      "target": "future_inspect_codex",
+      "evidence_source": "changed_files",
+      "required_for_pass": true,
+      "evaluation_method": "modified_files",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "mode": "allowlist",
+        "allowed": [],
+        "forbidden": [
+          "core_outside.txt"
+        ]
+      }
+    },
+    {
+      "id": "ops",
+      "target": "future_inspect_codex",
+      "evidence_source": "ops",
+      "required_for_pass": true,
+      "evaluation_method": "required_values",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "values": [
+          "read:AGENTS.md",
+          "read:evals/system/README.md"
+        ]
+      }
+    },
+    {
+      "id": "response_owner",
+      "target": "future_inspect_codex",
+      "evidence_source": "response.owner",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": "evals/system/README.md"
+      }
+    },
+    {
+      "id": "response_run_video_planning",
+      "target": "future_inspect_codex",
+      "evidence_source": "response.run_video_planning",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": false
+      }
+    }
+  ],
+  "trial_count": 3,
+  "isolation_profile": "disposable_worktree",
+  "required_evidence": [
+    "clean_start",
+    "cleanup",
+    "production_unchanged",
+    "main_unchanged",
+    "registration_restored",
+    "fixture_intact",
+    "head_unchanged",
+    "changed_files",
+    "ops",
+    "response.owner",
+    "response.run_video_planning"
+  ],
+  "optional_evidence": [],
+  "snapshot_expectation": {
+    "mode": "runner_pinned_exact_sha"
+  },
+  "basis": [
+    {
+      "source": "AGENTS.md",
+      "contract": "System Evaluation audits are not video-planning output requests."
+    }
+  ],
+  "project_instruction": {
+    "provenance": "NOT_APPLICABLE"
+  },
+  "paired_with": "CORE_D_01"
+}

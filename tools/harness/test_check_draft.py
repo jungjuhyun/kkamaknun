@@ -1,69 +1,142 @@
-"""STATE.md 실패 목록 5개를 초안으로 재현해 check_draft.py가 잡는지 기록한다.
+"""Deterministic validator behavior and shared pipeline structure regressions."""
 
-실행: python -m pytest tools/harness/test_check_draft.py -q
-      또는 python tools/harness/test_check_draft.py
-"""
 import json
 import sys
 from pathlib import Path
 
+import yaml
+
 HERE = Path(__file__).parent
 sys.path.insert(0, str(HERE))
-from check_draft import check  # noqa: E402
+from check_draft import check, resolve_lock_path  # noqa: E402
 
 COMMON = json.loads((HERE / "COMMON_RULES.json").read_text(encoding="utf-8"))
 LOCK = json.loads((HERE / "EP1_LOCK.json").read_text(encoding="utf-8"))
+STATE = json.loads((HERE / "STATE.json").read_text(encoding="utf-8"))
+PIPELINE_TEXT = (HERE / "PIPELINE.yaml").read_text(encoding="utf-8")
+PIPELINE = yaml.safe_load(PIPELINE_TEXT)
 
 A = LOCK["잠금_문장"]["A"]
 B = LOCK["잠금_문장"]["B"]
-SIM = COMMON["반드시_들어갈_문장"][0]
-CLEAN = f"A: `{A}`\nB: \"{B}\"\n{SIM}\n| 클립화면 | 나레이션 |\n|---|---|\n| 첫 장면 | 무음 |\n"
+CLEAN = f'A: `{A}`\nB: "{B}"\n'
 
 
 def run(text):
     return check(text, COMMON, LOCK)
 
 
-def test_clean_draft_passes():
+def stages():
+    return {stage["번호"]: stage for stage in PIPELINE["단계"]}
+
+
+def test_default_lock_resolves_from_state():
+    assert STATE["현재_lock"] == "tools/harness/EP1_LOCK.json"
+    assert resolve_lock_path().resolve() == (HERE / "EP1_LOCK.json").resolve()
+
+
+def test_clean_material_first_draft_passes():
     assert run(CLEAN) == []
 
 
-def test_fail1_b_redesigned():
-    # 실패 1: 확정된 B를 다시 설계 대상으로 삼음 → B 원문이 사라지므로 잡힘
-    text = CLEAN.replace(B, "B 후보 3개를 비교한다: 레제편 / 귀멸 / 팟캐스트")
-    assert any("잠금 B" in f for f in run(text))
+def test_locked_premise_is_enforced():
+    for original, replacement in {
+        A: "다른 A",
+        B: "다른 B",
+    }.items():
+        assert run(CLEAN.replace(original, replacement))
 
 
-def test_fail2_subtitle_body_claimed():
-    # 실패 2: 자막 존재 확인과 본문 확보 혼동 → 금지 표현으로 잡힘
-    text = CLEAN + "레제편 일본어 자막 본문을 확보해 대조했다.\n"
-    assert any("자막 본문을 확보" in f for f in run(text))
+def test_forbidden_claims_are_enforced():
+    assert run(CLEAN + "아직 촬영한 것이 없으니 장면을 가정한다.\n")
 
 
-def test_fail3_simulation_boundary_dropped():
-    # 실패 3: 시뮬레이션 경계 상실 → 필수 문장 누락으로 잡힘 (경계 문장이 있으면서 흔드는 경우는 사람 판정)
-    text = CLEAN.replace(SIM, "이 반응은 실제 촬영에서 확인됐다.")
-    assert any("필수 문장 없음" in f for f in run(text))
+def test_subjective_quality_is_outside_validator_scope():
+    assert run(CLEAN + "이 구조는 무조건 재미있고 시청지속도 완벽하다.\n") == []
 
 
-def test_fail4_process_skipped_not_machine_checkable():
-    # 실패 4: RED TEAM·왜 봐야 하는가 공정이 출력 전에 작동 안 함 → 검사기 범위 밖. PASS 줄 관문(지침 3)과 PIPELINE 6단계가 담당
-    assert run(CLEAN) == []
+def test_cleanroom_lock_does_not_preserve_old_planning():
+    assert LOCK["입력_경로"] == "material_first"
+    assert set(LOCK["잠금_문장"]) == {"A", "B"}
+    assert LOCK["패키징_제약"]["exact_copy_locked"] is False
+    assert "C" not in LOCK["잠금_문장"]
+    assert "패키징_promise" not in LOCK["잠금_문장"]
+    assert "타임라인" not in LOCK["잠금_문장"]
+    assert {"planning_revision", "body_lock", "review_pilot_lock"}.isdisjoint(LOCK)
 
 
-def test_fail5_web_unverified_not_machine_checkable():
-    # 실패 5: 웹 확인 없이 유튜브 지침 인용 → 검사기 범위 밖. PIPELINE 4단계 검수 기준(사람/AI 판정)
-    assert run(CLEAN + "유튜브는 첫 30초 이탈률을 본다.\n") == []
+def test_runtime_registry_is_raw_material_only():
+    artifacts = set(STATE["external_material"]["artifacts"])
+    assert artifacts == {"ep1.primary_recording", "ep1.source_subtitles_ko"}
+    assert STATE["상태"] == "EP1_CLEANROOM_GEMINI_RETRANSCRIPTION_PENDING"
+
+
+def test_cleanroom_transcription_contract_is_independent_and_resumable():
+    contract = STATE["cleanroom_transcription_run"]
+    tracks = [
+        (item["stream_index"], item["role"])
+        for item in contract["input_tracks"]
+    ]
+    assert tracks == [(2, "desktop/source"), (3, "mic/user")]
+    forbidden = "\n".join(contract["forbidden_inputs"])
+    assert "stream 1" in forbidden
+    assert "ep1.source_subtitles_ko" in forbidden
+    assert "A/B" in forbidden
+    assert "retired" in forbidden
+    checkpoint = contract["checkpoint_contract"]
+    assert checkpoint["assumption"] == "unattended overnight run"
+    assert checkpoint["after_each_verified_chunk"] is True
+    assert "재호출하지 않고" in checkpoint["resume"]
+    assert "fallback" in checkpoint["failure"]
+    assert len(contract["completion_gate"]) == 4
+    assert "분석" in contract["stop_after"]
+
+
+def test_pipeline_topology_and_input_branches_are_preserved():
+    assert PIPELINE["공정"] == "video_planning"
+    assert list(PIPELINE["입력_분기"]) == ["material_first", "pre_shoot"]
+    assert [stage["번호"] for stage in PIPELINE["단계"]] == list(range(1, 11))
+
+
+def test_material_first_and_pre_shoot_share_stage_three():
+    stage_three = stages()[3]
+    assert set(stage_three["경로"]) == {"material_first", "pre_shoot"}
+    for branch in stage_three["경로"].values():
+        assert branch["하는_일"]
+        assert branch["통과_조건"]
+
+
+def test_opening_viewer_question_render_and_uat_gates_exist():
+    stage_four = stages()[4]
+    stage_nine = stages()[9]
+    stage_ten = stages()[10]
+    anatomy_fields = {next(iter(item)) for item in stage_four["해부_항목"]}
+    assert {"Opening", "Viewer_Question"}.issubset(anatomy_fields)
+    assert {"Opening", "Viewer Question"}.issubset(stage_nine["전문_평가_축"])
+    assert stage_nine["render_금지_gate"]
+    assert len(stage_ten["순서"]) == 4
+    verdicts = {next(iter(item)) for item in stage_ten["판정_분리"]}
+    assert verdicts == {
+        "current truth·공정 위반이 남음",
+        "공정은 지켰지만 영상이 약함",
+        "최소 제작 가능 수준 이상",
+    }
+    assert stage_ten["통과_조건"]
+
+
+def test_pipeline_has_no_episode_specific_count_or_fixed_pilot_duration():
+    assert "청해 사례만 세 개 이상" not in PIPELINE_TEXT
+    assert "2~3분 review pilot" not in PIPELINE_TEXT
+    assert "2~3분 pilot" not in PIPELINE_TEXT
 
 
 if __name__ == "__main__":
-    fails = 0
+    failures = 0
     for name, fn in sorted(globals().items()):
         if name.startswith("test_"):
             try:
                 fn()
                 print("PASS", name)
             except AssertionError:
-                fails += 1
+                failures += 1
                 print("FAIL", name)
-    sys.exit(1 if fails else 0)
+    sys.exit(1 if failures else 0)

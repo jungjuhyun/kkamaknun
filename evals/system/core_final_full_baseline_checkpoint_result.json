@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "phase": 3,
+  "kind": "final_full_baseline_quota_checkpoint",
+  "phase_status": "PHASE3_BLOCKED",
+  "starting_sha": "476bc226433efc95c0b546948c2c7160ff97616c",
+  "target_configuration": {
+    "requested_model": "gpt-5.6-sol",
+    "requested_reasoning_effort": "medium",
+    "target_lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+    "effective_model": "UNKNOWN",
+    "effective_reasoning_effort": "UNKNOWN"
+  },
+  "preflight": {
+    "status": "PASS",
+    "actual_target_calls": 1,
+    "tool_python": "C:\\Users\\jungj\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python.exe",
+    "interpreter_launch": "PASS",
+    "fixture_invocation": "PASS",
+    "core_event_observed": true,
+    "journal_entry_observed": true,
+    "journal_match": true,
+    "worktree_cleanup": "PASS"
+  },
+  "execution": {
+    "actual_target_calls_total": 155,
+    "preflight_target_calls": 1,
+    "runner_target_calls": 154,
+    "baseline_initial_calls": 112,
+    "bounded_replacement_calls": 40,
+    "calibration_control_calls": 2,
+    "required_valid_trials": 112,
+    "valid_trials": 61,
+    "remaining_valid_trials": 51,
+    "status_counts": {
+      "PASS": 61,
+      "FAIL": 0,
+      "UNKNOWN": 0,
+      "INFRA_ERROR": 91,
+      "INVALID_FIXTURE": 0
+    },
+    "infrastructure_cause": "Codex usage limit was reached during the critical batch; per-task bounded replacements were preserved and not extended.",
+    "calibration_controls": [
+      {
+        "task_id": "CORE_E_01",
+        "control": "fallback_seed",
+        "expected": "FAIL",
+        "observed": "PASS"
+      },
+      {
+        "task_id": "CORE_C_01",
+        "control": "history_seed",
+        "expected": "FAIL",
+        "observed": "PASS"
+      }
+    ]
+  },
+  "task_results": [
+    {"id": "CORE_A_01", "criticality": "critical", "required": 5, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 4, "remaining": 2, "gate": "BLOCKED"},
+    {"id": "CORE_A_02", "criticality": "critical", "required": 5, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 4, "remaining": 2, "gate": "BLOCKED"},
+    {"id": "CORE_A_03", "criticality": "critical", "required": 5, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 4, "remaining": 2, "gate": "BLOCKED"},
+    {"id": "CORE_B_01", "criticality": "critical", "required": 5, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 4, "remaining": 2, "gate": "BLOCKED"},
+    {"id": "CORE_B_02", "criticality": "critical", "required": 5, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 4, "remaining": 2, "gate": "BLOCKED"},
+    {"id": "CORE_C_01", "criticality": "critical", "required": 5, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 4, "remaining": 2, "gate": "BLOCKED"},
+    {"id": "CORE_C_02", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_D_01", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_D_02", "criticality": "non_critical", "required": 3, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 0, "remaining": 0, "gate": "DISTRIBUTION_RECORDED"},
+    {"id": "CORE_D_03", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_D_04", "criticality": "non_critical", "required": 3, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 0, "remaining": 0, "gate": "DISTRIBUTION_RECORDED"},
+    {"id": "CORE_E_01", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_E_02", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_E_03", "criticality": "non_critical", "required": 3, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 0, "remaining": 0, "gate": "DISTRIBUTION_RECORDED"},
+    {"id": "CORE_F_01", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_F_02", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_F_03", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_G_01", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_G_02", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_H_01", "criticality": "non_critical", "required": 3, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 0, "remaining": 0, "gate": "DISTRIBUTION_RECORDED"},
+    {"id": "CORE_H_02", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_I_01", "criticality": "critical", "required": 5, "valid": 2, "PASS": 2, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 5, "remaining": 3, "gate": "BLOCKED"},
+    {"id": "CORE_I_02", "criticality": "critical", "required": 5, "valid": 3, "PASS": 3, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 4, "remaining": 2, "gate": "BLOCKED"},
+    {"id": "CORE_I_03", "criticality": "critical", "required": 5, "valid": 4, "PASS": 4, "FAIL": 0, "UNKNOWN": 0, "INFRA_ERROR": 3, "remaining": 1, "gate": "BLOCKED"}
+  ],
+  "critical_gate": {
+    "PASS": 0,
+    "FAIL": 0,
+    "BLOCKED": 20
+  },
+  "remaining_failures": [],
+  "remaining_valid_trials": {
+    "total": 51,
+    "snapshot": "476bc226433efc95c0b546948c2c7160ff97616c",
+    "lane": "model=gpt-5.6-sol;reasoning_effort=medium"
+  },
+  "evidence": {
+    "archive": {
+      "path": "evidence/phase3_final_full_baseline_checkpoint_476bc22.zip",
+      "sha256": "614af4424a8174bfd576dd7b5d6056e22b2d2c875a90664aba17313a940f1ae4",
+      "members": 782,
+      "includes_preflight": true,
+      "includes_rescored_logs": true
+    },
+    "findings": {
+      "path": "core_final_full_baseline_checkpoint_findings.json",
+      "sha256": "a6f13d6dc50e67f69e4f0669b1c4be6b17459dc8d935ec3da53719c63d7b1043"
+    }
+  },
+  "validation": {
+    "python_system_check": "PASS",
+    "schema_validation": "PASS",
+    "task_completeness": "BLOCKED; 61/112 valid trials, 51 remaining",
+    "gate_calculation": "PASS; critical PASS 0 / FAIL 0 / BLOCKED 20",
+    "inspect_rescore": "PASS; 44/44 logs and 154/154 samples identical",
+    "rescore_target_calls": 0,
+    "archive_integrity": "PASS; all 782 members readable",
+    "manifest_validation": "PASS",
+    "production_checkout_unchanged": true,
+    "main_unchanged": true,
+    "cross_trial_isolation": true,
+    "worktree_cleanup": true,
+    "worktree_registry_restored": true,
+    "grader_changed_during_measurement": false,
+    "task_expectation_changed_during_measurement": false,
+    "git_diff_check": "PASS",
+    "phase4_started": false
+  }
+}

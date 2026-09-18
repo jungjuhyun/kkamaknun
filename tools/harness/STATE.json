@@ -1,18 +1,164 @@
 {
-  "공정": "tools/harness/PIPELINE.yaml",
-  "실행": "ep1_2026-09-02",
-  "완료_단계": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-  "현재_단계": null,
-  "이관": {
-    "11": "plans/HARNESS_HANDOFF.md 9절 1번 (새 대화 복원)",
-    "12": "plans/HARNESS_HANDOFF.md"
+  "상태": "EP1_CLEANROOM_GEMINI_RETRANSCRIPTION_COMPLETED",
+  "현재_실행_공정": "tools/harness/PIPELINE.yaml",
+  "공정": "video_planning",
+  "현재_편": "EP1",
+  "현재_lock": "tools/harness/EP1_LOCK.json",
+  "현재_입력_경로": "material_first",
+  "현재_계획": null,
+  "현재_계획_단계": "clean-room retranscription completed; independent source reconstruction pending",
+  "다음_실행": "Gemini 3.8 Flash로 material_first Step 3 독립 source reconstruction만 수행한다. fresh stream 2/3 transcript, raw Korean source subtitle, 실제 primary video/audio로 source narrative·desktop/source·user mic·visual/nonverbal 네 layer와 synchronized evidence timeline을 복원한다. 이 reconstruction에는 A/B premise나 retired GPT EP1 구체적 planning 답안을 넣지 않으며, 완료 후 STOP한다. A/B→C와 current planning methodology를 사용하는 scene competition·final composition은 다음 별도 실행에서 시작한다.",
+  "cleanroom_transcription_run": {
+    "목적": "raw audio 재전사만 수행하며 분석·scene selection·편집 판단을 하지 않는다.",
+    "provider": "Gemini API",
+    "source_artifact": "ep1.primary_recording",
+    "status": "COMPLETED_REPORTED_AND_LOCALLY_VERIFIED",
+    "runner": {
+      "path": "tools/harness/gemini_transcribe.py",
+      "dependency_file": "tools/harness/requirements_gemini.txt",
+      "model": "gemini-3.5-transcribe",
+      "api": "Gemini Interactions API + Files API",
+      "mode": "verbatim",
+      "default_chunk_seconds": 900,
+      "default_overlap_seconds": 0,
+      "word_timestamps_default": false,
+      "sdk_retry_attempts": 0,
+      "preflight": "최종 full-run config와 같은 deterministic unit plan의 첫 두 planned unit만 --max-new-units 2로 실행한다. 이미 verified/reused여도 cap 밖 unit으로 전진하지 않으며 stream 2/3 한 unit씩 E2E를 확인하고 PAUSED checkpoint를 남긴 뒤 cap 없이 같은 run을 resume한다.",
+      "provider_revalidation": "paid execution 직전 current official Gemini docs에서 model availability, Files/Interactions 지원과 request/file 제한을 다시 확인한다. 외부 서비스 limit 숫자는 repo의 장기 상수로 취급하지 않는다."
+    },
+    "input_tracks": [
+      {
+        "stream_index": 2,
+        "role": "desktop/source"
+      },
+      {
+        "stream_index": 3,
+        "role": "mic/user"
+      }
+    ],
+    "forbidden_inputs": [
+      "audio stream 1 mixed",
+      "ep1.source_subtitles_ko",
+      "FIRST_VIDEO.md의 A/B 또는 기타 기획 premise",
+      "retired desktop/mic transcript",
+      "retired sync timeline",
+      "retired narrative map/scene pool/candidate/selection",
+      "retired pilot/UAT/review artifact"
+    ],
+    "chunk_contract": {
+      "rule": "두 track을 각각 독립적으로 deterministic chunk로 나누고 current official Gemini API의 file/request 제한 안에서 처리한다.",
+      "timeline": "각 chunk는 primary recording absolute start/end를 보존한다.",
+      "overlap": "기본은 정확도 우선 contiguous core coverage다. overlap을 사용하면 word timestamp를 함께 사용해 core ownership으로 중복을 결정론적으로 제거해야 한다."
+    },
+    "checkpoint_contract": {
+      "assumption": "unattended overnight run",
+      "after_each_verified_chunk": true,
+      "record": [
+        "track role/index",
+        "absolute start/end",
+        "input chunk sha256",
+        "model identifier",
+        "prompt/config hash",
+        "raw response",
+        "normalized transcript",
+        "validation status",
+        "next unit"
+      ],
+      "request_intent": "각 paid Interactions API 제출 직전에 REQUEST_INTENT를 durable store와 journal에 먼저 기록한다. response/checkpoint 없이 프로세스가 사라지면 같은 unit 자동 재호출을 금지한다.",
+      "resume": "검증 완료 checkpoint와 durable raw response는 재호출하지 않고 마지막 미완료 unit부터 재개한다.",
+      "ambiguous_paid_request": "interaction 제출 뒤 결과 수락 여부를 확정할 수 없는 실패는 AMBIGUOUS로 기록하고 자동 재호출하지 않는다. REQUEST_INTENT 또는 AMBIGUOUS unit은 명시적 retry 없이는 다시 과금하지 않는다.",
+      "failure": "API·network·quota·credential 실패 시 기존 derived 자료로 fallback하지 않고 마지막 verified checkpoint에서 중단한다."
+    },
+    "completion_gate": [
+      "desktop/source stream 2 전체 recording 범위가 verified checkpoint로 덮인다.",
+      "mic/user stream 3 전체 recording 범위가 verified checkpoint로 덮인다.",
+      "chunk overlap/merge에서 누락·중복·순서 역전이 검증된다.",
+      "완료 manifest가 input identity와 전체 unit 상태를 기록한다."
+    ],
+    "completion_report": {
+      "source_identity": "PASS",
+      "planned_units": 16,
+      "verified_units": 16,
+      "paid_submits": 16,
+      "preflight_units": [
+        "s02_c0000_0000000000_0000900000",
+        "s03_c0000_0000000000_0000900000"
+      ],
+      "preflight_result": "TRANSCRIBED + VERIFIED; PREFLIGHT_STOP / PAUSED",
+      "resume_first_two": "REUSED",
+      "request_intent_records": 16,
+      "raw_responses": 16,
+      "verified_checkpoints": 16,
+      "unresolved_request_intent": 0,
+      "ambiguous": 0,
+      "stream_2_coverage": "0-6325.0625 PASS",
+      "stream_3_coverage": "0-6325.0625 PASS",
+      "gap_check": "PASS",
+      "duplicate_check": "PASS",
+      "order_check": "PASS",
+      "completion_manifest": "PRESENT_AND_VERIFIED",
+      "completion_marker": "PRESENT_AND_VERIFIED",
+      "evidence_boundary": "local execution report; next analysis run must re-read durable marker/manifest and input identity before consuming transcript"
+    },
+    "stop_after": "재전사 완료 검증. source narrative 분석, AV 해석, scene competition, editing, pilot은 별도 실행에서만 시작한다."
   },
-  "10단계_판정": {
-    "판정자": "사용자",
-    "패키징": "FAIL",
-    "본편_구조": "FAIL",
-    "분류": "기획 품질 실패",
-    "근거": "plans/EP1_PLANNING_RELIABILITY_POC.md 10절"
+  "post_transcription_route": {
+    "status": "READY_FOR_INDEPENDENT_SOURCE_RECONSTRUCTION",
+    "judgment_model": "gemini-3.8-flash",
+    "stage_1_independent_reconstruction": {
+      "purpose": "material_first Step 3의 네 layer와 synchronized evidence timeline을 fresh evidence만으로 복원한다.",
+      "inputs": [
+        "verified fresh stream 2 transcript",
+        "verified fresh stream 3 transcript",
+        "ep1.source_subtitles_ko raw source",
+        "ep1.primary_recording actual video/audio"
+      ],
+      "outputs": [
+        "source narrative with absolute recording TC",
+        "desktop/source dialogue/audio layer",
+        "user mic raw layer",
+        "visual/nonverbal reaction layer",
+        "synchronized evidence timeline",
+        "uncertainty and provenance"
+      ],
+      "forbidden_context": [
+        "FIRST_VIDEO.md의 A/B planning premise",
+        "retired GPT EP1 transcript/sync/narrative map/scene pool/candidate/selection/pilot/UAT",
+        "old scene IDs or old edit answers"
+      ],
+      "stop_after": "independent reconstruction validation; do not auto-chain planning synthesis"
+    },
+    "stage_2_planning_synthesis": {
+      "status": "BLOCKED_UNTIL_STAGE_1_COMPLETES",
+      "role": "Gemini가 reconstructed evidence와 current planning methodology를 바탕으로 usable reaction material의 IN/OUT, retain/drop, opening/body order, buildup/escalation/payoff/ending과 최종 rough-cut 조합 판단을 소유한다.",
+      "planning_context": "A/B→C, 나라면 왜 보나, source narrative continuity, 핵심 장면, boundary, 시청각 판단, Opening, payoff 등 current repo owner의 방법론을 Gemini 판단 기준으로 투영한다.",
+      "forbidden_historical_inputs": "retired GPT EP1 transcript/sync/narrative map/scene pool/candidate/selection/pilot/UAT와 과거 구체적 편집 답안은 Gemini clean-room 판단 입력으로 사용하지 않는다."
+    },
+    "gpt_role": "GPT/harness는 current truth 전달, provenance·타임코드·누락·형식 검증, Gemini가 지정한 edit plan의 deterministic EDL/assembly 실행만 담당하며 영상 취향 판단으로 Gemini 결정을 덮어쓰지 않는다.",
+    "terminal_quality_gate": "Gemini가 재료 선별부터 최종 조합까지 판단한 실제 rough cut도 사용자 시청에서 부적합하면 추가 harness/prompt/process 보강으로 구제하지 않고 AI autonomous planning을 종료해 사용자 직접 기획으로 전환한다."
   },
-  "다음_할_일_owner": "STATE.md"
+  "external_material": {
+    "durable_store": "authenticated cloud material store",
+    "transport_adapter": "rclone",
+    "provider": "Google Drive (initial; core contract is provider-neutral)",
+    "local_cache_root_env": "KKAMAKNUN_MATERIAL_ROOT",
+    "remote_root_env": "KKAMAKNUN_MATERIAL_REMOTE",
+    "rclone_env_optional": "KKAMAKNUN_RCLONE",
+    "credential_boundary": "rclone config and credentials are outside the repository",
+    "offline_backup": "optional offline backup only; not a current execution, transport, or rollback dependency",
+    "artifacts": {
+      "ep1.primary_recording": {
+        "object_key": "source/ep1/2026-09-06 23-54-01-01.mp4",
+        "kind": "file",
+        "size": 5065619726,
+        "sha256": "7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525",
+        "publish": false
+      },
+      "ep1.source_subtitles_ko": {
+        "object_key": "source/ep1/subtitles",
+        "kind": "directory",
+        "publish": false
+      }
+    }
+  }
 }

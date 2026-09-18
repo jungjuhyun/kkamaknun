@@ -1,100 +1,100 @@
 # STATE.md — 현재 상태
 
-기준 시각: 2026-09-02 KST
+기준 시각: 2026-09-18 KST
 
-## 현재 상태
+## Active focus
 
-클린시트 메모리/컨텍스트 구조의 **프로젝트 콜드스타트 검증 통과** 이후 메모리/컨텍스트 시스템 작업은 종료했다.
+EP1은 기존 파생 전사·동기화·서사 맵·scene candidate·selection·pilot·UAT 판단을 current truth에서 걷어낸 **raw-material-only clean-room restart** 상태다.
 
-최근 대화에서 확정된 채널 정체성·기획 원칙·사용자 적합성 중 장기적으로 필요한 내용은 각 owner 문서에 반영했다.
+공통 video-planning harness와 `material_first` 경로는 유지한다. 기존 EP1 파생 산출물은 Git history나 external store에 남아 있을 수 있지만, 새 분석의 입력이나 current evidence로 사용하지 않는다.
 
-## 기획자 공정 검증 상태
+현재 runtime route는 `tools/harness/STATE.json`의 `video_planning / EP1 / material_first / tools/harness/EP1_LOCK.json`이다.
 
-- **Creator Discovery는 현재 충분한 수준으로 종료**한다. 실제 판단에 필요한 새 정보가 생기지 않는 한 광범위한 인터뷰를 다시 시작하지 않는다.
-- 광범위한 AI/OSS 기획 공정 조사도 현재 POC를 돌리기에 충분한 수준까지 했다. 주요 참고로 `ericrisco/rsc-harness`의 `youtube-ideation`, `sharbelxyz/nova-youtube-agent`, LLM-assisted ideation review 등을 검토했다. 실제 구현에 다시 쓸 때는 최신 상태를 웹에서 재확인한다.
-- **POC1 통과** — 과거 카타카나 원재료를 가지고 수동 재현/보정 기획을 했고, 사용자가 통과 판정함.
-- **POC2 진행 중** — 실제 정답이 미리 없는 촬영물을 대상으로 검증.
-- POC2는 `2-A Material Logging`과 `2-B Planning`으로 나눠 본다.
-- **기획자/Planner 구현은 POC2-B 통과 전에는 고정하지 않는다.** 먼저 수동 공정이 실제 재료에서 작동하는지 검증한다.
+## 사용자 확정 방향
 
-## 2026-09-02 기획 공정 실행 신뢰성 POC — ACTIVE
+- 기존 EP1 derived transcript/sync/narrative/candidate/RETAIN·BRIDGE·DROP/pilot/UAT 결과는 새 분석의 기준으로 신뢰하지 않는다.
+- `ep1.primary_recording`에서 Gemini API로 clean-room 재전사를 수행하고, 재전사와 분석은 같은 실행에 묶지 않는다.
+- 장시간 실행은 사용자가 걸어두고 자는 상황을 기본으로 보고, 각 검증 완료 unit을 checkpoint해서 마지막 완료 지점부터 resume할 수 있어야 한다.
+- 새 clean-room 결과가 나오기 전에는 기존 scene/narrative ID, old narrative map, old scene pool, old pilot 구성으로 수렴하지 않는다.
+- 재전사 완료 후 별도 실행에서는 **Gemini 3.8 Flash가 실제 재료 선별과 영상 편집 판단을 소유**한다. current repo의 A/B→C·source narrative·핵심 장면·boundary·Opening·payoff 등 방법론은 planning synthesis 단계에서 Gemini 판단 기준으로 전달하지만, retired GPT EP1 구체적 답안은 전달하지 않는다.
+- GPT/harness는 Gemini 판단을 영상 취향으로 재판하지 않고 current truth 전달·provenance/타임코드/형식 검증·Gemini edit plan의 deterministic assembly만 담당한다.
+- Gemini가 재료 선별부터 최종 조합까지 판단한 실제 rough cut도 부적합하면 추가 harness/prompt/process 보강으로 구제하지 않고 AI autonomous planning을 종료해 사용자 직접 기획으로 전환한다.
 
-1화 촬영 전 가상 완성 기획 과정에서 **공정이 문서에 존재해도 실제 답변 생성 과정에서 안정적으로 집행되지 않는 실패**가 관찰됐다.
+## Raw input headline
 
-대표 실패:
-- 이미 확정된 1화 B(`체인소 맨: 레제편을 한국어 자막 없이 보고 자기 귀에 실제로 무엇이 남아 있는지 확인`)를 다시 가정·설계 대상으로 취급했다.
-- 레제편 일본어 자막의 **존재 확인**과 실제 **자막 본문 확보**를 혼동했다.
-- 가상 완성본의 목적을 `촬영 전 시뮬레이션`으로 유지하지 못하고 실제 결과와의 경계를 흔들었다.
-- `왜 봐야 하는가`, RED TEAM, 사실/가정 구분 같은 기존 공정이 있었지만 사용자에게 출력되기 전에 충분히 작동하지 않았다.
-- 4번 단계 초안이 웹 확인 없이 유튜브 플랫폼 지침을 썼고, 5번에서야 발견됐다. 사용자 노출 전 차단에 실패했다.
+현재 active raw source는 다음 두 개만 registry에 남긴다.
 
-현재 병목은 새 기획 원칙 부족으로 자동 판정하지 않고, 먼저 **기존 current truth와 공정을 실제 실행에서 지키는 신뢰성 문제**로 검증한다.
+- `ep1.primary_recording`
+  - object key: `source/ep1/2026-09-06 23-54-01-01.mp4`
+  - size: `5,065,619,726` bytes
+  - SHA-256: `7847fbeebd3db7dd94141f332fd80fa11e0620ed23b58789898b6485cfefd525`
+  - duration: `6325.0625s`
+  - video stream 0
+  - mixed audio stream 1
+  - desktop/source audio stream 2
+  - mic/user audio stream 3
+- `ep1.source_subtitles_ko`
+  - raw Korean source-subtitle directory
+  - 재전사에는 사용하지 않았고, 이후 독립 source reconstruction에서 raw source로만 사용할 수 있다.
 
-이번 POC의 계약·판정 기록은 `plans/EP1_PLANNING_RELIABILITY_POC.md`, 단계 정의는 `tools/harness/PIPELINE.yaml`, 진행 상태는 `tools/harness/STATE.json`이 owner다.
-- 목표는 단순히 `성공 확률`이 아니라 **유튜브라는 플랫폼에서 선택·시청지속·만족·후속 시청/구독 가능성을 포함한 성공 확률을 최대한 높이는 1화 촬영 전 가상 완성본**을 만드는 것이다.
-- 최소 자동화를 채택했다: tools/harness의 검사기 1개와 Claude Code 자동 실행 프로그램 3개. 자동 runner와 외부 framework는 없다.
-- 기존 `15~20분 실제 진단용 촬영`, `2화 34개 후보 선별`, `장면 수집기 UAT 재작업`은 모두 보존한다. **재관찰이 끝나기 전에는 이 셋을 현재 작업으로 취급하지 않는다.** 사용자가 다른 작업을 선택하면 그 요청을 우선하며, 그래도 이 다음 할 일은 폐기되지 않는다.
+## Current planning state
 
-2026-09-02 사용자 품질 판정: 1화 가상 완성본은 패키징과 본편 구조 모두 **FAIL(기획 품질 실패)**. 판정 근거는 계획서 10번이 owner다.
-새 가상 완성본을 또 만들지 않는다. 다음 할 일은 하나다: **82분 1차 촬영본 재관찰.**
-순서: 실제 촬영물 관찰 → 사건·반응 수집 → A+B가 특별해지고 C가 생기는 장면 선별 → 콘텐츠 각 → 구성.
+현재 C, packaging, Opening, Viewer Question, narrative spine, candidate, boundary, RETAIN/BRIDGE/DROP, body lock, Cold open, pilot, rough cut에 대한 current 결정은 **없다**.
 
-`STATE.md`에는 단계 번호를 중복 기록하지 않는다.
+`materials/ep1_main/PLANNING_RESULTS.md`는 reset 상태이며 새 clean-room source reconstruction과 planning synthesis가 완료되기 전에는 planning decision을 기록하지 않는다.
 
-2026-09-02 재관찰 판정: 후보 9개 중 사건 7개. 사건은 청해 진단이 아니라 작품을 보는 순간(웃음·몰입)에서 났다. 안 본 후반 40분은 아직 최초 반응이다. 3차 촬영은 이 위치를 알고 준비하되 반응을 연출하지 않는다.
+## Gemini retranscription — 완료 보고
 
-## 1화 전 청해 베이스라인
+2026-09-18 로컬 실행 결과 보고 기준으로 clean-room Gemini 재전사는 completion gate를 통과했다.
 
-1화 전 사전 검증에서 **처음 접한 명료한 일본어 1인 팟캐스트의 실제 검증 구간은 세부 의미 재구성 약 80%대**로 확인됐다.
-담화의 흐름과 핵심 의미 이해는 강했고, 정확한 시간 표현·어휘 의미·일부 의미 방향에서는 실제 오류가 있었다.
-이 결과는 해당 팟캐스트의 검증된 구간에 한정하며, 전체 일본어·애니·JLPT 수준으로 일반화하지 않는다.
+- source identity: registry의 size/SHA-256/duration/stream 0–3과 일치
+- model/runtime: `gemini-3.5-transcribe`, Files API + Interactions API, verbatim, word timestamp off, overlap 0, SDK automatic retry off
+- preflight: 첫 두 planned unit인 stream 2/3 각 1개가 실제 E2E `TRANSCRIBED` + verified 후 `PREFLIGHT_STOP / PAUSED`
+- full resume: 첫 두 unit은 `REUSED`, 나머지 14 unit만 새 paid submit
+- paid submit: 총 16회
+- durable state: `REQUEST_INTENT` 16개, raw response 16개, verified checkpoint 16개
+- unresolved `REQUEST_INTENT`: 0
+- `AMBIGUOUS`: 0
+- verified units: 16/16
+- stream 2 coverage: `0–6325.0625s`, PASS
+- stream 3 coverage: `0–6325.0625s`, PASS
+- gap / duplicate / order: PASS
+- completion manifest / marker: 존재하며 로컬 실행에서 검증 통과
+- repository working tree: clean
 
-따라서 현재 전제는 `청해가 읽기·쓰기·문법·한자보다 상대적으로 강하다` 수준을 넘어서 **특정 명료한 1인 발화에서는 실제로 높은 이해가 확인됐지만, 애니 조건의 정밀한 객관 점수는 아직 확정하지 않는다**이다.
+이 완료 상태는 다음 로컬 분석 실행 시작 시 durable completion marker·manifest와 input identity를 다시 읽어 확인한다. marker가 불일치하면 기존 전사를 다시 실행하지 않고 분석을 중단해 artifact lookup/integrity 문제로 분리한다.
 
-상세 검증 조건·점수·해석 제한은 `FIRST_VIDEO.md`가 owner다.
+## Immediate next action — independent source reconstruction only
 
-## 현재 첫 콘텐츠 실제 소스
+다음 실행은 **Gemini 3.8 Flash를 사용한 독립 source reconstruction**이다. 재전사를 다시 하지 않고, 최종 scene selection·편집 조합까지 자동 연쇄하지 않는다.
 
-현재 실제 테스트 촬영은 `극장판 체인소 맨: 레제편`으로 진행됐다. 1차 약 82분 촬영물이 있고, 2번째 시청/촬영 세션이 진행 중이다.
-촬영 소스 세부·촬영 조건·진단용 본 촬영 프로토콜은 `FIRST_VIDEO.md`가 owner다.
+1. durable transcription completion marker·manifest와 `ep1.primary_recording` identity를 재확인한다.
+2. fresh stream 2/3 transcript, `ep1.source_subtitles_ko`, 실제 primary video/audio를 사용해 `PIPELINE.yaml` material-first Step 3의 네 layer를 복원한다.
+   - A: source narrative
+   - B: desktop/source dialogue/audio
+   - C: user mic raw
+   - D: visual/nonverbal reaction
+3. source narrative는 사건·관계·목표·위험·감정 변화·앞뒤 의존·climax/resolution/emotional closure를 recording absolute TC와 연결한다.
+4. visual/nonverbal reaction은 transcript만으로 확정하지 않고 실제 영상의 표정·웃음·침묵·억양·타이밍·몰입으로 확인한다.
+5. 네 layer를 absolute TC로 정렬한 synchronized evidence timeline과 uncertainty/provenance를 만든다.
+6. 이 독립 reconstruction에는 A/B premise, `FIRST_VIDEO.md`의 planning premise, retired GPT EP1 구체적 답안·candidate·selection·pilot/UAT를 입력하지 않는다.
+7. reconstruction이 완결되면 **STOP**한다. scene candidate 경쟁, A/B→C planning synthesis, RETAIN/DROP, Opening/body order, final composition은 다음 별도 실행에서만 시작한다.
 
-## 1차 애니 진단·2차 진단 방향
+그 다음 planning synthesis 실행에서만 current repo owner의 A/B→C·`나라면 왜 보나`·핵심 장면·boundary·Opening·payoff 등 방법론을 Gemini에 투영하고, Gemini가 material selection부터 최종 edit plan까지 판단한다.
 
-1차 레제편 촬영은 정밀 진단이 아니라 1차 관찰 단계로 종결했고, 2차 진단은 멀티트랙 분리 녹화로 진행한다. 판정 내용과 확인 항목은 `FIRST_VIDEO.md`가 owner다.
+## Owner pointers
 
-## 사용자 실사용 검수(UAT) — 구조 문제 발견, 개발 재개
+- common executable planning process: `tools/harness/PIPELINE.yaml`
+- EP1 stable facts·clean-room boundary: `FIRST_VIDEO.md`
+- EP1 current planning results: `materials/ep1_main/PLANNING_RESULTS.md`
+- runtime route·raw artifact registry·현재 clean-room run contract: `tools/harness/STATE.json`
+- crash-safe Gemini retranscription execution: `tools/harness/gemini_transcribe.py`
+- external media run journal·checkpoint lifecycle: `tools/harness/durable_media.py`
+- deterministic EP1 projection: `tools/harness/EP1_LOCK.json`
+- long-lived judgment principles: `PLAYBOOK.md`
 
-실제 사용자가 직접 사용해 본 결과, 자동시험으로는 드러나지 않던 **작업 흐름 자체의 설계 문제**가 확인됐다.
+## Other workstreams
 
-발견된 핵심 문제:
-- AI 후보 생성과 **선택하지 않은 후보 전부**의 Nadeshiko 검색이 한 번에 묶여 있고, 검색 결과가 있는 표현만 보인다.
-- 검색 응답·장면 원본·URL·캐시가 DB에 영구 저장되고, 시작 시 지난 검색이 자동 복원된다.
-- 장면 수만큼 영상 플레이어가 동시에 생성·로딩된다.
-- 실제 작업 결과(판정·번역·메모)가 검색 저장 구조에 종속돼 있다.
+Cloud material storage, Scene Collector, System Evaluation 등 EP1 clean-room restart와 무관한 workstream의 기존 current truth는 이번 reset으로 변경하지 않는다.
 
-이에 따라 **재작업 계획을 승인하고 개발을 재개**했다. 승인된 계약의 핵심:
-- 한국어 의미 → **저장 표현이 있으면 AI 미호출**, 없으면 AI가 자연스러운 표현을 폭넓게(최대 20, 억지로 채우지 않음) 생성해 **표현 자산으로 저장**(meanings ↔ meaning_expressions(의미별 뜻/말투) ↔ expressions). [표현 더 찾기]는 기존 표현을 전달해 중복 없는 추가분만 저장.
-- **사용자가 선택한 의미→표현 관계 1개만** Nadeshiko(활성 작품)+로컬 자막 검색. 검색 결과·문맥 응답은 캐시/저장하지 않는다(세션 한정).
-- 로컬 자막 결과는 이번 범위에서 **참고 검색 결과**(존재 확인)로만 표시 — 영상 로딩·판정·저장·내보내기 대상 아님.
-- 장면 목록은 텍스트로, **영상 플레이어는 1개**만 두고 선택한 장면만 로딩.
-- 문맥/번역은 장면 단위 명시 요청 시에만 실행하고 **번역 결과만 작업물로 저장**.
-- **실제 작업한 장면만** `work_scenes`(관계 기준, URL 미저장)에 저장. 내보내기는 기존 MP4 재사용, 없으면 `get_segment`로 현재 URL 재조회.
-- DB는 v4로 마이그레이션: 실 SSD DB **사본 리허설 통과 후에만** 실 DB 실행, 구조 변경 전 자동 백업 유지, 선호 작품·로컬 자막·기존 표현·의미 연결·판정·번역·메모 보존, 캐시·검색 이력 폐기.
-- 설정 `candidate_count`는 의미가 달라졌으므로 값을 승계하지 않고 `expression_generation_limit`(기본 20)으로 대체한다.
-
-**완료 조건은 자동시험이 아니라 사용자 직접 실사용 검수 통과다.** 현재는 미완료 보존 상태이며, 다시 요청하면 `SCENE_COLLECTOR_PLAN.md` 25절의 승인된 재작업 계약에서 이어간다.
-
-## 윤성원 PD 강의자료·2화 아이디어 작업 상태
-
-- 사용자 제공 윤성원 PD **강의자료 전체 정독을 완료**했다. 이 자료는 강의 전사가 아니므로 실제 강의 발언을 확정하는 근거로 사용하지 않는다.
-- 강의자료의 슬라이드·기획안·사례·제작 참고 내용은 `references/YOON_SUNGWON_LECTURE_MATERIALS.md`에 **보조 reference**로 분리했다.
-- 윤성원 PD의 실제 방법론 판단은 계속 **강의 전사를 1차 근거**로 한다. 사용자가 한 편씩 전사를 진행하면 해당 강의자료와 대조해 `references/YOON_SUNGWON_CONTENT_ESSENCE.md`를 갱신한다.
-- 현재 2화 방법론 탐색에서는 **전사가 확인된 5-2를 중심 근거로 사용하고 강의자료는 사례적 참고로만 사용**해 방법론 아이디어 **34개**를 생성했다.
-- 34개 후보는 확정 기획이 아니며 `IDEATION.md`에 작업 중 아이디어 뱅크로 보존했다.
-- 이 작업에서 남은 것은 아이디어 재생성이 아니라 **34개 후보의 1차 선별**이다(보존, 현재 작업 아님). 선별 후 살아남은 후보만 C·예상 댓글·공유 문구 검증으로 넘긴다.
-- `PLAYBOOK.md`는 이번 강의자료 정독만을 근거로 수정하지 않았다.
-
-## 운영 원칙
-
-현재 상태 질문은 이 파일을 기준으로 답한다. 다음 할 일은 위 POC 절 한 곳에만 적는다.
-장면 수집기 실제 구현을 시작할 때는 `SCENE_COLLECTOR_PLAN.md`를 실행 계획으로 읽는다.
+현재 상태 질문은 이 파일을 기준으로 답하고, EP1 세부 사실은 위 owner로 이동해 확인한다.

@@ -1,0 +1,75 @@
+{
+  "fixture_id": "FIX-REG-BOOTSTRAP-FALLBACK-001",
+  "task_id": "REG-BOOTSTRAP-FALLBACK-001",
+  "target": "direct_component",
+  "fake_environment": {
+    "local_checkout_present": false,
+    "first_access_path": {"result": "error", "error": "simulated path failure"},
+    "second_access_path": {"result": "success"},
+    "pull_request": 2,
+    "branch": "fixture-feature",
+    "sha": "1111111111111111111111111111111111111111",
+    "owners": {
+      "STATE.fixture": {"sha": "1111111111111111111111111111111111111111", "marker": "CURRENT_STATE"},
+      "AGENTS.fixture": {"sha": "1111111111111111111111111111111111111111", "marker": "CURRENT_ROUTING"},
+      "OWNER.fixture": {"sha": "1111111111111111111111111111111111111111", "marker": "CURRENT_OWNER"}
+    }
+  },
+  "cases": [
+    {
+      "id": "known_pass",
+      "expected_status": "PASS",
+      "evidence": [
+        {"id": "github_fallback", "target": "direct_component", "state": "AVAILABLE", "value": {"first_path_failed": true, "fallback_attempted": true, "fallback_succeeded": true, "declared_globally_unavailable": false}},
+        {"id": "owner_shas", "target": "direct_component", "state": "AVAILABLE", "value": ["1111111111111111111111111111111111111111", "1111111111111111111111111111111111111111", "1111111111111111111111111111111111111111"]},
+        {"id": "current_owner_grounded", "target": "direct_component", "state": "AVAILABLE", "value": true},
+        {"id": "bootstrap_receipt", "target": "direct_component", "state": "AVAILABLE", "value": {"bootstrap_succeeded": true, "receipt_emitted": true, "required_owner_evidence": true, "freshness_verified": true}},
+        {"id": "freshness", "target": "direct_component", "state": "AVAILABLE", "value": {"start_sha": "1111111111111111111111111111111111111111", "final_sha": "1111111111111111111111111111111111111111"}}
+      ]
+    },
+    {
+      "id": "known_fail",
+      "expected_status": "FAIL",
+      "evidence": [
+        {"id": "github_fallback", "target": "direct_component", "state": "AVAILABLE", "value": {"first_path_failed": true, "fallback_attempted": false, "fallback_succeeded": false, "declared_globally_unavailable": true}},
+        {"id": "owner_shas", "target": "direct_component", "state": "AVAILABLE", "value": ["1111111111111111111111111111111111111111", "2222222222222222222222222222222222222222"]},
+        {"id": "current_owner_grounded", "target": "direct_component", "state": "AVAILABLE", "value": false},
+        {"id": "bootstrap_receipt", "target": "direct_component", "state": "AVAILABLE", "value": {"bootstrap_succeeded": true, "receipt_emitted": true, "required_owner_evidence": false, "freshness_verified": false}},
+        {"id": "freshness", "target": "direct_component", "state": "AVAILABLE", "value": {"start_sha": "1111111111111111111111111111111111111111", "final_sha": "2222222222222222222222222222222222222222"}}
+      ]
+    },
+    {
+      "id": "missing_evidence",
+      "expected_status": "UNKNOWN",
+      "evidence": [
+        {"id": "github_fallback", "target": "direct_component", "state": "MISSING"},
+        {"id": "owner_shas", "target": "direct_component", "state": "AVAILABLE", "value": ["1111111111111111111111111111111111111111"]},
+        {"id": "current_owner_grounded", "target": "direct_component", "state": "AVAILABLE", "value": true},
+        {"id": "bootstrap_receipt", "target": "direct_component", "state": "AVAILABLE", "value": {"bootstrap_succeeded": true, "receipt_emitted": true, "required_owner_evidence": true, "freshness_verified": true}},
+        {"id": "freshness", "target": "direct_component", "state": "AVAILABLE", "value": {"start_sha": "1111111111111111111111111111111111111111", "final_sha": "1111111111111111111111111111111111111111"}}
+      ]
+    },
+    {
+      "id": "invalid_fixture_cross_target",
+      "expected_status": "INVALID_FIXTURE",
+      "evidence": [
+        {"id": "github_fallback", "target": "actual_work", "state": "AVAILABLE", "value": {"first_path_failed": true, "fallback_attempted": true, "fallback_succeeded": true, "declared_globally_unavailable": false}},
+        {"id": "owner_shas", "target": "direct_component", "state": "AVAILABLE", "value": ["1111111111111111111111111111111111111111"]},
+        {"id": "current_owner_grounded", "target": "direct_component", "state": "AVAILABLE", "value": true},
+        {"id": "bootstrap_receipt", "target": "direct_component", "state": "AVAILABLE", "value": {"bootstrap_succeeded": true, "receipt_emitted": true, "required_owner_evidence": true, "freshness_verified": true}},
+        {"id": "freshness", "target": "direct_component", "state": "AVAILABLE", "value": {"start_sha": "1111111111111111111111111111111111111111", "final_sha": "1111111111111111111111111111111111111111"}}
+      ]
+    },
+    {
+      "id": "infra_error",
+      "expected_status": "INFRA_ERROR",
+      "evidence": [
+        {"id": "github_fallback", "target": "direct_component", "state": "INFRA_ERROR", "detail": "mock service failed to start"},
+        {"id": "owner_shas", "target": "direct_component", "state": "AVAILABLE", "value": ["1111111111111111111111111111111111111111"]},
+        {"id": "current_owner_grounded", "target": "direct_component", "state": "AVAILABLE", "value": true},
+        {"id": "bootstrap_receipt", "target": "direct_component", "state": "AVAILABLE", "value": {"bootstrap_succeeded": true, "receipt_emitted": true, "required_owner_evidence": true, "freshness_verified": true}},
+        {"id": "freshness", "target": "direct_component", "state": "AVAILABLE", "value": {"start_sha": "1111111111111111111111111111111111111111", "final_sha": "1111111111111111111111111111111111111111"}}
+      ]
+    }
+  ]
+}

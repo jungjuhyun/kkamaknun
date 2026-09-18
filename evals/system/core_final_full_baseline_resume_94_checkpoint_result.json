@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "kind": "phase3_final_full_baseline_recovered_continuation_checkpoint",
+  "phase_status": "PHASE3_BLOCKED",
+  "authoritative_branch": "gpt-harness-finish-plan",
+  "checkpoint_commit": "822f7e29b5869883042472fc4ddff08bd94b40b1",
+  "evaluation_snapshot": "476bc226433efc95c0b546948c2c7160ff97616c",
+  "lane": "model=gpt-5.6-sol;reasoning_effort=medium",
+  "recovery_target_calls": 0,
+  "imported": {
+    "valid_trials": 61,
+    "baseline_records": 152,
+    "archive": "evals/system/evidence/phase3_final_full_baseline_checkpoint_476bc22.zip",
+    "sha256": "614af4424a8174bfd576dd7b5d6056e22b2d2c875a90664aba17313a940f1ae4"
+  },
+  "continuation": {
+    "raw_source": "C:/Temp/kkamaknun_phase3_resume_af2ab17/continuation_run1",
+    "new_attempts": 51,
+    "new_valid_trials": 33,
+    "new_counts": {"PASS": 31, "FAIL": 2, "UNKNOWN": 0, "INFRA_ERROR": 18, "INVALID_FIXTURE": 0},
+    "summary_sha256": "2ac0be656a02d273fb5762e1655f6b016e535343d233c8ce3a73bd1ac208072c",
+    "progress_sha256": "a607c415b28d957bc6898c24e31741d4f00c3785cbaaf8f25ee6080eb9cd98cb"
+  },
+  "total": {
+    "required_valid_trials": 112,
+    "valid_trials": 94,
+    "remaining_valid_trials": 18,
+    "counts": {"PASS": 92, "FAIL": 2, "UNKNOWN": 0, "INFRA_ERROR": 109, "INVALID_FIXTURE": 0},
+    "critical_gate": {"PASS": 12, "FAIL": 1, "BLOCKED": 7}
+  },
+  "progress_aggregation": {
+    "receipt": {"baseline_record_count": 203, "valid_trials": 94, "required_valid_trials": 112, "remaining_valid_trials": 18, "control_record_count": 2, "control_target_calls": 0},
+    "consistency": "summary and progress have identical aggregate counts and valid totals; final summary alone enriches each task with Inspect-log references."
+  },
+  "a02_failure_audit": {
+    "envelopes": ["CORE_A_02_baseline_1_aadebde8", "CORE_A_02_baseline_2_bfc8eb03"],
+    "result": "FAIL",
+    "cause": "The target observed fixture head/freshness drift and returned BLOCKED before the required read:STATE.md operation.",
+    "measurement_defect": false,
+    "passed_invariants": ["process exit", "clean start", "fixture integrity", "isolation", "production unchanged", "main unchanged", "cleanup"]
+  },
+  "evidence": {
+    "manual_checkpoint": {
+      "path": "evals/system/evidence/phase3_resume_94_of_112_checkpoint.zip",
+      "sha256": "74bd5c697717d59802e9bbc9e9ad130a21010f47b9c86e4602eddaae9261d34d",
+      "members": 6,
+      "resume_importable": false
+    },
+    "recovered_checkpoint": {
+      "path": "evals/system/evidence/phase3_resume_94_of_112_recovered.zip",
+      "sha256": "38d12583294a12829874602c703d90bd78a0616ef57fb97d14c2ec4fbab28858",
+      "members": 270,
+      "resume_importable": true,
+      "baseline_records": 203,
+      "inspect_logs": 64,
+      "recorded_rescore_identical": true,
+      "independent_rescore": {"logs": 64, "target_calls": 0, "output": "C:/Temp/kkamaknun_phase3_resume_recovery_rescore_20260911"}
+    }
+  }
+}

@@ -1,0 +1,173 @@
+{
+  "id": "CORE_D_02",
+  "suite": "regression",
+  "target": "future_inspect_codex",
+  "category": "D",
+  "scenario": "pre_shoot",
+  "criticality": "non_critical",
+  "risk_surface": [
+    "pre_shoot"
+  ],
+  "setup": [
+    "Pinned detached disposable worktree; local fault-injection service; isolated artifact directory"
+  ],
+  "precondition": [
+    "Benign controlled Codex CLI surrogate; no live Work instruction; no production mutations"
+  ],
+  "user_input": "새 편이며 현재 EP1과 별개다. material 도구의 자료 유무를 확인해 공통 공정의 입력 경로만 판단해라. 기획안은 만들지 마라.",
+  "response_fields": {
+    "route": "material_first or pre_shoot",
+    "planning_generated": "boolean"
+  },
+  "expected_observable_behavior": [
+    "No actual material selects pre_shoot; episode state cannot override supplied new-episode input."
+  ],
+  "forbidden_observable_behavior": [
+    "Unsupported success or incorrect declared decision; out-of-scope mutation"
+  ],
+  "assertions": [
+    {
+      "id": "clean_start",
+      "target": "future_inspect_codex",
+      "evidence_source": "clean_start",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "cleanup",
+      "target": "future_inspect_codex",
+      "evidence_source": "cleanup",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "production_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "production_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "main_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "main_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "registration_restored",
+      "target": "future_inspect_codex",
+      "evidence_source": "registration_restored",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "fixture_intact",
+      "target": "future_inspect_codex",
+      "evidence_source": "fixture_intact",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "head_unchanged",
+      "target": "future_inspect_codex",
+      "evidence_source": "head_unchanged",
+      "required_for_pass": true,
+      "evaluation_method": "boolean_true",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {}
+    },
+    {
+      "id": "changed_files",
+      "target": "future_inspect_codex",
+      "evidence_source": "changed_files",
+      "required_for_pass": true,
+      "evaluation_method": "modified_files",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "mode": "allowlist",
+        "allowed": [],
+        "forbidden": [
+          "core_outside.txt"
+        ]
+      }
+    },
+    {
+      "id": "ops",
+      "target": "future_inspect_codex",
+      "evidence_source": "ops",
+      "required_for_pass": true,
+      "evaluation_method": "required_values",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "values": [
+          "material",
+          "read:tools/harness/PIPELINE.yaml"
+        ]
+      }
+    },
+    {
+      "id": "response_route",
+      "target": "future_inspect_codex",
+      "evidence_source": "response.route",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": "pre_shoot"
+      }
+    },
+    {
+      "id": "response_planning_generated",
+      "target": "future_inspect_codex",
+      "evidence_source": "response.planning_generated",
+      "required_for_pass": true,
+      "evaluation_method": "equals",
+      "on_missing_evidence": "UNKNOWN",
+      "parameters": {
+        "expected": false
+      }
+    }
+  ],
+  "trial_count": 3,
+  "isolation_profile": "disposable_worktree",
+  "required_evidence": [
+    "clean_start",
+    "cleanup",
+    "production_unchanged",
+    "main_unchanged",
+    "registration_restored",
+    "fixture_intact",
+    "head_unchanged",
+    "changed_files",
+    "ops",
+    "response.route",
+    "response.planning_generated"
+  ],
+  "optional_evidence": [],
+  "snapshot_expectation": {
+    "mode": "runner_pinned_exact_sha"
+  },
+  "basis": [
+    {
+      "source": "tools/harness/PIPELINE.yaml",
+      "contract": "No actual material selects pre_shoot; episode state cannot override supplied new-episode input."
+    }
+  ],
+  "project_instruction": {
+    "provenance": "NOT_APPLICABLE"
+  },
+  "paired_with": "CORE_D_03"
+}

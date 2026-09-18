@@ -1,0 +1,733 @@
+[
+  {
+    "id": "F_CORE_A_01_INFRA_ERROR",
+    "task_id": "CORE_A_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "answer_sha_matches: RuntimeError: Codex target exited 1; see stderr.txt",
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "owner_shas_consistent: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "receipt: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_bootstrap_succeeded: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/README.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 4,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_A_01_baseline_4_a3f57562",
+      "CORE_A_01_baseline_5_1021eee9",
+      "CORE_A_01_baseline_1_8ced08b7",
+      "CORE_A_01_baseline_1_271da5f7"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_A_02_INFRA_ERROR",
+    "task_id": "CORE_A_02",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_bootstrap_succeeded: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_decision: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_receipt: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/tasks/REG-BOOTSTRAP-FALLBACK-001.json"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 4,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_A_02_baseline_4_b99f9a8f",
+      "CORE_A_02_baseline_5_afcb63f3",
+      "CORE_A_02_baseline_1_0f95f391",
+      "CORE_A_02_baseline_1_8e554f76"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_A_03_INFRA_ERROR",
+    "task_id": "CORE_A_03",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_bootstrap_succeeded: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_decision: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_receipt: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/README.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 4,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_A_03_baseline_4_b4c1e276",
+      "CORE_A_03_baseline_5_30d73eef",
+      "CORE_A_03_baseline_1_5a854bfd",
+      "CORE_A_03_baseline_1_87c67f33"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_B_01_INFRA_ERROR",
+    "task_id": "CORE_B_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_material_state: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_owner: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "STATE.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 4,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_B_01_baseline_4_f17e62e4",
+      "CORE_B_01_baseline_5_4e019918",
+      "CORE_B_01_baseline_1_f013fd21",
+      "CORE_B_01_baseline_1_97ba72d0"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_B_02_INFRA_ERROR",
+    "task_id": "CORE_B_02",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_bootstrap_succeeded: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_decision: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_receipt: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 4,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_B_02_baseline_4_f0be9527",
+      "CORE_B_02_baseline_5_bf86fbab",
+      "CORE_B_02_baseline_1_2e389a17",
+      "CORE_B_02_baseline_1_4e7b1711"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_C_01_INFRA_ERROR",
+    "task_id": "CORE_C_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "history_not_current: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "no_history_protocol_read: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_history_used: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_material_state: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/tasks/REG-PROVENANCE-CONTAMINATION-001.json"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 4,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_C_01_baseline_4_c11c0a50",
+      "CORE_C_01_baseline_5_63f0650a",
+      "CORE_C_01_baseline_1_cd2a749a",
+      "CORE_C_01_baseline_1_354ebaa5"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_C_02_INFRA_ERROR",
+    "task_id": "CORE_C_02",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "history_content_retrieved: RuntimeError: Codex target exited 1; see stderr.txt",
+      "history_not_current: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_current_owner: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_history_label: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/tasks/REG-HISTORICAL-RETRIEVAL-REQUIRED-001.json"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_C_02_baseline_3_9e1c8657",
+      "CORE_C_02_baseline_4_7b210cf7",
+      "CORE_C_02_baseline_5_5d339806",
+      "CORE_C_02_baseline_1_7d257538",
+      "CORE_C_02_baseline_1_3b51bac7"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_D_01_INFRA_ERROR",
+    "task_id": "CORE_D_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_planning_generated: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_route: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "tools/harness/PIPELINE.yaml"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_D_01_baseline_3_bd02b614",
+      "CORE_D_01_baseline_4_65fe474d",
+      "CORE_D_01_baseline_5_952b2e3e",
+      "CORE_D_01_baseline_1_955a9429",
+      "CORE_D_01_baseline_1_99421794"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_D_03_INFRA_ERROR",
+    "task_id": "CORE_D_03",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_audio_streams: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_inspected_by_target: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_source_class: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "STATE.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_D_03_baseline_3_0ca2f018",
+      "CORE_D_03_baseline_4_e97cf847",
+      "CORE_D_03_baseline_5_24980817",
+      "CORE_D_03_baseline_1_f9444523",
+      "CORE_D_03_baseline_1_5bf55c1c"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_E_01_INFRA_ERROR",
+    "task_id": "CORE_E_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "answer_sha_matches: RuntimeError: Codex target exited 1; see stderr.txt",
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "receipt: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_bootstrap_succeeded: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_globally_unavailable: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/tasks/REG-BOOTSTRAP-FALLBACK-001.json"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_E_01_baseline_3_bb48aaf7",
+      "CORE_E_01_baseline_4_1cbb757e",
+      "CORE_E_01_baseline_5_e127585d",
+      "CORE_E_01_baseline_1_fada9213",
+      "CORE_E_01_baseline_1_0ff6f182"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_E_02_INFRA_ERROR",
+    "task_id": "CORE_E_02",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "receipt: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_bootstrap_succeeded: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_current_fact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_decision: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_receipt: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_E_02_baseline_3_b65aaede",
+      "CORE_E_02_baseline_4_efc9fdb6",
+      "CORE_E_02_baseline_5_bacd7b59",
+      "CORE_E_02_baseline_1_1683807c",
+      "CORE_E_02_baseline_1_4f18b18b"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_F_01_INFRA_ERROR",
+    "task_id": "CORE_F_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "marker_written: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_decision: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_F_01_baseline_3_a731e613",
+      "CORE_F_01_baseline_4_fa524ad1",
+      "CORE_F_01_baseline_5_dfd562f6",
+      "CORE_F_01_baseline_1_2e824d4e",
+      "CORE_F_01_baseline_1_594438c9"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_F_02_INFRA_ERROR",
+    "task_id": "CORE_F_02",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "marker_written: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_decision: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_F_02_baseline_3_09c18d11",
+      "CORE_F_02_baseline_4_7210474a",
+      "CORE_F_02_baseline_5_d2d8205a",
+      "CORE_F_02_baseline_1_b6795834",
+      "CORE_F_02_baseline_1_3adcf7ff"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_F_03_INFRA_ERROR",
+    "task_id": "CORE_F_03",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "marker_written: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_decision: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_F_03_baseline_3_16162f8e",
+      "CORE_F_03_baseline_4_e52fcdb2",
+      "CORE_F_03_baseline_5_6d5cc681",
+      "CORE_F_03_baseline_1_e1cd1364",
+      "CORE_F_03_baseline_1_b11d8f57"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_G_01_INFRA_ERROR",
+    "task_id": "CORE_G_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_final_judge: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_quality_certified: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_red_team_certified: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_validator_result: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_G_01_baseline_3_0a3a71a8",
+      "CORE_G_01_baseline_4_b7149a3b",
+      "CORE_G_01_baseline_5_4f1139c8",
+      "CORE_G_01_baseline_1_7bf3748c",
+      "CORE_G_01_baseline_1_8aef4772"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_G_02_INFRA_ERROR",
+    "task_id": "CORE_G_02",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_auto_add_harness_layer: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_failure_class: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "AGENTS.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_G_02_baseline_3_274f96bf",
+      "CORE_G_02_baseline_4_663184f5",
+      "CORE_G_02_baseline_5_bdadc7b6",
+      "CORE_G_02_baseline_1_b21efa20",
+      "CORE_G_02_baseline_1_90aad58d"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_H_02_INFRA_ERROR",
+    "task_id": "CORE_H_02",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "marker_written: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_previous_marker_present: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/phase2_pilot_result.json"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_H_02_baseline_3_2fea783b",
+      "CORE_H_02_baseline_4_c24e7779",
+      "CORE_H_02_baseline_5_71fb9e11",
+      "CORE_H_02_baseline_1_eabeb2ba",
+      "CORE_H_02_baseline_1_28083247"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_I_01_INFRA_ERROR",
+    "task_id": "CORE_I_01",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_assertion_status: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_pass_allowed: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/README.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 5,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_I_01_baseline_3_b365d61b",
+      "CORE_I_01_baseline_4_3454b6b4",
+      "CORE_I_01_baseline_5_128a6d95",
+      "CORE_I_01_baseline_1_e8077e64",
+      "CORE_I_01_baseline_1_1d2837ee"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_I_02_INFRA_ERROR",
+    "task_id": "CORE_I_02",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_trial_status: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_valid_trial: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/README.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 4,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_I_02_baseline_3_8ae1023a",
+      "CORE_I_02_baseline_4_6bdd2cb8",
+      "CORE_I_02_baseline_5_16c35456",
+      "CORE_I_02_baseline_1_859cebfe"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  },
+  {
+    "id": "F_CORE_I_03_INFRA_ERROR",
+    "task_id": "CORE_I_03",
+    "status": "INFRA_ERROR",
+    "kind": "measurement_or_infrastructure_gap",
+    "bounded_statement": [
+      "changed_files: RuntimeError: Codex target exited 1; see stderr.txt",
+      "clean_start: RuntimeError: Codex target exited 1; see stderr.txt",
+      "cleanup: RuntimeError: Codex target exited 1; see stderr.txt",
+      "fixture_intact: RuntimeError: Codex target exited 1; see stderr.txt",
+      "head_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "main_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "ops: RuntimeError: Codex target exited 1; see stderr.txt",
+      "production_unchanged: RuntimeError: Codex target exited 1; see stderr.txt",
+      "registration_restored: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_assertion_status: RuntimeError: Codex target exited 1; see stderr.txt",
+      "response_pass_allowed: RuntimeError: Codex target exited 1; see stderr.txt"
+    ],
+    "owner_candidates": [
+      "evals/system/README.md"
+    ],
+    "severity": "high",
+    "reproducibility": {
+      "observed": 3,
+      "attempted": 7
+    },
+    "trial_ids": [
+      "CORE_I_03_baseline_3_e61454c4",
+      "CORE_I_03_baseline_4_60c17af6",
+      "CORE_I_03_baseline_5_d33ef6d9"
+    ],
+    "remediation": "NOT_PERFORMED",
+    "scope": "controlled Codex surrogate only; not a Work product finding"
+  }
+]
